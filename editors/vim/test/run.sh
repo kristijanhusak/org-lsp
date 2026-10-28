@@ -4,8 +4,9 @@
 # (tests/e2e/highlight, by highlight.vim), keys typed through tmux as the
 # user types them (typed.vim), then the shared end-to-end
 # scenarios (tests/e2e/scenarios, by scenarios.vim), each scenario in a Vim
-# of its own, a few at a time: once with the plugin's prompts answered
-# and the keys fed, once typed through tmux (typist.py), prompts and all.
+# of its own, a few at a time, typed through tmux (typist.py), prompts and
+# all. With ORG_LSP_VIM_TESTS=scenarios they run instead with the plugin's
+# prompts answered and the keys fed: the same steps, quicker to look into.
 #
 #   editors/vim/test/run.sh [lsp|vim_lsp|coc|ale ...]
 #
@@ -14,7 +15,8 @@
 # the Vim to use (9.1 or newer); ORG_LSP_BIN the server (default: the debug
 # build). Vim runs in a tmux session, as it needs a terminal.
 # ORG_LSP_VIM_TESTS is `cases` (with the highlighting), `highlight`,
-# `scenarios` or `typed` (the scenarios typed) for only those;
+# `scenarios` (fed, not typed) or `typed` (the scenarios typed) for only
+# those;
 # ORG_LSP_E2E=NAME runs only the scenarios whose name has NAME in it, and
 # ORG_LSP_E2E_JOBS of them at a time (4). ORG_LSP_TEST_FILE,
 # ORG_LSP_TEST_PLUGIN and ORG_LSP_TEST_RELEASES are passed on (download.sh
@@ -144,11 +146,13 @@ for client in "$@"; do
     echo "== $client: typed"
     finish "$session" "$work" typed | tee -a "$output"
   fi
-  if [ "$only" != cases ] && [ "$only" != highlight ] && [ "$only" != typed ] && [ -z "${ORG_LSP_TEST_FILE:-}" ]; then
+  # The scenarios with their keys fed and the prompts answered: asked for
+  # alone, as the typed ones below take the same steps.
+  if [ "$only" = scenarios ] && [ -z "${ORG_LSP_TEST_FILE:-}" ]; then
     echo "== $client: scenarios"
     scenarios "$client" "" | tee -a "$output"
   fi
-  # The same scenarios typed through tmux by typist.py: the keys, and the
+  # The scenarios typed through tmux by typist.py: the keys, and the
   # answers to the prompts the plugin shows.
   if { [ -z "$only" ] || [ "$only" = typed ]; } && [ -z "${ORG_LSP_TEST_FILE:-}" ]; then
     echo "== $client: scenarios typed"

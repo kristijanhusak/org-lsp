@@ -108,8 +108,8 @@ others), as close to Emacs Org mode as it can get.
   the same steps.
 - Neovim: ~scripts/test-nvim.sh~ (set ~NVIM~ to the binary), on 0.12.0 and
   stable. Tests run headless against the real server; ~tests/nvim/scenarios.lua~
-  is its adapter of the scenarios, which runs them a second time typed: each
-  in Neovim's own terminal UI in tmux, nothing replaced, ~'updatetime'~ 100.
+  is its adapter of the scenarios, which runs them typed: each in Neovim's
+  own terminal UI in tmux, nothing replaced, ~'updatetime'~ 100.
   That Neovim plays the scenario on timers and writes down the keys it
   wants typed; the runner (~--typed~) types them with ~tmux send-keys~, a
   key at a time, and each answer as what the screen asks for takes it: a
@@ -120,7 +120,9 @@ others), as close to Emacs Org mode as it can get.
   not see, are in ~tests/nvim/typed/NAME.json~, steps of the same kind with
   ~keys~ typed as they are and ~screen~, text the screen must show.
   ~ORG_LSP_NVIM_TESTS=typed scripts/test-nvim.sh [NAME…]~
-  runs only the typed ones. On a nightly build of 0.13,
+  runs only the typed ones; ~ORG_LSP_NVIM_TESTS=headless~ runs the scenarios
+  headless instead, their keys fed and the prompts answered: the same steps,
+  quicker to look into when a typed one fails. On a nightly build of 0.13,
   ~tests/nvim/highlight.lua~ may stop on Neovim's own assertion
   (~grid_line_flush: Assertion `grid_line_clear_to <= grid_line_maxcol'~)
   when it redraws the date prompt's calendar in its headless 140 by 50
@@ -143,8 +145,7 @@ others), as close to Emacs Org mode as it can get.
   checked out in ~dir~ (~lsp~, ~vim-lsp~, ~coc.nvim~ on its ~release~
   branch, ~ale~); Vim runs in tmux. ~editors/vim/test/scenarios.vim~ is its
   adapter of the scenarios. The tests answer prompts themselves, and the
-  scenarios run twice: once with their keys fed and the prompts answered,
-  once typed, everything through tmux as the user types it (see
+  scenarios run typed, everything through tmux as the user types it (see
   [[#end-to-end-scenarios][End-to-end scenarios]]); ~editors/vim/test/typed.vim~ types the agenda
   dispatcher's key, with ~'updatetime'~ passing while it waits for one,
   and the key of a prompt of two lines.
@@ -177,20 +178,21 @@ it sees is in ~tests/e2e/expected/NAME.txt~, written again with
 ~ORG_LSP_UPDATE_E2E=1~ (~ORG_LSP_E2E=NAME~ runs only the scenarios whose name
 has ~NAME~ in it). Each editor has an adapter that presses that editor's keys
 for the same steps and must see the same; Neovim's is
-~tests/nvim/scenarios.lua~ (~scripts/test-nvim.sh~ runs it headless, then typed), Vim's
+~tests/nvim/scenarios.lua~ (~scripts/test-nvim.sh~ runs it typed), Vim's
 ~editors/vim/test/scenarios.vim~, which ~editors/vim/test/run.sh~ runs with
 each LSP client after the plugin's own tests, each scenario in a Vim of its
 own, four at a time:
 
 #+begin_src sh
-CLIENTS=~/vim-clients editors/vim/test/run.sh                  # the tests, then the scenarios
-ORG_LSP_VIM_TESTS=scenarios ORG_LSP_E2E=capture \
-  CLIENTS=~/vim-clients editors/vim/test/run.sh coc            # one scenario, one client
+CLIENTS=~/vim-clients editors/vim/test/run.sh                  # the tests, then the scenarios typed
 ORG_LSP_VIM_TESTS=typed ORG_LSP_E2E=capture \
-  CLIENTS=~/vim-clients editors/vim/test/run.sh coc            # the same, typed
+  CLIENTS=~/vim-clients editors/vim/test/run.sh coc            # one scenario, one client
+ORG_LSP_VIM_TESTS=scenarios ORG_LSP_E2E=capture \
+  CLIENTS=~/vim-clients editors/vim/test/run.sh coc            # the same, keys fed, not typed
 #+end_src
 
-~ORG_LSP_VIM_TESTS~ is ~cases~, ~scenarios~ or ~typed~ for only those,
+~ORG_LSP_VIM_TESTS~ is ~cases~, ~scenarios~ (fed, which the typed ones
+cover: quicker to look into) or ~typed~ for only those,
 ~ORG_LSP_E2E_JOBS~ how many Vims run at once. Each scenario prints one line,
 with the step that failed and what it saw; a step a client cannot take as
 the others do is skipped, with the reason, from ~s:skips~ in
