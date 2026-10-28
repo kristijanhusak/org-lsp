@@ -439,8 +439,9 @@ then publishes it: each of these jobs is skipped while its secret is not
 set, and the nightly build (each push to main, or the workflow run by
 hand on main) publishes none of them.
 
-- ~vscode-marketplace~ (secret ~VSCE_PAT~) :: the VS Code packages, one a
-  platform, on the VS Code Marketplace;
+- ~vscode-marketplace~ (the environment ~marketplace~'s ~AZURE_CLIENT_ID~,
+  or the secret ~VSCE_PAT~) :: the VS Code packages, one a platform, on the
+  VS Code Marketplace;
 - ~open-vsx~ (~OVSX_PAT~) :: the same packages on Open VSX;
 - ~zed-registry~ (~ZED_EXTENSIONS_TOKEN~) :: a pull request to Zed's
   extension registry for the new version;
@@ -463,30 +464,42 @@ What has to be done once, by hand, before each job can publish:
 :CUSTOM_ID: vs-code-marketplace
 :END:
 
+The job publishes as an app of Microsoft Entra ID, which GitHub Actions
+signs in as with no secret of its own (a federated credential), and which
+is a member of the publisher. What has to be done once:
+
 - [ ] The publisher ~kristijanhusak~ (/Kristijan Husak/) exists:
   [[https://marketplace.visualstudio.com/manage/publishers/kristijanhusak]].
-- [ ] An Azure DevOps organization, created at [[https://dev.azure.com]] with
-  the Microsoft account of the publisher.
-- [ ] A personal access token of that account: in Azure DevOps, /User
-  settings › Personal access tokens › New Token/, with /Organization/ set
-  to /All accessible organizations/ and /Scopes/ to /Custom defined/, then
-  /Show all scopes › Marketplace › Manage/.
-  ~npx vsce verify-pat kristijanhusak~ (in ~editors/vscode~, after ~npm
-  ci~) checks it.
-- [ ] The token as the secret ~VSCE_PAT~.
+- [ ] An Azure account ([[https://azure.microsoft.com/free]]), whose sign-up
+  makes its Microsoft Entra ID tenant.
+- [ ] The app: in the Azure portal, /Microsoft Entra ID › App
+  registrations › New registration/, /Single tenant/, no redirect URI.
+  Its /Overview/ has its /Application (client) ID/ and /Directory (tenant)
+  ID/.
+- [ ] Its federated credentials: /Certificates & secrets › Federated
+  credentials › Add credential/, /GitHub Actions deploying Azure
+  resources/, the organization ~kristijanhusak~, the repository
+  ~org-lsp~, the entity /Environment/ ~marketplace~. GitHub's tokens name
+  the repository with or without the IDs of its owner and itself, so
+  there are two, one of each subject:
+  ~repo:kristijanhusak@1782860/org-lsp@1404580301:environment:marketplace~
+  and ~repo:kristijanhusak/org-lsp:environment:marketplace~.
+- [ ] The environment ~marketplace~ in the repository (/Settings ›
+  Environments/), with the secrets ~AZURE_CLIENT_ID~ and
+  ~AZURE_TENANT_ID~.
+- [ ] The app a member of the publisher: run /Actions › Marketplace
+  identity › Run workflow/ (~.github/workflows/marketplace-identity.yml~),
+  which signs in as the app and says its ID; add that ID at the
+  publisher's /Members/ as a /Contributor/. Run it again: its last step
+  says whether the app may publish as ~kristijanhusak~.
 
-When the Azure DevOps sign-up is stuck, a separate Microsoft account made
-for publishing can do it: add it to the publisher as a /Contributor/
-([[https://marketplace.visualstudio.com/manage/publishers/kristijanhusak]],
-/Members/), and let it own the organization and the token.
-
-Azure DevOps retires tokens for all accessible organizations on December
-1, 2026, and the Marketplace takes no other kind
-([[https://code.visualstudio.com/api/working-with-extensions/publishing-extension][Publishing Extensions]]). After that, publishing goes through Microsoft
-Entra ID (~vsce publish --azure-credential~, with an Azure identity that
-GitHub Actions logs in as and that is a member of the publisher), which
-the job does not do yet; the packages of the GitHub release can be
-uploaded by hand at [[https://marketplace.visualstudio.com/manage]] meanwhile.
+The job publishes with the secret ~VSCE_PAT~ instead where the
+environment has no ~AZURE_CLIENT_ID~: a personal access token of an Azure
+DevOps organization of the publisher (/User settings › Personal access
+tokens/, /All accessible organizations/, /Marketplace › Manage/), which
+Azure DevOps takes until December 1, 2026
+([[https://code.visualstudio.com/api/working-with-extensions/publishing-extension][Publishing Extensions]]). The packages of a GitHub release can also be
+uploaded by hand at [[https://marketplace.visualstudio.com/manage]].
 
 ** Open VSX
 :PROPERTIES:
