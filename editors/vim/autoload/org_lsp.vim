@@ -290,6 +290,11 @@ function! s:flush_changes(bufnr) abort
   endfor
 endfunction
 
+" How many answers `org_lsp#request_sync()` waits for: the timers that
+" fire meanwhile leave the buffer's colors and folds for later, as the
+" answer is to come at once (the indentation of a line `o` opened).
+let s:waiting = 0
+
 " A request answered before this returns, or {'error': …} after `timeout`
 " milliseconds.
 function! org_lsp#request_sync(bufnr, method, params, timeout) abort
@@ -299,12 +304,18 @@ function! org_lsp#request_sync(bufnr, method, params, timeout) abort
     let self.error = a:error
     let self.result = a:result
   endfunction
-  call org_lsp#request(a:bufnr, a:method, a:params, state.answer)
-  let waited = 0
-  while !state.done && waited < a:timeout
-    sleep 10m
-    let waited += 10
-  endwhile
+  let start = reltime()
+  let s:waiting += 1
+  try
+    call org_lsp#request(a:bufnr, a:method, a:params, state.answer)
+    " Vim writes to the server a pipe's worth (64 KB) each time it waits:
+    " the whole text of a big file goes in pieces, each after a wait.
+    while !state.done && reltimefloat(reltime(start)) * 1000 < a:timeout
+      sleep 1m
+    endwhile
+  finally
+    let s:waiting -= 1
+  endtry
   return state.done ? {'error': state.error, 'result': state.result} : {'error': {'message': 'timed out'}}
 endfunction
 
@@ -346,11 +357,15 @@ endfunction
 
 " Column `character` of `text` as the client counts it, as a byte index.
 function! s:byte(text, character) abort
-  let encoding = s:encoding()
-  if encoding ==# 'utf-8'
+  return s:byte_in(s:encoding(), a:text, a:character)
+endfunction
+
+" `s:byte()` for the server's position encoding `encoding`.
+function! s:byte_in(encoding, text, character) abort
+  if a:encoding ==# 'utf-8'
     return a:character
   endif
-  let index = encoding ==# 'utf-32' ? byteidx(a:text, a:character) : byteidx(a:text, a:character, 1)
+  let index = a:encoding ==# 'utf-32' ? byteidx(a:text, a:character) : byteidx(a:text, a:character, 1)
   return index < 0 ? len(a:text) : index
 endfunction
 
@@ -1853,7 +1868,7 @@ endfunction
 " Paint buffer `nr` with the tokens it had when it had the lines `old`:
 " those of the lines before and after the part that changed.
 function! s:repaint_kept(nr, old) abort
-  let tokens = get(s:painted, a:nr, [])
+  let tokens = get(s:painted, a:nr, [[], 0])[0]
   let new = getbufline(a:nr, 1, '$')
   if empty(tokens) || new ==# a:old
     return
@@ -2205,7 +2220,7 @@ function! s:line_highlights(params) abort
     call sign_place(0, 'org_lsp_lines', name, nr, {'lnum': line.line + 1})
   endfor
   if org_lsp#config().highlight
-    call s:update_tokens(nr)
+    call s:repaint_all(nr)
   endif
 endfunction
 
@@ -2570,8 +2585,16 @@ function! s:got_folds(nr, error, result) abort
   if !empty(a:error) || type(a:result) != v:t_list || !bufexists(a:nr)
     return
   endif
-  let lines_count = len(getbufline(a:nr, 1, '$'))
-  let depth = repeat([0], lines_count)
+  let lines_count = getbufinfo(a:nr)[0].linecount
+  " The same folds for as many lines as last time (text typed in a line).
+  let got = [a:result, lines_count]
+  if got == getbufvar(a:nr, 'org_lsp_folds_got', [])
+    return
+  endif
+  call setbufvar(a:nr, 'org_lsp_folds_got', got)
+  " How many folds begin on each line less how many ended on the line
+  " before: summed up, each line's depth.
+  let delta = repeat([0], lines_count + 1)
   let starts = {}
   let ranges = []
   for range in sort(copy(a:result), {a, b -> a.startLine - b.startLine})
@@ -2581,12 +2604,16 @@ function! s:got_folds(nr, error, result) abort
       continue
     endif
     call add(ranges, [range.startLine + 1, range.endLine + 1])
-    for line in range(range.startLine, min([range.endLine, lines_count - 1]))
-      let depth[line] += 1
-    endfor
+    let delta[range.startLine] += 1
+    let delta[min([range.endLine, lines_count - 1]) + 1] -= 1
     let starts[range.startLine] = 1
   endfor
-  let levels = map(depth, {i, d -> has_key(starts, i) ? '>' . d : d})
+  let levels = []
+  let depth = 0
+  for line in range(lines_count)
+    let depth += delta[line]
+    call add(levels, has_key(starts, line) ? '>' . depth : depth)
+  endfor
   call setbufvar(a:nr, 'org_lsp_fold_ranges', ranges)
   if levels == getbufvar(a:nr, 'org_lsp_folds', [])
     return
@@ -2975,6 +3002,13 @@ function! s:show_preview(win, position, error, result) abort
   return id
 endfunction
 
+" The tokens of buffer `nr` painted again on all its lines, as something
+" else than its text changed how they show (the faces came).
+function! s:repaint_all(nr) abort
+  silent! call remove(s:painted, a:nr)
+  call s:update_tokens(a:nr)
+endfunction
+
 function! s:update_tokens(nr) abort
   let params = {'textDocument': {'uri': org_lsp#uri(a:nr)}}
   call org_lsp#request(a:nr, 'textDocument/semanticTokens/full', params, function('s:got_tokens', [a:nr, getbufvar(a:nr, 'changedtick')]))
@@ -3005,7 +3039,7 @@ function! s:got_faces(nr, error, result) abort
   let s:faces = a:result
   call s:define_faces()
   if !empty(filter(values(s:faces), '!empty(v:val)')) && bufloaded(a:nr)
-    call s:update_tokens(a:nr)
+    call s:repaint_all(a:nr)
   endif
 endfunction
 
@@ -3075,49 +3109,130 @@ function! s:paint(nr, lines, data) abort
   call s:paint_absolute(a:nr, a:lines, tokens)
 endfunction
 
+" The lines whose tokens are not those painted last, `[first, last]` from
+" 0, or `[]` for none: the tokens alike at the start, and at the end once
+" moved by the lines added since (as the text properties moved with the
+" text), stay as they are.
+function! s:changed_lines(nr, tokens, line_count) abort
+  let [old, old_count] = get(s:painted, a:nr, [v:null, -1])
+  if old is v:null
+    return [0, a:line_count - 1]
+  endif
+  let [n_old, n_new] = [len(old), len(a:tokens)]
+  " The longest alike start and end, each found by halves.
+  let [low, high] = [0, min([n_old, n_new])]
+  while low < high
+    let mid = (low + high + 1) / 2
+    if old[: mid - 1] == a:tokens[: mid - 1]
+      let low = mid
+    else
+      let high = mid - 1
+    endif
+  endwhile
+  let same_start = low
+  if same_start == n_old && n_old == n_new && old_count == a:line_count
+    return []
+  endif
+  let moved = a:line_count - old_count
+  let shifted = moved == 0 ? old : map(copy(old), {_, t -> [t[0] + moved] + t[1 :]})
+  let [low, high] = [0, min([n_old, n_new]) - same_start]
+  while low < high
+    let mid = (low + high + 1) / 2
+    if shifted[n_old - mid :] == a:tokens[n_new - mid :]
+      let low = mid
+    else
+      let high = mid - 1
+    endif
+  endwhile
+  let same_end = low
+  let first = same_start > 0 ? a:tokens[same_start - 1][0] : 0
+  let last = same_end > 0 ? a:tokens[n_new - same_end][0] : a:line_count - 1
+  return [first, max([first, last])]
+endfunction
+
 function! s:paint_absolute(nr, lines, tokens) abort
   if empty(s:selectors)
     call org_lsp#define_highlights()
   endif
-  let s:painted[a:nr] = a:tokens
+  " Not past the buffer's lines, which it may have fewer of by now (the
+  " agenda read again).
+  let line_count = len(getbufline(a:nr, 1, '$'))
+  let changed = s:changed_lines(a:nr, a:tokens, line_count)
+  let s:painted[a:nr] = [a:tokens, line_count]
   let manifest = org_lsp#manifest()
   let types = map(copy(manifest.tokenTypes), 'v:val.id')
   let modifiers = map(copy(manifest.tokenModifiers), 'v:val.id')
   let props = {}
   let lines = a:lines
   let is_org = getbufvar(a:nr, '&filetype') ==# 'org'
-  " Not past the buffer's lines, which it may have fewer of by now (the
-  " agenda read again).
-  let line_count = len(getbufline(a:nr, 1, '$'))
   let hidden_bit = index(modifiers, 'hidden')
+  " The hidden text of the whole buffer, for concealing; the rest painted
+  " only on the lines that changed.
   let hidden = []
-  for [line, character, length, type_index, modifier_bits] in a:tokens
+  if hidden_bit >= 0
+    for [line, character, length, type_index, modifier_bits] in filter(copy(a:tokens), 'and(v:val[4], ' . (1 << hidden_bit) . ') && v:val[0] < ' . line_count)
+      let text = get(lines, line, '')
+      let [start, end] = [s:byte(text, character), min([s:byte(text, character + length), len(text)])]
+      if end > start
+        call add(hidden, [line + 1, start + 1, end - start])
+      endif
+    endfor
+  endif
+  if empty(changed)
+    return
+  endif
+  " The tokens of those lines, in order of their lines.
+  let first_token = 0
+  while first_token < len(a:tokens) && a:tokens[first_token][0] < changed[0]
+    let first_token += 1
+  endwhile
+  let last_token = first_token
+  while last_token < len(a:tokens) && a:tokens[last_token][0] <= changed[1]
+    let last_token += 1
+  endwhile
+  " Columns as the server counts them, in bytes: the same in UTF-8, and on
+  " a line of ASCII alone.
+  let encoding = s:encoding()
+  let ascii = {}
+  " The selectors of each type with its modifiers, made once.
+  let looks = {}
+  for [line, character, length, type_index, modifier_bits] in a:tokens[first_token : last_token - 1]
     if line >= line_count
       continue
     endif
     let type = get(types, type_index, '')
     let text = get(lines, line, '')
-    let start = s:byte(text, character)
-    let end = s:byte(text, character + length)
+    if encoding ==# 'utf-8' || get(ascii, line, -1) == 1
+      let [start, end] = [character, character + length]
+    elseif has_key(ascii, line)
+      let [start, end] = [s:byte_in(encoding, text, character), s:byte_in(encoding, text, character + length)]
+    else
+      let ascii[line] = text !~# '[^\x00-\x7f]'
+      let [start, end] = ascii[line] ? [character, character + length]
+            \ : [s:byte_in(encoding, text, character), s:byte_in(encoding, text, character + length)]
+    endif
+    let end = min([end, len(text)])
     if end <= start
       continue
     endif
-    if hidden_bit >= 0 && and(modifier_bits, 1 << hidden_bit)
-      call add(hidden, [line + 1, start + 1, end - start])
-    endif
-    let selectors = [type]
-    let names = []
-    for bit in range(len(modifiers))
-      if and(modifier_bits, 1 << bit)
-        call add(selectors, '*.' . modifiers[bit])
-        call add(selectors, type . '.' . modifiers[bit])
-        call add(names, modifiers[bit])
+    let key = type_index . ':' . modifier_bits
+    if !has_key(looks, key)
+      let selectors = [type]
+      let names = []
+      for bit in range(len(modifiers))
+        if and(modifier_bits, 1 << bit)
+          call add(selectors, '*.' . modifiers[bit])
+          call add(selectors, type . '.' . modifiers[bit])
+          call add(names, modifiers[bit])
+        endif
+      endfor
+      " A look of the type with all of them (`agendaHabit.ready.future`).
+      if len(names) > 1
+        call add(selectors, type . '.' . join(names, '.'))
       endif
-    endfor
-    " A look of the type with all of them (`agendaHabit.ready.future`).
-    if len(names) > 1
-      call add(selectors, type . '.' . join(names, '.'))
+      let looks[key] = selectors
     endif
+    let selectors = copy(looks[key])
     " A keyword or a priority with a face of its own.
     if type ==# 'todoKeyword' || type ==# 'priority'
       let name = text[start : end - 1]
@@ -3149,7 +3264,9 @@ function! s:paint_absolute(nr, lines, tokens) abort
       endif
     endfor
   endfor
-  call prop_remove({'types': values(s:selectors), 'bufnr': a:nr, 'all': 1})
+  if changed[1] >= changed[0]
+    call prop_remove({'types': values(s:selectors), 'bufnr': a:nr, 'all': 1}, changed[0] + 1, min([changed[1] + 1, line_count]))
+  endif
   for [selector, positions] in items(props)
     call prop_add_list({'bufnr': a:nr, 'type': s:selectors[selector]}, positions)
   endfor
@@ -3170,11 +3287,17 @@ function! s:changed(nr) abort
   if has_key(s:pending, a:nr)
     call timer_stop(s:pending[a:nr])
   endif
-  let s:pending[a:nr] = timer_start(mode() =~# '^[iR]' ? 200 : 20, {-> s:refresh(a:nr)})
+  " A line `o` opens is changed while its indentation is asked for, and
+  " typed on next.
+  let s:pending[a:nr] = timer_start(mode() =~# '^[iR]' || s:waiting ? 200 : 20, {-> s:refresh(a:nr)})
 endfunction
 
 function! s:refresh(nr) abort
   silent! call remove(s:pending, a:nr)
+  if s:waiting
+    call s:changed(a:nr)
+    return
+  endif
   if !bufloaded(a:nr)
     return
   endif
@@ -3336,7 +3459,9 @@ function! s:code_blocks(params) abort
     return
   endif
   call setbufvar(nr, 'org_lsp_code_blocks', get(a:params, 'blocks', []))
-  if bufnr() == nr
+  " Each change brings them: while the buffer is still being changed, the
+  " refresh to come shows them.
+  if bufnr() == nr && !s:waiting && !has_key(s:pending, nr)
     call s:src_syntax()
   endif
 endfunction
@@ -3350,6 +3475,12 @@ endfunction
 " buffer has, newer blocks are on their way.
 function! s:src_syntax() abort
   let blocks = get(b:, 'org_lsp_code_blocks', [])
+  " The same blocks as last made, in the syntax loaded then.
+  let made = [blocks, get(b:, 'org_lsp_syntax_loads', 0), org_lsp#config().src_highlight]
+  if made == get(b:, 'org_lsp_src_made', [])
+    return
+  endif
+  let b:org_lsp_src_made = made
   let groups = get(b:, 'org_lsp_src_groups', [])
   for group in groups
     execute 'silent! syntax clear ' . group
@@ -3360,6 +3491,9 @@ function! s:src_syntax() abort
   endif
   let last = line('$')
   let groups = {}
+  let encoding = s:encoding()
+  " The languages included, checked once each.
+  let included = {}
   for block in blocks
     let lang = get(s:src_syntaxes, block.language, block.language)
     if type(lang) != v:t_string || lang !~# '^\w\+$' || !s:has_syntax(lang)
@@ -3372,7 +3506,8 @@ function! s:src_syntax() abort
     endif
     let cluster = 'orgLspSrc_' . lang
     " Vim's syntax for the buffer forgets the file when it is set again.
-    if execute('silent! syntax list @' . cluster) !~# '\<' . cluster . ' cluster='
+    " `syntax list` pads a short name with blanks before `cluster=`.
+    if !has_key(included, cluster) && execute('silent! syntax list @' . cluster) !~# '\<' . cluster . '\s\+cluster='
       let current = get(b:, 'current_syntax', v:null)
       unlet! b:current_syntax
       execute 'silent! syntax include @' . cluster . ' syntax/' . lang . '.vim'
@@ -3382,17 +3517,22 @@ function! s:src_syntax() abort
         let b:current_syntax = current
       endif
     endif
+    let included[cluster] = 1
     let group = 'orgLspSrcCode_' . lang
     let groups[group] = 1
-    let col = s:byte(getline(start.line + 1), start.character)
-    let end_col = s:byte(getline(end.line + 1), end.character)
+    let col = s:byte_in(encoding, getline(start.line + 1), start.character)
+    let end_col = s:byte_in(encoding, getline(end.line + 1), end.character)
     " Within the blocks of the plugin's syntax for Org (syntax/org.vim),
     " whose regions take the whole block.
     execute printf('syntax region %s start=/\%%%dl\%%%dc/ end=/\%%%dl\%%%dc/ keepend contains=@%s containedin=orgSyntaxRawBlock',
           \ group, start.line + 1, col + 1, end.line + 1, end_col + 1, cluster)
   endfor
-  " The files included sync as suits their language alone.
-  syntax sync fromstart
+  " The files included sync as suits their language alone: Org's sync from
+  " the headline before (syntax/org.vim) again, as a block ends before the
+  " next headline. From the start, a change far in the file takes longer
+  " than 'redrawtime'.
+  syntax sync clear
+  syntax sync match orgSyntaxSync grouphere NONE /^\*\+\s/
   let b:org_lsp_src_groups = keys(groups)
 endfunction
 
