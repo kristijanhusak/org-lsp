@@ -6,7 +6,6 @@
   "publisher": "kristijanhusak",
   "license": "GPL-3.0-or-later",
   "private": true,
-  "preview": true,
   "icon": "icon.png",
   "galleryBanner": {
     "color": "#3e6869",

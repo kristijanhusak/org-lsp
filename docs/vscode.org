@@ -10,15 +10,17 @@ about Org is listed there by hand. It works in VS Code's relatives too
 
 * Installing
 
-The extension is on the [[https://marketplace.visualstudio.com/items?itemName=kristijanhusak.org-lsp][Visual Studio Marketplace]], as a preview: search for
+The extension is on the [[https://marketplace.visualstudio.com/items?itemName=kristijanhusak.org-lsp][Visual Studio Marketplace]], and on [[https://open-vsx.org/extension/kristijanhusak/org-lsp][Open VSX]] for
+VSCodium, Cursor and the other editors that install from there: search for
 /org-lsp/ in the Extensions view and install it, or run
 
 #+begin_src sh
 code --install-extension kristijanhusak.org-lsp
 #+end_src
 
-It comes for Linux (x64, arm64), macOS (Apple silicon, Intel) and Windows
-(x64), and VS Code updates it as releases come out.
+(~codium~ or ~cursor~ in place of ~code~). It comes for Linux (x64, arm64),
+macOS (Apple silicon, Intel) and Windows (x64), and the editor updates it
+as releases come out.
 
 The nightly build, made from ~main~ after each change, is installed by a
 script instead:
@@ -37,10 +39,9 @@ scripts/install.sh --source vscode           # built from this checkout (cargo, 
 
 The script downloads the package for your platform from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]]
 (or the release named), or builds it, and installs it with
-~code --install-extension~, in place of the Marketplace's. Run it again to
+~code --install-extension~, in place of the store's. Run it again to
 update, then reload the window. ~CODE=codium~ (or ~code-insiders~,
-~cursor~) installs into another editor; VSCodium and Cursor do not use the
-Marketplace. On Windows without a shell, download ~org-lsp-win32-x64.vsix~
+~cursor~) installs into another editor. On Windows without a shell, download ~org-lsp-win32-x64.vsix~
 from the release and run *Extensions: Install from VSIX…*.
 
 The package has the server inside. The extension looks for the server in
