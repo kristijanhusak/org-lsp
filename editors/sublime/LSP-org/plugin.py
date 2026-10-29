@@ -48,7 +48,7 @@ JOURNAL_TRIES = 50
 REPOSITORY = 'kristijanhusak/org-lsp'
 # The package's version (scripts/version.sh), and the release whose server
 # it downloads: its own, or `nightly` in the nightly build's package.
-VERSION = '0.1.0'
+VERSION = '0.1.1'
 RELEASE = 'v' + VERSION  # The nightly build puts 'nightly' here.
 # The release's name for each platform Sublime Text runs on.
 PLATFORMS = {
