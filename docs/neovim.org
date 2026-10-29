@@ -121,6 +121,9 @@ The agenda has the keys it has in every editor: Emacs's (~f~ and ~b~, ~t~,
 ~v~ (~vd~, ~vw~), so that no motion is taken; ~q~ closes it. Counts work,
 and the editing keys repeat with ~.~. Dates are asked for with Emacs's
 calendar, or typed as at Org's prompt (~fri 10:00~, ~+2d~, ~2/15~, ~++1w~).
+Keys that a mapping or a macro gives after a key that asks wait for the
+question and answer it, as in Emacs; keys pasted a few milliseconds after
+~<Leader>ois~, before the calendar is there, may reach the Org file instead.
 
 [[file:keys/neovim.org][keys/neovim.org]] lists every key and how to change it.
 
