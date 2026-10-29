@@ -1,8 +1,0 @@
-{
-  "folder": {
-    "org-lsp.settings": {
-      "clock": { "today": "2026-05-18", "now": "10:30" },
-      "emacs_config": "(add-to-list 'load-path \"/root/org-mode/lisp\")\n(require 'org-crypt)\n(setq org-crypt-key \"test@example.com\")\n(setq epg-pinentry-mode 'loopback)\n(org-crypt-use-before-save-magic)"
-    }
-  }
-}
