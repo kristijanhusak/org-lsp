@@ -450,11 +450,7 @@ hand on main) publishes none of them.
 - ~vscode-marketplace~ (the environment ~marketplace~'s ~AZURE_CLIENT_ID~,
   or the secret ~VSCE_PAT~) :: the VS Code packages, one a platform, on the
   VS Code Marketplace;
-- ~open-vsx~ (~OVSX_PAT~) :: the same packages on Open VSX;
-- ~zed-registry~ (~ZED_EXTENSIONS_TOKEN~) :: a pull request to Zed's
-  extension registry for the new version;
-- ~sublime-mirror~ (~SUBLIME_MIRROR_TOKEN~) :: ~editors/sublime/LSP-org~
-  and the tag to ~kristijanhusak/LSP-org~, which Package Control reads.
+- ~open-vsx~ (~OVSX_PAT~) :: the same packages on Open VSX.
 
 The VS Code packages have the server inside. The Zed extension and the
 Sublime Text package download the server of their own release (~v0.2.0~
@@ -524,97 +520,6 @@ uploaded by hand at [[https://marketplace.visualstudio.com/manage]].
   the extension shown as verified, claim the namespace as the Open VSX
   wiki says ([[https://github.com/eclipse/openvsx/wiki/Namespace-Access][Namespace Access]]).
 - [ ] The token as the secret ~OVSX_PAT~.
-
-** Zed
-:PROPERTIES:
-:CUSTOM_ID: zed
-:END:
-
-The registry is the repository ~zed-industries/extensions~, where each
-extension is a submodule and an entry of ~extensions.toml~
-([[https://zed.dev/docs/extensions/publishing/publishing-guide][Publishing Guide]]). The job updates an extension that is there already,
-so the first version goes in by hand, once its tag is released:
-
-- [ ] Fork [[https://github.com/zed-industries/extensions]] to
-  ~kristijanhusak/extensions~ (a personal account, so that Zed's staff can
-  push to the pull request), and clone the fork:
-  #+begin_src sh
-  git clone https://github.com/kristijanhusak/extensions
-  cd extensions
-  git submodule init
-  git submodule update
-  #+end_src
-- [ ] Add org-lsp as a submodule, at the released tag (its commit is on
-  main, as the registry wants):
-  #+begin_src sh
-  git submodule add https://github.com/kristijanhusak/org-lsp.git extensions/org-lsp
-  git -C extensions/org-lsp checkout v0.2.0
-  git add extensions/org-lsp
-  #+end_src
-- [ ] Add its entry to ~extensions.toml~; ~version~ is that of
-  ~editors/zed/extension.toml~ at the tag:
-  #+begin_src toml
-  [org-lsp]
-  submodule = "extensions/org-lsp"
-  path = "editors/zed"
-  version = "0.2.0"
-  #+end_src
-- [ ] ~pnpm sort-extensions~, which sorts ~extensions.toml~ and
-  ~.gitmodules~; commit, push, and open the pull request to
-  ~zed-industries/extensions~. A pull request adds or updates one
-  extension, and is closed after three weeks without an answer to the
-  maintainers. The registry has an extension for Org already (~org~,
-  from ~hron/zed-org~), and Zed's [[https://zed.dev/docs/extensions/publishing/prerequisites][prerequisites]] ask for no second
-  extension that does the same: the pull request should say what org-lsp
-  adds (the server).
-- [ ] For the versions after it: a classic token of ~kristijanhusak~
-  ([[https://github.com/settings/tokens/new]]) with the ~public_repo~ and
-  ~workflow~ scopes, as the secret ~ZED_EXTENSIONS_TOKEN~. The job
-  ([[https://github.com/huacnlee/zed-extension-action][huacnlee/zed-extension-action]]) pushes the new version to a branch of
-  the fork and opens the pull request.
-
-The extension's licence is ~editors/zed/LICENSE~ (the GNU GPL, version
-3), which Zed accepts and wants at the extension's root.
-
-** Package Control
-:PROPERTIES:
-:CUSTOM_ID: package-control
-:END:
-
-Package Control installs a package from the root of a repository of its
-own, at its version tags (~v0.2.0~ is read as 0.2.0), so
-~editors/sublime/LSP-org~ is copied to ~kristijanhusak/LSP-org~ with each
-version. The packages for LSP are listed in ~sublimelsp/repository~,
-not in Package Control's default channel ([[https://github.com/wbond/package_control_channel][wbond/package_control_channel]]
-says so).
-
-- [ ] An empty public repository ~kristijanhusak/LSP-org~
-  ([[https://github.com/new]]; no README, licence or ~.gitignore~: the job
-  pushes the package's), with a description, such as /Org mode in Sublime
-  Text through org-lsp (a copy of editors/sublime/LSP-org)/.
-- [ ] A fine-grained token
-  ([[https://github.com/settings/personal-access-tokens/new]]): /Only select
-  repositories/, ~kristijanhusak/LSP-org~; /Repository permissions ›
-  Contents/: /Read and write/. It is the secret ~SUBLIME_MIRROR_TOKEN~.
-- [ ] Once a version's tag has been copied there: fork
-  [[https://github.com/sublimelsp/repository]], add the package to the
-  ~packages~ of ~repository.json~, in alphabetical order, and open the
-  pull request:
-  #+begin_src json
-  {
-    "details": "https://github.com/kristijanhusak/LSP-org",
-    "name": "LSP-org",
-    "labels": ["language syntax", "lsp", "org"],
-    "releases": [
-      {
-        "sublime_text": ">=4132",
-        "tags": true
-      }
-    ]
-  }
-  #+end_src
-  4132 is the oldest build of Sublime Text that the LSP package's
-  releases are for.
 
 * Decisions
 :PROPERTIES:

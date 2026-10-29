@@ -12,5 +12,4 @@ Storage/LSP-org~, again when the package is updated.
 [[https://kristijanhusak.github.io/org-lsp/sublime.html][Org in Sublime Text]] says how to set it up, and which keys it has (Org's,
 as Emacs has them, only in Org files and only while the ~org_keys~ setting
 asks for them). Bugs and questions go to [[https://github.com/kristijanhusak/org-lsp/issues][org-lsp's issues]]; this package is
-written in the [[https://github.com/kristijanhusak/org-lsp/tree/main/editors/sublime/LSP-org][org-lsp repository]], and a copy of it is published for
-Package Control.
+written in the [[https://github.com/kristijanhusak/org-lsp/tree/main/editors/sublime/LSP-org][org-lsp repository]].
