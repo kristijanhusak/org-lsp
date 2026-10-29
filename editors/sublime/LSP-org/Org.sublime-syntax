@@ -627,6 +627,11 @@ contexts:
     - include: inline
 
   inline:
+    - include: objects
+    - include: emphasis
+
+  # What emphasis holds too: everything inline but emphasis itself.
+  objects:
     - match: '<\d{4}-\d{2}-\d{2}[^>\n]*>(?:--<\d{4}-\d{2}-\d{2}[^>\n]*>)?'
       scope: constant.numeric constant.other.timestamp.org
     - match: '\[\d{4}-\d{2}-\d{2}[^\]\n]*\](?:--\[\d{4}-\d{2}-\d{2}[^\]\n]*\])?'
@@ -645,14 +650,59 @@ contexts:
       scope: string markup.inline.raw markup.inline.raw.org
     - match: '{{pre}}~[^\s~](?:[^\n]*?[^\s])?~{{post}}'
       scope: string markup.inline.raw markup.inline.raw.org
-    - match: '{{pre}}\*[^\s*](?:[^\n]*?[^\s])?\*{{post}}'
-      scope: markup.bold markup.bold.org
-    - match: '{{pre}}/[^\s/](?:[^\n]*?[^\s])?/{{post}}'
-      scope: markup.italic markup.italic.org
-    - match: '{{pre}}_[^\s_](?:[^\n]*?[^\s])?_{{post}}'
-      scope: markup.underline markup.underline.org
-    - match: '{{pre}}\+[^\s+](?:[^\n]*?[^\s])?\+{{post}}'
-      scope: markup.strikethrough markup.strikethrough.org
+
+  # Bold, italics, underline and strike-through, each from its marker to the
+  # one that closes it on the line, holding the other three: in
+  # `/italic *bold* text/`, `bold` is italic and bold.
+  emphasis:
+    - include: bold-start
+    - include: italic-start
+    - include: underline-start
+    - include: strikethrough-start
+  bold-start:
+    - match: '{{pre}}\*(?=[^\s*](?:[^\n]*?[^\s])?\*{{post}})'
+      push: bold
+  italic-start:
+    - match: '{{pre}}/(?=[^\s/](?:[^\n]*?[^\s])?/{{post}})'
+      push: italic
+  underline-start:
+    - match: '{{pre}}_(?=[^\s_](?:[^\n]*?[^\s])?_{{post}})'
+      push: underline
+  strikethrough-start:
+    - match: '{{pre}}\+(?=[^\s+](?:[^\n]*?[^\s])?\+{{post}})'
+      push: strikethrough
+  bold:
+    - meta_scope: markup.bold markup.bold.org
+    - match: '(?<=\S)\*{{post}}|$'
+      pop: true
+    - include: objects
+    - include: italic-start
+    - include: underline-start
+    - include: strikethrough-start
+  italic:
+    - meta_scope: markup.italic markup.italic.org
+    - match: '(?<=\S)/{{post}}|$'
+      pop: true
+    - include: objects
+    - include: bold-start
+    - include: underline-start
+    - include: strikethrough-start
+  underline:
+    - meta_scope: markup.underline markup.underline.org
+    - match: '(?<=\S)_{{post}}|$'
+      pop: true
+    - include: objects
+    - include: bold-start
+    - include: italic-start
+    - include: strikethrough-start
+  strikethrough:
+    - meta_scope: markup.strikethrough markup.strikethrough.org
+    - match: '(?<=\S)\+{{post}}|$'
+      pop: true
+    - include: objects
+    - include: bold-start
+    - include: italic-start
+    - include: underline-start
   planning:
     - match: '$'
       pop: true
