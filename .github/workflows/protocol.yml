@@ -1,19 +1,62 @@
 name: org-protocol
 
+# org-protocol:// URLs opened through the system reach org-lsp, as
+# scripts/install.sh protocol registers it on macOS and Windows: a
+# store-link with no server running lands in the stored links
+# (docs/org-protocol.org). Linux has server/org-lsp/tests/protocol.rs.
+# It runs when they change, and by hand (Actions > org-protocol).
+
 on:
+  workflow_dispatch:
   push:
     paths:
+      - scripts/install.sh
+      - server/org-lsp/src/protocol.rs
+      - server/org-core/src/protocol.rs
       - .github/workflows/protocol.yml
 
 permissions:
   contents: read
 
 jobs:
-  openvsx:
-    runs-on: ubuntu-latest
+  register:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    # The release profile's link-time optimization in one codegen unit
+    # makes the build several times longer; the test needs none of it.
+    env:
+      CARGO_PROFILE_RELEASE_LTO: "false"
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "16"
+      CARGO_INCREMENTAL: "0"
     steps:
-      - run: |
-          for u in kristijanhusak kristijanhusak/org-lsp kristijanhusak/org-lsp/linux-x64/0.1.0 '-/search?query=org-lsp' '-/search?query=org&size=5'; do
-            echo "=== $u"; curl -sS -w '\nHTTP %{http_code}\n' "https://open-vsx.org/api/$u" | jq -c 'if type=="object" then del(.files, .allVersions, .readme, .description, .dependencies, .bundledExtensions) else . end' 2>/dev/null || true
-          done
-          echo "=== raw"; curl -sS "https://open-vsx.org/api/kristijanhusak/org-lsp" | head -c 3000
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        shell: bash
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - name: Register org-lsp as the handler
+        shell: bash
+        run: scripts/install.sh --source protocol
+      - name: Store a link through the system (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          open 'org-protocol://store-link?url=https%3A%2F%2Forgmode.org&title=Org%20mode'
+          file=$HOME/.local/state/org-lsp/protocol/stored-links.jsonl
+          for _ in $(seq 60); do [ -s "$file" ] && break; sleep 1; done
+          cat "$file"
+          grep -q 'https://orgmode.org' "$file"
+      - name: Store a link through the system (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Start-Process 'org-protocol://store-link?url=https%3A%2F%2Forgmode.org&title=Org%20mode'
+          $file = Join-Path $env:LOCALAPPDATA 'org-lsp\protocol\stored-links.jsonl'
+          for ($i = 0; $i -lt 60 -and -not (Test-Path $file); $i++) { Start-Sleep -Seconds 1 }
+          Get-Content $file
+          if (-not (Select-String -Path $file -SimpleMatch 'https://orgmode.org' -Quiet)) { exit 1 }
