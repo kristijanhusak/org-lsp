@@ -49,6 +49,19 @@ jobs:
       # Export runs in Emacs: the test of it needs one (Org 9.6 or newer).
       - name: Install Emacs
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends emacs-nox
+      # The Org the tests are recorded from (CLAUDE.md), compiled: Emacs
+      # 29's own is 9.6.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: org
+        with:
+          path: ~/org-mode
+          key: org-9.8.10-${{ runner.os }}-emacs29
+      - name: Org 9.8.10
+        if: steps.org.outputs.cache-hit != 'true'
+        run: |
+          git clone -q --depth 1 --branch release_9.8.10 https://github.com/bzg/org-mode "$HOME/org-mode"
+          make -C "$HOME/org-mode" compile
+      - run: echo "ORG_LISP_DIR=$HOME/org-mode/lisp" >> "$GITHUB_ENV"
       - run: cargo test --workspace
         env:
           ORG_LSP_REQUIRE_EMACS: '1'
@@ -71,9 +84,10 @@ jobs:
           curl -sSL -o nvim.tar.gz https://github.com/neovim/neovim/releases/download/${{ matrix.neovim }}/nvim-linux-x86_64.tar.gz
           mkdir -p "$HOME/nvim" && tar xzf nvim.tar.gz -C "$HOME/nvim" --strip-components=1
           echo "$HOME/nvim/bin" >> "$GITHUB_PATH"
-      # The typed scenarios run Neovim's terminal UI in tmux.
-      - name: Install tmux
-        run: sudo apt-get update -q && sudo apt-get install -y -q tmux
+      # The typed scenarios run Neovim's terminal UI in tmux; the test of
+      # images makes its pictures with ImageMagick.
+      - name: Install tmux and ImageMagick
+        run: sudo apt-get update -q && sudo apt-get install -y -q tmux imagemagick
       - run: scripts/test-nvim.sh
 
   vscode:
@@ -114,8 +128,9 @@ jobs:
           persist-credentials: false
       - name: Install Rust
         run: rustup toolchain install stable --profile minimal && rustup default stable
-      - name: Install Vim and tmux
-        run: sudo apt-get update -q && sudo apt-get install -y -q vim tmux
+      # A selection is Emacs's region: the commands run on one need Emacs.
+      - name: Install Vim, tmux and Emacs
+        run: sudo apt-get update -q && sudo apt-get install -y -q vim tmux emacs-nox
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
