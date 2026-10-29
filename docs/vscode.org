@@ -10,6 +10,19 @@ about Org is listed there by hand. It works in VS Code's relatives too
 
 * Installing
 
+The extension is on the [[https://marketplace.visualstudio.com/items?itemName=kristijanhusak.org-lsp][Visual Studio Marketplace]], as a preview: search for
+/org-lsp/ in the Extensions view and install it, or run
+
+#+begin_src sh
+code --install-extension kristijanhusak.org-lsp
+#+end_src
+
+It comes for Linux (x64, arm64), macOS (Apple silicon, Intel) and Windows
+(x64), and VS Code updates it as releases come out.
+
+The nightly build, made from ~main~ after each change, is installed by a
+script instead:
+
 #+begin_src sh
 curl -fsSL https://github.com/kristijanhusak/org-lsp/releases/download/nightly/install.sh | bash -s -- vscode
 #+end_src
@@ -24,10 +37,11 @@ scripts/install.sh --source vscode           # built from this checkout (cargo, 
 
 The script downloads the package for your platform from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]]
 (or the release named), or builds it, and installs it with
-~code --install-extension~. Run it again to update, then reload the window.
-~CODE=codium~ (or ~code-insiders~, ~cursor~) installs into another editor.
-On Windows without a shell, download ~org-lsp-win32-x64.vsix~ from the
-release and run *Extensions: Install from VSIX…*.
+~code --install-extension~, in place of the Marketplace's. Run it again to
+update, then reload the window. ~CODE=codium~ (or ~code-insiders~,
+~cursor~) installs into another editor; VSCodium and Cursor do not use the
+Marketplace. On Windows without a shell, download ~org-lsp-win32-x64.vsix~
+from the release and run *Extensions: Install from VSIX…*.
 
 The package has the server inside. The extension looks for the server in
 this order: the ~org-lsp.server.path~ setting, the one inside the

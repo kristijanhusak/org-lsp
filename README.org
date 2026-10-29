@@ -80,6 +80,8 @@ tasks and keys too, in Zed):
 curl -fsSL https://github.com/kristijanhusak/org-lsp/releases/download/nightly/install.sh | bash -s -- vscode   # or sublime, zed, helix, server
 #+end_src
 
+VS Code also has it on the [[https://marketplace.visualstudio.com/items?itemName=kristijanhusak.org-lsp][Visual Studio Marketplace]] (~code --install-extension kristijanhusak.org-lsp~).
+
 Each editor's page also says how to build it with [[https://rustup.rs][cargo]].
 
 * Configuration
