@@ -420,8 +420,21 @@ const QUESTION_TIME: Duration = Duration::from_secs(600);
 /// the tests.
 const LATER_TIME: Duration = Duration::from_secs(if cfg!(test) { 1 } else { 1800 });
 
-/// Start Emacs and set it up: the user's configuration, then Org.
+/// Start Emacs and set it up: the user's configuration, then Org. Once
+/// again when it stopped as two Emacs started at once and both compiled
+/// the same native code (the trampolines of the functions the bridge
+/// advises): the second one could not write its file, which the first one
+/// left there.
 fn start(settings: &Settings, events: &Sender<Event>) -> Result<Process, String> {
+    match start_once(settings, events) {
+        Err(error) if error.contains("Native compiler error") && error.contains("file-already-exists") => {
+            start_once(settings, events)
+        }
+        started => started,
+    }
+}
+
+fn start_once(settings: &Settings, events: &Sender<Event>) -> Result<Process, String> {
     let program = if settings.program.is_empty() { "emacs" } else { &settings.program };
     let mut command = Command::new(program);
     command
@@ -924,13 +937,18 @@ done
         assert_eq!(value("org-html-infojs-options"), r#"((path . "x.js") (toc . :with-toc))"#);
         assert_eq!(value("org-export-with-drawers"), r#"(not "LOGBOOK")"#);
         assert_eq!(value("org-html-format-headline-function"), "my-headline");
-        assert_eq!(value("org-attach-store-link-p"), "attached", "left as it was");
+        // Its default: Org 9.6's is nil.
+        let default = if org_98 { "attached" } else { "nil" };
+        assert_eq!(value("org-attach-store-link-p"), default, "left as it was");
         let mut notices = Vec::new();
         while let Ok(event) = emacs.events().try_recv() {
             if let Event::Notice { text } = event {
                 notices.push(text);
             }
         }
+        // In the order their features load, which is not the same in
+        // every Org.
+        notices.sort();
         assert_eq!(
             notices,
             [

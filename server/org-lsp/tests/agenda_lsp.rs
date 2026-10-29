@@ -4389,9 +4389,14 @@ fn agenda_action_case(index: usize, case: &Value) -> (String, bool) {
     options["clock"] = json!({ "today": today, "now": now });
     options["org_agenda_span"] = case.get("span").cloned().unwrap_or_else(|| json!("week"));
     let mut client = Client::editor(options, None);
+    // The files in a directory of the case's own: archiving writes the
+    // archive file beside them.
+    let dir = std::env::temp_dir().join(format!("org-lsp-agenda-action-{}-{index}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let uri = |name: &str| format!("file://{}/{name}", dir.display());
     let files = case["files"].as_object().unwrap();
     for (name, text) in files {
-        client.open(&format!("file:///org/{name}"), text.as_str().unwrap());
+        client.open(&uri(name), text.as_str().unwrap());
     }
     let todo_list = case.get("view").and_then(Value::as_str) == Some("todo");
     client.command(if todo_list { "org.agenda.todos" } else { "org.agenda.list" }, VIEW, 0);
@@ -4487,7 +4492,7 @@ fn agenda_action_case(index: usize, case: &Value) -> (String, bool) {
                 client.notify(
                     "textDocument/didChange",
                     json!({
-                        "textDocument": { "uri": format!("file:///org/{name}"), "version": 100 },
+                        "textDocument": { "uri": uri(name), "version": 100 },
                         "contentChanges": [{ "text": text }],
                     }),
                 );
@@ -4524,6 +4529,7 @@ fn agenda_action_case(index: usize, case: &Value) -> (String, bool) {
         ));
     }
     client.shutdown();
+    let _ = std::fs::remove_dir_all(&dir);
     (failures, changed)
 }
 
