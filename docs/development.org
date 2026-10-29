@@ -458,9 +458,7 @@ hand on main) publishes none of them.
 
 The VS Code packages have the server inside. The Zed extension and the
 Sublime Text package download the server of their own release (~v0.2.0~
-for version 0.2.0); those of the nightly build, the nightly server. The
-VS Code extension is marked as a preview (~"preview": true~ in
-~package.json~) until that line goes.
+for version 0.2.0); those of the nightly build, the nightly server.
 
 The secrets go in the repository's settings, under /Secrets and
 variables › Actions/
