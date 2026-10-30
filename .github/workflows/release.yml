@@ -11,6 +11,9 @@
 #   taken off, not left from an older build.
 # - a version tag (`v0.2.0`, the version scripts/version.sh set) makes
 #   that release, only when every build succeeded, and then publishes it.
+# - a push to main whose version has no tag yet (the pull request the New
+#   version workflow opens, merged) is that version's release: the tag
+#   `v0.2.0` is made on the commit when every build succeeded.
 #   Run by hand with that tag (Actions > Release > Run workflow, `tag`),
 #   it builds the tag again, puts the files on its release (made already
 #   on GitHub's page for the tag, or not), and publishes it: the workflow
@@ -43,18 +46,44 @@ on:
 permissions:
   contents: read
 
-# The version tag released, pushed or asked for; empty for the nightly
-# build.
-env:
-  TAG: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name || '') }}
-
-# One publish at a time; a newer push to main replaces an older one.
+# One publish at a time; a newer push to main replaces an older one,
+# except the commit of a new version (/Version 0.2.0/), which is released
+# whatever comes after it.
 concurrency:
-  group: release-${{ inputs.tag || github.ref }}
+  group: release-${{ inputs.tag || (startsWith(github.event.head_commit.message, 'Version ') && github.sha) || github.ref }}
   cancel-in-progress: ${{ github.ref == 'refs/heads/main' && !inputs.tag }}
 
 jobs:
+  # The version tag released (`tag`): pushed, asked for, or that of main's
+  # version when it has none yet; empty for the nightly build.
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag }}
+      - id: tag
+        env:
+          ASKED: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name || '') }}
+        run: |
+          tag=$ASKED
+          if [ -z "$tag" ] && [ "$GITHUB_EVENT_NAME" = push ] && [ "$GITHUB_REF" = refs/heads/main ]; then
+            version=v$(scripts/version.sh)
+            # 2: no such tag; anything else but 0 is an error.
+            status=0
+            git ls-remote --exit-code --tags origin "refs/tags/$version" > /dev/null || status=$?
+            case $status in
+              0) ;;
+              2) tag=$version; echo "main has $version, which has no tag yet: it is released" ;;
+              *) echo "::error::The tags could not be read"; exit 1 ;;
+            esac
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: version
     strategy:
       fail-fast: false
       matrix:
@@ -86,8 +115,8 @@ jobs:
     # compile the server's crate on one; a version tag is built as
     # Cargo.toml says.
     env:
-      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: ${{ (startsWith(github.ref, 'refs/tags/') || startsWith(inputs.tag, 'v')) && '1' || '16' }}
-      CARGO_PROFILE_RELEASE_LTO: ${{ (startsWith(github.ref, 'refs/tags/') || startsWith(inputs.tag, 'v')) && 'thin' || 'false' }}
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: ${{ needs.version.outputs.tag && '1' || '16' }}
+      CARGO_PROFILE_RELEASE_LTO: ${{ needs.version.outputs.tag && 'thin' || 'false' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -105,8 +134,8 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: release-${{ matrix.target }}-${{ (startsWith(github.ref, 'refs/tags/') || startsWith(inputs.tag, 'v')) && 'tag' || 'nightly' }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys: release-${{ matrix.target }}-${{ (startsWith(github.ref, 'refs/tags/') || startsWith(inputs.tag, 'v')) && 'tag' || 'nightly' }}-
+          key: release-${{ matrix.target }}-${{ needs.version.outputs.tag && 'tag' || 'nightly' }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: release-${{ matrix.target }}-${{ needs.version.outputs.tag && 'tag' || 'nightly' }}-
       - name: Install musl
         if: contains(matrix.target, 'musl')
         run: sudo apt-get update && sudo apt-get install -y musl-tools
@@ -150,8 +179,10 @@ jobs:
           if-no-files-found: error
 
   zed:
+    needs: version
     runs-on: ubuntu-latest
     env:
+      TAG: ${{ needs.version.outputs.tag }}
       # The `zed-extension` tool zed-industries/extensions packages the
       # extensions of Zed's registry with (its ZED_EXTENSION_CLI_SHA): it
       # builds the extension and its grammar, and packs them as Zed
@@ -204,14 +235,17 @@ jobs:
           if-no-files-found: error
 
   publish:
-    needs: [build, zed]
+    needs: [version, build, zed]
     # A version: when every build succeeded. Nightly: the platforms that
     # built, also when one failed.
-    if: ${{ !cancelled() && (((startsWith(github.ref, 'refs/tags/') || startsWith(inputs.tag, 'v')) && needs.build.result == 'success' && needs.zed.result == 'success') || (github.ref == 'refs/heads/main' && !inputs.tag)) }}
+    if: ${{ !cancelled() && needs.version.result == 'success' && ((needs.version.outputs.tag && needs.build.result == 'success' && needs.zed.result == 'success') || (!needs.version.outputs.tag && github.ref == 'refs/heads/main')) }}
     runs-on: ubuntu-latest
-    # It pushes the `nightly` tag and makes the release.
+    # It pushes the version's tag or the `nightly` one, and makes the
+    # release.
     permissions:
       contents: write
+    env:
+      TAG: ${{ needs.version.outputs.tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -239,6 +273,11 @@ jobs:
         run: |
           ls -l dist
           if [ -n "$TAG" ]; then
+            # main's new version: its tag goes on this commit.
+            if ! git ls-remote --exit-code --tags origin "refs/tags/$TAG" > /dev/null; then
+              git tag "$TAG" "$GITHUB_SHA"
+              git push origin "refs/tags/$TAG"
+            fi
             # A release made on GitHub's page with the tag has no files:
             # they go to it, its title and notes as they are.
             if gh release view "$TAG" > /dev/null 2>&1; then
@@ -269,8 +308,8 @@ jobs:
   # job's `if`, so its steps test it in `env`). The VS Code tools are
   # those of editors/vscode's package-lock.json.
   vscode-marketplace:
-    needs: publish
-    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || startsWith(inputs.tag, 'v')
+    needs: [version, publish]
+    if: needs.version.outputs.tag != ''
     runs-on: ubuntu-latest
     # Its secrets: AZURE_CLIENT_ID and AZURE_TENANT_ID, the Microsoft Entra
     # ID app the job signs in as (a federated credential for this
@@ -323,8 +362,8 @@ jobs:
           npx --no-install vsce publish "${credential[@]}" --skip-duplicate --packagePath "$GITHUB_WORKSPACE"/dist/*.vsix
 
   open-vsx:
-    needs: publish
-    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || startsWith(inputs.tag, 'v')
+    needs: [version, publish]
+    if: needs.version.outputs.tag != ''
     runs-on: ubuntu-latest
     env:
       # A token of the open-vsx.org account that owns the `kristijanhusak`
