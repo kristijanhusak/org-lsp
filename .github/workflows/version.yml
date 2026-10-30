@@ -1,0 +1,71 @@
+# Makes a new version: sets it with scripts/version.sh, commits that to
+# main, tags the commit (`v0.1.14`) and runs the Release workflow for the
+# tag, which builds it, makes the GitHub release and publishes it
+# (docs/development.org, Publishing).
+#
+# Run by hand on main (Actions > New version > Run workflow). The version
+# is the last one with its last number one more (0.1.13 makes 0.1.14), or
+# the one given (`version`, 0.2.0).
+#
+# The commit and the tag are pushed with the workflow's own token, and
+# GitHub starts no workflow for what that token pushes: the Release
+# workflow is started here instead, with the tag.
+name: New version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The version (X.Y.Z); empty for the last one with its last number one more
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: new-version
+
+jobs:
+  version:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # It pushes to main and starts the Release workflow.
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      # scripts/version.sh updates the lock files offline: the crates they
+      # name have to be there.
+      - name: Fetch the crates
+        run: |
+          cargo fetch --locked
+          cargo fetch --locked --manifest-path editors/zed/Cargo.toml
+      - name: Set the version
+        env:
+          WANTED: ${{ inputs.version }}
+        run: |
+          current=$(scripts/version.sh)
+          version=${WANTED:-${current%.*}.$(( ${current##*.} + 1 ))}
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" > /dev/null; then
+            echo "::error::The tag v$version is there already; delete it and its release on GitHub, or give another version"
+            exit 1
+          fi
+          scripts/version.sh "$version"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - name: Commit, tag and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -am "Version $VERSION"
+          git tag "v$VERSION"
+          git push --atomic origin HEAD:main "refs/tags/v$VERSION"
+      - name: Release it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run release.yml --ref main -f "tag=v$VERSION"
