@@ -88,9 +88,11 @@ default.
 * Using it
 
 The package binds Emacs's keys in Org files (~Ctrl+C Ctrl+T~, ~Tab~ …) and
-the agenda's keys in the agenda; ~org_keys~ picks ~"vim"~ (for Vintage and
+the agenda's keys in the agenda; ~org_keys~ picks ~"custom_emacs"~ (Emacs's
+but those Sublime Text uses for text, such as Shift and the arrows and
+~Ctrl+A~, with ~Ctrl+C~ copying a selection), ~"vim"~ (for Vintage and
 NeoVintageous) or ~"custom"~ instead. The commands are in the Command
-Palette under /Org:/. [[file:keys/sublime.org][keys/sublime.org]] lists every key of both presets,
+Palette under /Org:/. [[file:keys/sublime.org][keys/sublime.org]] lists every key of each preset,
 and how to bind your own.
 
 Its syntaxes color Org files and the agenda by their patterns: headlines by

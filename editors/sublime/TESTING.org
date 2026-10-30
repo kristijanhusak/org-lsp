@@ -20,6 +20,7 @@ its sections says what it should look like.
 - [ ] LSP's ~semantic_highlighting~ is on
 - [ ] LSP's ~show_inlay_hints~ is on: the time clocked and the ~…~ of shrunk columns come as inlay hints
 - [ ] The ~Org:~ commands are in the Command Palette; /Org: Download the latest server/ replaces the downloaded server
+- [ ] ~"org_keys": "custom_emacs"~: in an Org file ~Shift+Right~ selects, ~Ctrl+A~ is Sublime Text's, ~Ctrl+C~ copies the selection, and with nothing selected ~Ctrl+C Ctrl+T~ changes the TODO state
 
 * Highlighting
 

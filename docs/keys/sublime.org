@@ -10,13 +10,20 @@ The package binds keys by preset, picked with ~org_keys~ in its settings
   ~Ctrl+C Ctrl+W~ refiles, ~Ctrl+C c~ captures, ~Ctrl+C a~ opens the agenda
   menu, ~Tab~ and ~Shift+Tab~ cycle folds as Org's TAB and S-TAB do. In a
   capture buffer, ~Ctrl+C Ctrl+C~ files the entry.
+- ~"custom_emacs"~: Emacs's keys but those Sublime Text uses for text. In
+  Org files Shift, Alt+Shift and Ctrl+Shift with the arrows select,
+  Ctrl+A, Ctrl+E, Ctrl+K, Ctrl+O, Ctrl+X, Ctrl+Y and Ctrl+Enter are
+  Sublime Text's, and ~Ctrl+C~ copies a selection: Org's ~Ctrl+C~ keys
+  start where nothing is selected. The keys it leaves out are listed
+  below, under /Emacs without the editor's keys/.
 - ~"vim"~, for Vintage and NeoVintageous: the Neovim plugin's keys that do
   not start with a plain letter or the leader, in command mode (~Tab~,
   ~Ctrl+Space~, ~Ctrl+A~ …). Bind the others yourself.
 - ~"custom"~: none; bind your own.
 
 The keys are bound in Org files and the agenda only, where ~Ctrl+C~ does not
-copy. The agenda has the same keys with either preset, and in every
+copy (with ~"custom_emacs"~, unless text is selected). The agenda has the
+same keys with each preset, and in every
 editor: Emacs's agenda keys (~f~, ~b~, ~.~, ~t~, ~+~, ~Enter~, ~Ctrl+C Ctrl+S~ …),
 with ~Shift+J~ for a date and the views under ~v~ (~v d~, ~v w~), so that
 Vintage and NeoVintageous keep their motions; with ~"vim"~, ~$~ stays the
@@ -283,6 +290,39 @@ to install and set up the package.
 | ~q~ | ~close~ | Close the agenda |
 
 =¦= stands for =|=, which an Org table cannot hold.
+
+** Emacs without the editor's keys (~"org_keys": "custom_emacs"~)
+
+Emacs's keys, but those the editor uses for its text: in Org files and
+capture buffers Shift, Alt+Shift and Ctrl+Shift with the arrows select,
+and Ctrl+A, Ctrl+E, Ctrl+K, Ctrl+O, Ctrl+X, Ctrl+Y, Ctrl+Enter and
+Ctrl+Shift+Enter do what they do in any file. Org's ~Ctrl+C~ keys start
+only where nothing is selected, so that ~Ctrl+C~ copies a selection. The
+agenda, the date prompt and column view keep all their keys. These are
+the keys left out, whose commands stay in the Command Palette:
+
+| Keys | Command | What it does |
+|---+---+---|
+| ~Ctrl+Shift+Right~ | ~org.todo.nextset~ | Switch to the next TODO keyword set |
+| ~Ctrl+Shift+Left~ | ~org.todo.previousset~ | Switch to the previous TODO keyword set |
+| ~Ctrl+Enter~ | ~org.insert.heading.after~ | New heading after the subtree |
+| ~Ctrl+Shift+Enter~ | ~org.insert.todo.heading.after~ | New TODO heading after the subtree |
+| ~Alt+Shift+Left~ | ~org.shiftmeta.left~ | Promote the subtree; outdent the item with its children; delete the table column |
+| ~Alt+Shift+Right~ | ~org.shiftmeta.right~ | Demote the subtree; indent the item with its children; insert a table column |
+| ~Alt+Shift+Up~ | ~org.shiftmeta.up~ | Delete the table row |
+| ~Alt+Shift+Down~ | ~org.shiftmeta.down~ | Insert a table row above |
+| ~Ctrl+O~ | ~org.open.line~ | Open a line, or in a table insert a row |
+| ~Ctrl+Y~ | ~org.yank~ | Yank, a subtree at its level |
+| ~Ctrl+A~ | ~org.beginning.of.line~ | Move to the start of the headline's title |
+| ~Ctrl+E~ | ~org.end.of.line~ | Move to the end of the headline's title |
+| ~Ctrl+K~ | ~org.kill.line~ | Kill the headline's text to the tags, or the tags |
+| ~Ctrl+X n s~ | ~org.narrow.subtree~ | Narrow to the subtree: it in a file of its own |
+| ~Ctrl+X n b~ | ~org.narrow.block~ | Narrow to the block: it in a file of its own |
+| ~Ctrl+X n w~ | ~org.narrow.widen~ | Widen: the narrowed file written back and closed |
+| ~Shift+Up~ | ~org.shift.up~ | Increase the timestamp part, raise the priority, or go to the previous item |
+| ~Shift+Down~ | ~org.shift.down~ | Decrease the timestamp part, lower the priority, or go to the next item |
+| ~Shift+Left~ | ~org.shift.left~ | Move the date a day earlier, or cycle the TODO state or the list's bullets backward |
+| ~Shift+Right~ | ~org.shift.right~ | Move the date a day later, or cycle the TODO state or the list's bullets forward |
 
 ** Vim (~"org_keys": "vim"~, in command mode unless it says otherwise)
 

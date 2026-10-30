@@ -269,6 +269,34 @@ function vscodeKey(key) {
     .join(' ');
 }
 
+/** What the `custom_emacs` preset leaves out of Emacs's keys: `bindings`
+ * as `[preset, scope, key, command]`, the left-out ones as rows of a table,
+ * and what is said of `Ctrl+C`. */
+function customEmacs(bindings, titles, setting) {
+  const kept = new Set(
+    bindings.filter(([preset]) => preset === 'custom_emacs').map(([, scope, key, command]) => [scope, key, command].join('\n')),
+  );
+  const byCommand = new Map();
+  for (const [preset, scope, key, command] of bindings) {
+    if (preset !== 'emacs' || kept.has([scope, key, command].join('\n'))) continue;
+    if (!byCommand.has(command)) byCommand.set(command, new Set());
+    byCommand.get(command).add(code(key));
+  }
+  const rows = [...byCommand].map(([command, keys]) => [[...keys].join(', '), code(command), org(titles[command] ?? '')]);
+  return (
+    heading(2, `Emacs without the editor's keys (~${setting}~)`) +
+    '\n\n' +
+    "Emacs's keys, but those the editor uses for its text: in Org files and\n" +
+    'capture buffers Shift, Alt+Shift and Ctrl+Shift with the arrows select,\n' +
+    'and Ctrl+A, Ctrl+E, Ctrl+K, Ctrl+O, Ctrl+X, Ctrl+Y, Ctrl+Enter and\n' +
+    "Ctrl+Shift+Enter do what they do in any file. Org's ~Ctrl+C~ keys start\n" +
+    'only where nothing is selected, so that ~Ctrl+C~ copies a selection. The\n' +
+    'agenda, the date prompt and column view keep all their keys. These are\n' +
+    'the keys left out, whose commands stay in the Command Palette:\n\n' +
+    table(['Keys', 'Command', 'What it does'], rows)
+  );
+}
+
 /** The VS Code extension's keys, as its package.json binds them, by preset. */
 function vscodeKeys() {
   const where = (when) =>
@@ -297,6 +325,13 @@ function vscodeKeys() {
       if (byCommand.size === 0) continue;
       const rows = [...byCommand].map(([command, keys]) => [keys.join(', '), code(command), org(titles[command] ?? '')]);
       sections.push(heading(3, title) + '\n\n' + table(['Keys', 'Command', 'What it does'], rows));
+    }
+    if (preset === 'emacs') {
+      const bindings = vscode.contributes.keybindings.flatMap((binding) => {
+        const name = /keys == '(\w+)'/.exec(binding.when)?.[1];
+        return name ? [[name, where(binding.when), vscodeKey(binding.key), binding.command]] : [];
+      });
+      sections.push(customEmacs(bindings, titles, '"org-lsp.keys": "custom_emacs"'));
     }
   }
   sections.push(
@@ -394,6 +429,10 @@ function sublimeKeys() {
       if (byCommand.size === 0) continue;
       const rows = [...byCommand].map(([command, keys]) => [keys.join(', '), code(command), org(titles[command] ?? '')]);
       sections.push(heading(3, title) + '\n\n' + table(['Keys', 'Command', 'What it does'], rows));
+    }
+    if (preset === 'emacs') {
+      const bindings = keymap.map((binding) => [context(binding, 'org_lsp.keys'), where(binding), sublimeKey(binding.keys), name(binding)]);
+      sections.push(customEmacs(bindings, titles, '"org_keys": "custom_emacs"'));
     }
   }
   sections.push(

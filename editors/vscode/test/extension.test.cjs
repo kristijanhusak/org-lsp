@@ -710,6 +710,15 @@ describe('Org files', () => {
     assert.ok(shown.some(([key, title]) => key === 'Ctrl+C Ctrl+T' && title === 'Change the TODO state'), JSON.stringify(shown));
     assert.ok(shown.some(([key]) => key === 'Tab'));
     assert.ok(!shown.some(([, title]) => title === 'Capture: finish'), 'the capture keys only in a capture buffer');
+    assert.ok(shown.some(([key]) => key === 'Shift+Right'));
+    // `custom_emacs`: Org's `Ctrl+C` keys, not those VS Code uses for text.
+    await vscode.workspace.getConfiguration('org-lsp').update('keys', 'custom_emacs', vscode.ConfigurationTarget.Workspace);
+    const custom = api.help(vscode.window.activeTextEditor);
+    assert.ok(custom.some(([key, title]) => key === 'Ctrl+C Ctrl+T' && title === 'Change the TODO state'), JSON.stringify(custom));
+    assert.ok(custom.some(([key]) => key === 'Tab'));
+    for (const left of ['Shift+Right', 'Ctrl+A', 'Ctrl+X n s', 'Alt+Shift+Left', 'Ctrl+Enter']) {
+      assert.ok(!custom.some(([key]) => key === left), left);
+    }
     await vscode.workspace.getConfiguration('org-lsp').update('keys', 'custom', vscode.ConfigurationTarget.Workspace);
     assert.deepEqual(api.help(vscode.window.activeTextEditor), []);
     await vscode.workspace.getConfiguration('org-lsp').update('keys', undefined, vscode.ConfigurationTarget.Workspace);
