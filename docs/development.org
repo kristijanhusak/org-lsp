@@ -423,8 +423,16 @@ package (~VERSION~ in ~plugin.py~). ~scripts/version.sh 0.2.0~ sets it in
 all of them; ~scripts/version.sh~ alone prints it, and fails when they
 disagree, which ~scripts/check.sh~ checks.
 
-A release is a version tag. Set the version, merge that change as any
-other, then tag the commit on main and push the tag:
+A release is a version tag. The workflow /New version/
+(~.github/workflows/version.yml~), run by hand on main (/Actions › New
+version › Run workflow/), makes one: it sets the version, the last one
+with its last number one more (0.1.13 makes 0.1.14) or the one given
+(~version~, ~0.2.0~), commits it to main as /Version 0.1.14/, tags that
+commit ~v0.1.14~, pushes both and runs the Release workflow for the tag.
+It fails, changing nothing, when the tag is there already.
+
+By hand, the same is: set the version, merge that change as any other,
+then tag the commit on main and push the tag:
 
 #+begin_src sh
 scripts/version.sh 0.2.0
