@@ -9,9 +9,8 @@
 #   scripts/version.sh 0.2.0    set it everywhere
 #   scripts/version.sh          print it; fails when the places disagree
 #
-# A release is then the tag `v0.2.0` pushed to GitHub, or the New version
-# workflow, which sets the version, tags it and releases it
-# (docs/development.org, Publishing).
+# Merged into main, a new version is released (docs/development.org,
+# Publishing); the New version workflow opens that pull request.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

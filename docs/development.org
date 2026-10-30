@@ -425,29 +425,28 @@ disagree, which ~scripts/check.sh~ checks.
 
 A release is a version tag. The workflow /New version/
 (~.github/workflows/version.yml~), run by hand on main (/Actions › New
-version › Run workflow/), makes one: it sets the version, the last one
-with its last number one more (0.1.13 makes 0.1.14) or the one given
-(~version~, ~0.2.0~), in a pull request /Version 0.1.14/, merges it, tags
-the merged commit ~v0.1.14~ and runs the Release workflow for the tag. It
-fails, changing nothing, when the tag is there already. When it cannot
-merge the pull request, merge it by hand and run the workflow again: a
-version on main with no tag yet is released as it is.
+version › Run workflow/), opens the pull request /Version 0.1.14/: the
+version set, the last one with its last number one more (0.1.13 makes
+0.1.14) or the one given (~version~, ~0.2.0~), and the one who ran it
+asked to review it. Merged, it is released: the Release workflow of the
+push to main finds main's version without a tag, builds it, and when
+every build succeeded tags the commit ~v0.1.14~, makes the GitHub release
+and publishes it. A Release run of such a commit that failed is run
+again from its page (/Re-run failed jobs/).
 
 The workflow needs, in the repository's settings, /Actions › General ›
 Workflow permissions › Allow GitHub Actions to create and approve pull
-requests/, and main's protection has to let a pull request be merged with
-no approving review.
+requests/.
 
-By hand, the same is: set the version, merge that change as any other,
-then tag the commit on main and push the tag:
+By hand, the same is: set the version in a pull request, and merge it:
 
 #+begin_src sh
 scripts/version.sh 0.2.0
-# … pull request, merged …
-git fetch origin
-git tag v0.2.0 origin/main
-git push origin v0.2.0
+# … pull request, merged: released …
 #+end_src
+
+A tag of a commit with that version, pushed (~git push origin v0.2.0~),
+releases it too.
 
 The tag can also be made on GitHub's page, /Releases › Draft a new
 release/: the workflow then puts the files on that release, its title and
