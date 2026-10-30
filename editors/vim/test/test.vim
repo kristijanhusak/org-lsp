@@ -81,6 +81,30 @@ function! s:syntax() abort
 endfunction
 call s:test('colors with its syntax as the tokens do', function('s:syntax'))
 
+" A long paragraph whose markers close nothing (`/usr/bin`, `*nix`) is
+" drawn with the syntax still on, and emphasis after it shows.
+function! s:long_paragraph() abort
+  new
+  setlocal buftype=nofile syntax=org
+  call setline(1, ['* Notes'] + map(range(500), '"see /usr/bin and *nix on line " . v:val . " of the paragraph"') + ['', 'the *end*'])
+  normal! G
+  let start = reltime()
+  redraw
+  call assert_true(reltimefloat(reltime(start)) < 1, 'drawn in ' . reltimestr(reltime(start)))
+  call assert_equal('orgSyntax_Any_bold', synIDattr(synID(line('$'), 6, 1), 'name'))
+  bwipeout!
+endfunction
+call s:test('draws a long paragraph of unclosed markers with its syntax', function('s:long_paragraph'))
+
+" A file read again (`:e!`) has lost its text properties: the tokens are
+" painted again on every line, not only on those that changed.
+function! s:reread() abort
+  call s:until('highlighting', {-> index(s:types(5), 'org_lsp_stars.level2') >= 0})
+  edit!
+  call s:until('highlighting again', {-> index(s:types(2), 'org_lsp_stars.level1') >= 0 && index(s:types(5), 'org_lsp_stars.level2') >= 0})
+endfunction
+call s:test('paints the tokens again when the file is read again', function('s:reread'))
+
 " `org_fontify_whole_heading_line`: each headline's line coloured from
 " edge to edge in the look of its level, with a sign without text.
 function! s:whole_heading_lines() abort

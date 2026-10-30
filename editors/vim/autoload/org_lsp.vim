@@ -254,9 +254,11 @@ function! s:org_buffer() abort
   return nr
 endfunction
 
-" An Org buffer read again from its file: vim-lsp does not tell the
-" server, whose agenda and edits would go on from the old text.
+" An Org buffer read again from its file: its text properties are gone,
+" so its tokens are painted again on every line; and vim-lsp does not tell
+" the server, whose agenda and edits would go on from the old text.
 function! org_lsp#reread(nr) abort
+  silent! call remove(s:painted, a:nr)
   if org_lsp#adapter() ==# 'vim_lsp' && getbufvar(a:nr, '&filetype') ==# 'org'
     call org_lsp#adapter#vim_lsp#reread(a:nr)
   endif
@@ -3150,6 +3152,35 @@ function! s:changed_lines(nr, tokens, line_count) abort
   return [first, max([first, last])]
 endfunction
 
+" The first of `tokens`, in order of their lines, on line `line` or
+" after it, found by halves.
+function! s:first_token_from(tokens, line) abort
+  let [low, high] = [0, len(a:tokens)]
+  while low < high
+    let mid = (low + high) / 2
+    if a:tokens[mid][0] < a:line
+      let low = mid + 1
+    else
+      let high = mid
+    endif
+  endwhile
+  return low
+endfunction
+
+" The bytes `[start, end]` of `length` characters from `character` of
+" `text`, line `line`, as the server's encoding `encoding` counts them;
+" `ascii` remembers the lines of ASCII alone, where they are the same.
+function! s:byte_range(encoding, ascii, line, text, character, length) abort
+  if a:encoding ==# 'utf-8'
+    return [a:character, a:character + a:length]
+  endif
+  if !has_key(a:ascii, a:line)
+    let a:ascii[a:line] = a:text !~# '[^\x00-\x7f]'
+  endif
+  return a:ascii[a:line] ? [a:character, a:character + a:length]
+        \ : [s:byte_in(a:encoding, a:text, a:character), s:byte_in(a:encoding, a:text, a:character + a:length)]
+endfunction
+
 function! s:paint_absolute(nr, lines, tokens) abort
   if empty(s:selectors)
     call org_lsp#define_highlights()
@@ -3166,13 +3197,18 @@ function! s:paint_absolute(nr, lines, tokens) abort
   let lines = a:lines
   let is_org = getbufvar(a:nr, '&filetype') ==# 'org'
   let hidden_bit = index(modifiers, 'hidden')
+  " Columns as the server counts them, in bytes: the same in UTF-8, and on
+  " a line of ASCII alone.
+  let encoding = s:encoding()
+  let ascii = {}
   " The hidden text of the whole buffer, for concealing; the rest painted
   " only on the lines that changed.
   let hidden = []
   if hidden_bit >= 0
     for [line, character, length, type_index, modifier_bits] in filter(copy(a:tokens), 'and(v:val[4], ' . (1 << hidden_bit) . ') && v:val[0] < ' . line_count)
       let text = get(lines, line, '')
-      let [start, end] = [s:byte(text, character), min([s:byte(text, character + length), len(text)])]
+      let [start, end] = s:byte_range(encoding, ascii, line, text, character, length)
+      let end = min([end, len(text)])
       if end > start
         call add(hidden, [line + 1, start + 1, end - start])
       endif
@@ -3182,18 +3218,8 @@ function! s:paint_absolute(nr, lines, tokens) abort
     return
   endif
   " The tokens of those lines, in order of their lines.
-  let first_token = 0
-  while first_token < len(a:tokens) && a:tokens[first_token][0] < changed[0]
-    let first_token += 1
-  endwhile
-  let last_token = first_token
-  while last_token < len(a:tokens) && a:tokens[last_token][0] <= changed[1]
-    let last_token += 1
-  endwhile
-  " Columns as the server counts them, in bytes: the same in UTF-8, and on
-  " a line of ASCII alone.
-  let encoding = s:encoding()
-  let ascii = {}
+  let first_token = s:first_token_from(a:tokens, changed[0])
+  let last_token = s:first_token_from(a:tokens, changed[1] + 1)
   " The selectors of each type with its modifiers, made once.
   let looks = {}
   for [line, character, length, type_index, modifier_bits] in a:tokens[first_token : last_token - 1]
@@ -3202,15 +3228,7 @@ function! s:paint_absolute(nr, lines, tokens) abort
     endif
     let type = get(types, type_index, '')
     let text = get(lines, line, '')
-    if encoding ==# 'utf-8' || get(ascii, line, -1) == 1
-      let [start, end] = [character, character + length]
-    elseif has_key(ascii, line)
-      let [start, end] = [s:byte_in(encoding, text, character), s:byte_in(encoding, text, character + length)]
-    else
-      let ascii[line] = text !~# '[^\x00-\x7f]'
-      let [start, end] = ascii[line] ? [character, character + length]
-            \ : [s:byte_in(encoding, text, character), s:byte_in(encoding, text, character + length)]
-    endif
+    let [start, end] = s:byte_range(encoding, ascii, line, text, character, length)
     let end = min([end, len(text)])
     if end <= start
       continue
@@ -3329,6 +3347,9 @@ function! org_lsp#attach() abort
   endif
   let b:org_lsp_attached = 1
   let nr = bufnr()
+  " A buffer loaded again (`:bunload`, then opened) has none of the text
+  " properties painted before.
+  silent! call remove(s:painted, nr)
   " The agenda and the calendar are the server's to write: typing in them
   " changes nothing, as in Emacs's read-only buffers.
   if &filetype ==# get(org_lsp#manifest().agenda, 'languageId', 'org-agenda')
@@ -3362,11 +3383,19 @@ function! org_lsp#attach() abort
   " Every change, also those an LSP client makes for the server (the TODO
   " keyword a command changed), which Vim's `TextChanged` sees only after
   " the next key or 'updatetime'.
-  call listener_add(function('s:listened'), nr)
+  " One for each buffer, though it outlives the buffer's variables when
+  " the buffer is unloaded.
+  if has_key(s:listeners, nr)
+    call listener_remove(s:listeners[nr])
+  endif
+  let s:listeners[nr] = listener_add(function('s:listened'), nr)
   " The client may still be starting the server: ask again until it
   " answers.
   call s:first_refresh(nr, 0)
 endfunction
+
+" The listener of each buffer, by its number.
+let s:listeners = {}
 
 function! s:listened(nr, start, end, added, changes) abort
   call s:changed(a:nr)
@@ -3397,9 +3426,10 @@ endfunction
 
 " The plugin's syntax for Org (syntax/org.vim) in buffer `nr` in place of
 " Vim's own, which 'runtimepath' finds first when the plugin comes after
-" $VIMRUNTIME; the code of its blocks in their languages again.
+" $VIMRUNTIME; the code of its blocks in their languages again. A timer
+" that calls it passes its own id after `nr`.
 let s:syntax_file = expand('<sfile>:p:h:h') . '/syntax/org.vim'
-function! org_lsp#own_syntax(nr) abort
+function! org_lsp#own_syntax(nr, ...) abort
   if !getbufvar(a:nr, 'org_lsp_syntax', 0)
     call org_lsp#reload_syntax(a:nr)
   endif

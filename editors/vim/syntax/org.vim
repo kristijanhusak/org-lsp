@@ -21,16 +21,21 @@ syntax case match
 
 " Emphasis, code and verbatim: PRE MARKER CONTENTS MARKER POST, the
 " contents neither starting nor ending with a blank, closed by the first
-" marker that can close it within the paragraph, on this line or a later
-" one (`org-emphasis-regexp-components`); without one, no emphasis. What
-" emphasis holds is in its look. In a table, a cell ends them.
+" marker that can close it on this line or the next one of the paragraph
+" (`org-emphasis-regexp-components`: one newline at most), within
+" `s:reach` characters of each line; without one, no emphasis, and the
+" server's tokens show what is longer. Looking no further keeps a long
+" paragraph or line with markers that close nothing (`/usr/bin`, `*nix`)
+" from making each redraw scan the rest of it. What emphasis holds is in
+" its look. In a table, a cell ends them.
 let s:pre = '\%(^\|[-[:space:](''"{]\)\@1<='
 let s:post = '\%([-[:space:].,:!?;''")}\\[]\|$\)'
 " A line that starts another element, which ends the paragraph.
 let s:element = '\%(\s*$\|\*\+ \|\s*[|#:]\|\s*[-+]\%(\s\|$\)\|\s*\d\+[.)]\%(\s\|$\)\)'
+let s:reach = '\{-,1000}'
 for [s:marker, s:group] in [['\~', 'orgSyntax_code'], ['=', 'orgSyntax_verbatim'], ['\*', 'orgSyntax_Any_bold'], ['/', 'orgSyntax_Any_italic'], ['_', 'orgSyntax_Any_underline'], ['+', 'orgSyntax_Any_strikethrough']]
-  let s:closed = '\%(\S\%(\%([^\n]\|\n' . s:element . '\@!\)\{-}\S\)\{-,1}' . s:marker . s:post . '\)\@='
-  execute 'syntax region ' . s:group . ' start=&' . s:pre . s:marker . s:closed . '& end=&\S\@1<=' . s:marker . s:post . '\@=&'
+  let s:closed = '\%(\S\%([^\n]' . s:reach . '\%(\n' . s:element . '\@![^\n]' . s:reach . '\)\=\S\)\{-,1}' . s:marker . s:post . '\)\@='
+  execute 'syntax region ' . s:group . ' start=&\%#=1' . s:pre . s:marker . s:closed . '& end=&\S\@1<=' . s:marker . s:post . '\@=&'
   execute 'syntax match ' . s:group . '__cell #' . s:pre . s:marker . '[^|[:space:]]\%([^|]\{-}[^|[:space:]]\)\{-,1}' . s:marker . '\ze' . s:post . '# contained'
 endfor
 
@@ -102,16 +107,18 @@ syntax match orgSyntax_planning /\<\%(SCHEDULED\|DEADLINE\|CLOSED\|CLOCK\):/ con
 " ----- drawers and blocks
 
 " What has its closing line before the next headline: without one, Org
-" reads the opening line as a paragraph.
-function! s:closed_by(end) abort
-  return '\%(\%(\n\%(\*\+\s\)\@!.*\)\{-}\n' . a:end . '\)\@='
+" reads the opening line as a paragraph. Only the next `lines` lines are
+" looked at, so that lines opening what nothing closes do not each scan
+" the rest of the file; the server's tokens show a longer one.
+function! s:closed_by(end, lines) abort
+  return '\%(\%(\n\%(\*\+\s\)\@!.*\)\{-,' . a:lines . '}\n' . a:end . '\)\@='
 endfunction
 
 let s:drawer_end = '\s*:END:\s*$'
-execute 'syntax region orgSyntaxDrawer matchgroup=orgSyntax_drawer start=/^\s*:[-_[:alnum:]]\+:\s*' . s:closed_by(s:drawer_end) . '/ end=/^' . s:drawer_end . '/ keepend contains=TOP'
+execute 'syntax region orgSyntaxDrawer matchgroup=orgSyntax_drawer start=/\%#=1^\s*:[-_[:alnum:]]\+:\s*' . s:closed_by(s:drawer_end, 200) . '/ end=/^' . s:drawer_end . '/ keepend contains=TOP'
 " The properties drawer of a headline: right after it, or after its
 " planning line.
-execute 'syntax region orgSyntaxProperties matchgroup=orgSyntax_drawer start=/^\s*:PROPERTIES:\s*' . s:closed_by(s:drawer_end) . '/ end=/^' . s:drawer_end . '/ keepend contained contains=orgSyntax_property'
+execute 'syntax region orgSyntaxProperties matchgroup=orgSyntax_drawer start=/\%#=1^\s*:PROPERTIES:\s*' . s:closed_by(s:drawer_end, 200) . '/ end=/^' . s:drawer_end . '/ keepend contained contains=orgSyntax_property'
 syntax match orgSyntax_property /^\s*\zs:[^:[:space:]]\+:\ze\%(\s\|$\)/ contained
 
 " Blocks: their opening and closing lines; the code of source, example and
@@ -122,7 +129,7 @@ for [s:name, s:contents] in [['src', 'raw'], ['example', 'raw'], ['export', 'raw
   let s:end = '\s*#+end_' . s:name . '\s*$'
   let s:group = s:contents ==# 'raw' ? 'orgSyntaxRawBlock' : s:contents ==# 'comment' ? 'orgSyntax_comment' : 'orgSyntaxBlock'
   let s:contains = s:contents =~# '^\(raw\|comment\|none\)$' ? '' : ' contains=' . s:contents
-  execute 'syntax region ' . s:group . ' matchgroup=orgSyntax_block start=/\c^\s*#+begin_' . s:name . '\>.*' . s:closed_by(s:end) . '/ end=/\c^' . s:end . '/ keepend' . s:contains
+  execute 'syntax region ' . s:group . ' matchgroup=orgSyntax_block start=/\%#=1\c^\s*#+begin_' . s:name . '\>.*' . s:closed_by(s:end, 500) . '/ end=/\c^' . s:end . '/ keepend' . s:contains
 endfor
 
 " ----- keywords and comments
