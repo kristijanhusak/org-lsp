@@ -15,11 +15,18 @@ let g:coc_config_home = $ORG_LSP_TEST_WORK . '/coc'
 let g:ale_lint_on_text_changed = 'never'
 " ALE tells of its server started, and Vim says nobody listens.
 autocmd User ALELSPStarted :
+" ALE echoes the hover where the cursor rests into the messages (in the
+" agenda, the entry's headline), which the tests compare.
+let g:ale_hover_cursor = 0
 let g:lsp_diagnostics_enabled = 0
 " vim-lsp's sign for code actions shows the sign column a moment after the
 " cursor stops, which narrows the agenda's window: the agenda is built
 " again for it, under a test that waits for something else.
 let g:lsp_document_code_action_signs_enabled = 0
+" Inlay hints shown, as docs/vim.org says to set them (the clock's times,
+" shrunk columns).
+autocmd User LspSetup call LspOptionsSet({'showInlayHints': v:true})
+let g:lsp_inlay_hints_enabled = 1
 let g:org_lsp = {
       \ 'cmd': [$ORG_LSP_BIN],
       \ 'settings': {
@@ -27,6 +34,8 @@ let g:org_lsp = {
       \   'org_todo_keyword_faces': {'TODO': ':foreground #ff8800 :weight bold'},
       \   'org_tag_faces': {'office': '#0088ff'},
       \   'org_fontify_whole_heading_line': v:true,
+      \   'org_support_shift_select': v:false,
+      \   'org_return_follows_link': v:true,
       \   'org_agenda_files': [$ORG_LSP_TEST_WORK . '/notes'],
       \   'org_roam_enabled': v:true,
       \   'org_roam_directory': $ORG_LSP_TEST_WORK . '/roam',

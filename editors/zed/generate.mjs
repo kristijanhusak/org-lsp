@@ -219,12 +219,20 @@ const shared = new Set(
   }),
 );
 const byKey = [...shared].map((key) => task(`Org: ${key}`, `'key:${key}'`, 'org', [key]));
+// In an Org file or a capture buffer, the key of a command that needs no
+// file (capture, the agenda menu) runs at the cursor, as Emacs's does:
+// capture's `%a` links to the cursor's place, and with the agenda open
+// the command does not run on the agenda's line instead. Elsewhere (the
+// agenda, the task picker) the command's own task runs it.
+const atCursor = opening
+  .filter((task) => task.keys.length > 0)
+  .map((task) => ({ ...task, label: `${task.label} (at the cursor)`, run: `file:${task.run}` }));
 const inFiles = manifest.commands
   .filter((command) => !openingIds.has(command.command))
   .map((command) => [command, keysIn(command, ['org', 'capture']).filter((key) => !shared.has(key))])
   .filter(([, keys]) => keys.length > 0)
   .map(([command, keys]) => task(`Org: ${command.title}`, `file:${command.command}`, 'org', keys));
-const tasks = [...opening, ...inFiles, ...byKey, ...inAgenda].map((task) => ({
+const tasks = [...opening, ...inFiles, ...byKey, ...atCursor, ...inAgenda].map((task) => ({
   label: task.label,
   command: `$HOME/.local/state/org-lsp/agenda-command ${task.run}`,
   tags: [task.tag],
@@ -268,7 +276,7 @@ const keymap = [
     ),
   },
   // In Org files and capture buffers: Org's keys.
-  { context: 'Editor && !renaming && extension == org', bindings: bindAll({}, [...byKey, ...inFiles, ...opening]) },
+  { context: 'Editor && !renaming && extension == org', bindings: bindAll({}, [...byKey, ...inFiles, ...atCursor]) },
 ];
 const files = {
   [join(here, 'languages', 'org', 'semantic_token_rules.json')]: text,

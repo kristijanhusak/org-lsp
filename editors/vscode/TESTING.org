@@ -18,7 +18,8 @@ its sections says what it should look like.
 
 - [ ] Installed with ~install.sh vscode~ (or a ~.vsix~ from the release): the server starts on an Org file
 - [ ] The ~Org:~ commands are in the Command Palette
-- [ ] ~"org-lsp.keys": "vim"~ (with VSCodeVim) switches to the Vim keys
+- [ ] ~"org-lsp.keys": "vim"~ (with VSCodeVim) switches to the Vim keys; ~"emacs_full"~ to all of Emacs's, ~Shift+Right~ on a headline changing its TODO state
+- [ ] With the default keys, in an Org file ~Shift+Right~ selects, ~Ctrl+A~ is VS Code's, ~Ctrl+C~ copies the selection, and with nothing selected ~Ctrl+C Ctrl+T~ changes the TODO state
 - [ ] ~org-lsp.~ settings and =~/.config/org-lsp/config.toml= reach the server
 
 * Highlighting
@@ -72,6 +73,7 @@ its sections says what it should look like.
 - [ ] A new TODO heading: ~Alt+Shift+Enter~
 - [ ] A new heading after the subtree, and a TODO one: ~Ctrl+Enter~, ~Ctrl+Shift+Enter~
 - [ ] Promoting and demoting a heading; its tags stay aligned: ~Alt+Left~, ~Alt+Right~
+- [ ] With ~org_support_shift_select~ unset, Shift and the arrows on a headline select text, and on a timestamp change it: ~Shift+Right~, ~Shift+Up~
 - [ ] Promoting and demoting a subtree: ~Alt+Shift+Left~, ~Alt+Shift+Right~
 - [ ] Moving a subtree up and down past its siblings: ~Alt+Up~, ~Alt+Down~
 - [ ] Inserting an inline task gives 15 stars and an ~END~ line; demoting it changes both; the outline leaves it out, and folding it hides its text and its ~END~ line: ~Ctrl+C Ctrl+X t~, ~Alt+Right~
@@ -98,7 +100,7 @@ its sections says what it should look like.
 - [ ] ~RET~ in the middle of an item's line keeps the rest of the line in the item: ~Enter~
 - [ ] Indenting and outdenting an item; and with its children: ~Alt+Right~, ~Alt+Left~, ~Alt+Shift+Right~, ~Alt+Shift+Left~
 - [ ] Moving an item up and down: ~Alt+Up~, ~Alt+Down~
-- [ ] Cycling the bullet ~-~ → ~+~ → ~1.~ → ~1)~ on an item: ~Shift+Right~, ~Shift+Left~
+- [ ] With ~org_support_shift_select~ set to ~false~: cycling the bullet ~-~ → ~+~ → ~1.~ → ~1)~ on an item: ~Shift+Right~, ~Shift+Left~
 - [ ] Toggling a checkbox: its parent box and the ~[1/3]~ cookie follow: ~Ctrl+C Ctrl+C~
 - [ ] On a list numbered 1, 3, 2, the same command renumbers and repairs it: ~Ctrl+C Ctrl+C~
 - [ ] Sorting a list's items alphabetically: ~Ctrl+C ^~
@@ -117,7 +119,7 @@ its sections says what it should look like.
 - [ ] The parent's ~[1/2]~ cookie is recounted: ~Ctrl+C Ctrl+T~
 - [ ] A ~#+TODO: A B | C~ line in the file is used instead of the settings: ~Ctrl+C Ctrl+T~
 - [ ] With ~#+TODO: TODO | DONE~ and ~#+TODO: REPORT BUG | FIXED~, changing the state without keys goes ~BUG~, ~FIXED~, none, then back to ~REPORT~: ~Ctrl+C Ctrl+T~
-- [ ] Switching to the next and previous keyword set says ~Keyword-Set 2/2: REPORT BUG FIXED~: ~Ctrl+Shift+Right~, ~Ctrl+Shift+Left~
+- [ ] With ~org_support_shift_select~ set to ~false~: switching to the next and previous keyword set says ~Keyword-Set 2/2: REPORT BUG FIXED~: ~Ctrl+Shift+Right~, ~Ctrl+Shift+Left~
 - [ ] With ~org_todo_keyword_faces = { WAIT = ":foreground orange :weight bold" }~, ~WAIT~ shows in bold orange, in the file and in the agenda
 
 * Priorities
@@ -144,7 +146,7 @@ its sections says what it should look like.
 - [ ] In column view, picking a column, editing its value (~e~), the next and previous allowed value (~n~, ~p~), its value shown (~v~); quitting (~q~)
 - [ ] In column view, moving a column, making it narrower and wider, deleting it; moving an entry up and down
 - [ ] Setting a property: the name and the value are completed, ~NAME_ALL~'s values offered: ~Ctrl+C Ctrl+X p~
-- [ ] On a property line with ~NAME_ALL~, cycling through its values: ~Shift+Right~, ~Shift+Left~
+- [ ] With ~org_support_shift_select~ set to ~false~: on a property line with ~NAME_ALL~, cycling through its values: ~Shift+Right~, ~Shift+Left~
 - [ ] Deleting a property from the entry, and from the whole file: /Org: Delete a property of the entry/, /Org: Delete a property from every entry of the file/
 - [ ] ~C-c C-c~ in a property drawer asks what to do with the property: ~Ctrl+C Ctrl+C~
 - [ ] Setting the effort: ~Ctrl+C Ctrl+X e~
@@ -322,7 +324,7 @@ its sections says what it should look like.
 - [ ] Inserting and deleting a column and a row: ~Alt+Shift+Right~, ~Alt+Shift+Left~, ~Alt+Shift+Down~, ~Alt+Shift+Up~
 - [ ] A rule below the row; a rule and a move to the row below: ~Ctrl+C -~, ~Ctrl+C Enter~
 - [ ] Blanking the field: /Org: Blank the table field/
-- [ ] The shifted cursor keys move the field up, down, left and right (needs Emacs); on a timestamp in a field they change it: ~Shift+Up~, ~Shift+Down~, ~Shift+Left~, ~Shift+Right~
+- [ ] With ~org_support_shift_select~ set to ~false~: the shifted cursor keys move the field up, down, left and right (needs Emacs); on a timestamp in a field they change it: ~Shift+Up~, ~Shift+Down~, ~Shift+Left~, ~Shift+Right~
 - [ ] Copying the field down to the next row, a number incremented (needs Emacs); off a table the key keeps its own meaning: ~Shift+Enter~
 - [ ] The sum of the column and the field's references are shown as messages (needs Emacs): ~Ctrl+C +~, ~Ctrl+C ?~
 - [ ] Creating a table asks for its size (~3x2~; empty for Org's default) (needs Emacs): ~Ctrl+C |~
@@ -395,6 +397,7 @@ its sections says what it should look like.
 
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
 - [ ] With ~#+STARTUP: hidestars~ only the last star shows
+- [ ] In a file without ~#+STARTUP: indent~, the command shows the text indented by level and says ~Org-Indent mode enabled in current buffer~; run again, it shows the file as it was: /Org: Indent the text by the level of its headline, or stop indenting it/
 - [ ] With ~org_adapt_indentation = true~, a new line below a headline is indented
 - [ ] Re-indenting a selection indents it as Org does: Format Selection
 - [ ] Formatting the file aligns tables and puts tags in their column
@@ -417,6 +420,7 @@ its sections says what it should look like.
 - [ ] A block from the structure templates (~s~ for a source block) (needs Emacs): ~Ctrl+C Ctrl+,~
 - [ ] Emphasis markers around the cursor, ~*~ for bold (needs Emacs): ~Ctrl+C Ctrl+X Ctrl+F~
 - [ ] A drawer, its name completed from the file's (needs Emacs): ~Ctrl+C Ctrl+X d~
+- [ ] Showing the version of the server says ~org-lsp version 0.1.0-~ and the commit the server that runs was built from, as ~org-lsp --version~ says: /Org: Show the version of the server/
 
 * Timers
 

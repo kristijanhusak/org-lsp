@@ -48,7 +48,7 @@ JOURNAL_TRIES = 50
 REPOSITORY = 'kristijanhusak/org-lsp'
 # The package's version (scripts/version.sh), and the release whose server
 # it downloads: its own, or `nightly` in the nightly build's package.
-VERSION = '0.1.0'
+VERSION = '0.1.2'
 RELEASE = 'v' + VERSION  # The nightly build puts 'nightly' here.
 # The release's name for each platform Sublime Text runs on.
 PLATFORMS = {
@@ -189,7 +189,12 @@ def download(storage: str) -> str:
         if os.path.isdir(path) and os.path.isfile(os.path.join(path, executable())):
             shutil.rmtree(path, ignore_errors=True)
         elif name == executable():
-            os.remove(path)
+            # On Windows a server still running cannot be removed: it goes
+            # the next time.
+            try:
+                os.remove(path)
+            except OSError:
+                pass
     return target
 
 
@@ -1464,9 +1469,9 @@ def echo_outline_path(result) -> None:
 
 class OrgLspListener(sublime_plugin.EventListener):
     def on_query_context(self, view, key, operator, operand, match_all):
-        """`org_lsp.keys`: the preset of keys the settings pick (emacs, vim
-        or custom); `org_lsp.capture`: whether the view is a capture
-        buffer."""
+        """`org_lsp.keys`: the preset of keys the settings pick (emacs,
+        emacs_full, vim or custom); `org_lsp.capture`: whether the view
+        is a capture buffer."""
         if key == 'org_lsp.keys':
             value = settings().get('org_keys', 'emacs')
         elif key == 'org_lsp.capture':

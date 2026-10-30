@@ -1,6 +1,8 @@
 " Adapter for neoclide/coc.nvim.
 "
-" coc.nvim shows the documents the server asks for on its own.
+" coc.nvim shows the documents the server asks for on its own: the server
+" tells the plugin of them as a notification instead
+" (`show_document_notification`).
 
 let s:name = 'org-lsp'
 
@@ -11,7 +13,7 @@ function! org_lsp#adapter#coc#register(cmd, options, filetypes) abort
         \ 'filetypes': a:filetypes,
         \ 'initializationOptions': a:options,
         \ })
-  for method in ['org-lsp/save', 'org-lsp/clock', 'org-lsp/timer', 'org-lsp/virtualIndent', 'org-lsp/lineHighlights', 'org-lsp/codeBlocks', 'org-lsp/viewChanged', 'org-lsp/columns', 'org-lsp/folds', 'org-lsp/runCommand', 'org-lsp/message']
+  for method in ['org-lsp/save', 'org-lsp/clock', 'org-lsp/timer', 'org-lsp/virtualIndent', 'org-lsp/display', 'org-lsp/lineHighlights', 'org-lsp/codeBlocks', 'org-lsp/syntax', 'org-lsp/viewChanged', 'org-lsp/columns', 'org-lsp/folds', 'org-lsp/runCommand', 'org-lsp/message', 'org-lsp/showDocument']
     call CocRegisterNotification(s:name, method, function('org_lsp#handle_notification', [method]))
   endfor
 endfunction
@@ -37,15 +39,17 @@ function! org_lsp#adapter#coc#encoding() abort
   return 'utf-16'
 endfunction
 
-" coc.nvim passes on an error's message only. The server refuses a command
-" where it does not apply, and the plugin then gives a key its own meaning
-" (`<C-a>` off a timestamp); without the error's data, every refusal is
-" taken as one.
-function! s:error(error) abort
-  if a:error is v:null
-    return {}
+" coc.nvim passes on an error's message only: a command that does not
+" apply says so in its result (`refusal_results`), taken as the error the
+" other clients have.
+function! s:answer(Callback, error, result) abort
+  if a:error isnot v:null
+    return a:Callback(type(a:error) == v:t_dict ? a:error : {'message': a:error}, v:null)
   endif
-  return type(a:error) == v:t_dict ? a:error : {'message': a:error, 'data': {'notApplicable': v:true}}
+  if type(a:result) == v:t_dict && get(a:result, 'notApplicable', v:false) is v:true
+    return a:Callback({'message': get(a:result, 'message', ''), 'data': {'notApplicable': v:true}}, v:null)
+  endif
+  return a:Callback({}, a:result)
 endfunction
 
 " By buffer: the change count last seen, and when the server will have
@@ -57,12 +61,17 @@ function! s:now() abort
 endfunction
 
 function! s:send(method, params, Callback) abort
-  call CocRequestAsync(s:name, a:method, a:params, {error, result -> a:Callback(s:error(error), result)})
+  call CocRequestAsync(s:name, a:method, a:params, function('s:answer', [a:Callback]))
 endfunction
+
+" When the last request held goes.
+let s:last_due = 0.0
 
 " coc.nvim tells the server about a change 150 ms after it hears of it,
 " and a request does not wait for that: after a change, requests wait
-" until the server has the text they are about.
+" until the server has the text they are about. They go in the order they
+" were made (a command for the agenda's file, then the agenda's cursor it
+" follows): each goes after the one held before it.
 function! org_lsp#adapter#coc#request(bufnr, method, params, Callback) abort
   let tick = getbufvar(a:bufnr, 'changedtick')
   let known = get(s:synced, a:bufnr, {'tick': tick, 'at': 0.0})
@@ -71,11 +80,21 @@ function! org_lsp#adapter#coc#request(bufnr, method, params, Callback) abort
     let known = {'tick': tick, 'at': s:now() + 0.3}
   endif
   let s:synced[a:bufnr] = known
-  let wait = float2nr((known.at - s:now()) * 1000)
-  if wait <= 0
+  let now = s:now()
+  let last = s:last_due
+  if known.at <= now && last <= now
     return s:send(a:method, a:params, a:Callback)
   endif
-  call timer_start(wait, {-> s:send(a:method, a:params, a:Callback)})
+  let due = known.at > last + 0.002 ? known.at : last + 0.002
+  let s:last_due = due
+  call timer_start(float2nr(ceil((due - now) * 1000)), {-> s:send(a:method, a:params, a:Callback)})
+endfunction
+
+" A notification for the server.
+function! org_lsp#adapter#coc#notify(method, params) abort
+  if coc#rpc#ready()
+    call CocNotify(s:name, a:method, a:params)
+  endif
 endfunction
 
 " A file no window shows, written: coc.nvim loads the files it edits for

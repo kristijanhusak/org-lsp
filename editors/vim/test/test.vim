@@ -60,6 +60,27 @@ function! s:starts() abort
 endfunction
 call s:test('starts the server and highlights with its tokens', function('s:starts'))
 
+" The plugin's syntax colors what the tokens color, in their groups: the
+" stars of a level 2 headline as the token `stars.level2` shows them.
+function! s:syntax() abort
+  call assert_equal('org', &syntax)
+  let Shown = {line, col -> synIDattr(synIDtrans(synID(line, col, 1)), 'name')}
+  call assert_equal('orgSyntax_stars_level2', synIDattr(synID(5, 1, 1), 'name'))
+  call assert_equal(synIDattr(synIDtrans(hlID('OrgLsp_stars_level2')), 'name'), Shown(5, 1))
+  call assert_notequal('', Shown(5, 1))
+  call assert_equal(synIDattr(synIDtrans(hlID('OrgLsp_timestamp')), 'name'), Shown(3, 12))
+  " With what the server says of the file (`org-lsp/syntax`): its keywords
+  " and the faces of keywords and tags, over the look of their tokens.
+  call s:until('org-lsp/syntax', {-> !empty(getbufvar(s:work_buf, 'org_lsp_syntax_info', {}))})
+  call s:until('the syntax again', {-> synIDattr(synID(2, 3, 1), 'name') =~# '^orgSyntax_todoKeyword__l1__face_todo_TODO'})
+  let Look = {col, attribute -> synIDattr(synIDtrans(synID(2, col, 1)), attribute, 'gui')}
+  call assert_equal(['#ff8800', '1'], [Look(3, 'fg#'), Look(3, 'bold')])
+  call assert_equal('orgSyntax_headline_level1__after', synIDattr(synID(2, 13, 1), 'name'))
+  call assert_equal('orgSyntax_tag__face_tag_office', synIDattr(synID(2, 27, 1), 'name'))
+  call assert_equal('#0088ff', Look(27, 'fg#'))
+endfunction
+call s:test('colors with its syntax as the tokens do', function('s:syntax'))
+
 " `org_fontify_whole_heading_line`: each headline's line coloured from
 " edge to edge in the look of its level, with a sign without text.
 function! s:whole_heading_lines() abort
@@ -168,6 +189,10 @@ function! s:deadline() abort
   call s:until('the prompt line', {-> getline('$') =~# '^DEADLINE'})
   call s:until('the calendar as high as its text', {-> s:calendar_window() == win_getid() && winheight(0) == line('$')})
   call s:until('the cursor on the day', {-> expand('<cword>') ==# '20'})
+  " Not to be typed into: `x` there changes nothing.
+  silent! normal! x
+  call assert_equal(0, &l:modifiable)
+  call assert_equal(0, &l:modified)
   " `j` a week later, `<CR>` takes that day.
   call feedkeys('j', 'x')
   call s:until('the selected day a week later', {-> getline('$') =~# '=> <2026-05-27 Wed>'})
@@ -187,8 +212,7 @@ function! s:deadline() abort
 endfunction
 call s:test('picks a date in the calendar and sets the deadline', function('s:deadline'))
 
-" The window the plugin opened for the agenda: coc.nvim shows the agenda
-" in the current window first, which the plugin then puts back.
+" The window the plugin opened for the agenda.
 function! s:agenda_window() abort
   for win in range(1, winnr('$'))
     if getbufvar(winbufnr(win), '&filetype') ==# 'org-agenda' && !empty(getwinvar(win, 'org_lsp_opened', ''))
@@ -204,6 +228,12 @@ function! s:agenda() abort
   call win_gotoid(s:agenda_window())
   call s:until('its text', {-> getline(1) =~# '^Week-agenda'})
   call assert_true(search('Write report', 'n') > 0, 'an entry')
+  " Alt-m as a terminal sends it, <Esc> then `m`.
+  call assert_equal('org.agenda.bulk.toggle', org_lsp#mapped_command('<Esc>m'))
+  " Not to be typed into: `x` there changes nothing.
+  silent! normal! x
+  call assert_equal(0, &l:modifiable)
+  call assert_equal(0, &l:modified)
   " `org_agenda_tags_column` `"auto"`: the tags end at the window's right edge,
   " and follow it when it changes size.
   let agenda = win_getid()
@@ -222,11 +252,7 @@ function! s:agenda() abort
   call feedkeys('q', 'x')
   call s:until('the agenda closed', {-> s:agenda_window() == 0})
   call assert_equal(s:work_buf, bufnr())
-  " `win_split_size`: lines for a split. (coc.nvim opens documents where it
-  " opens them.)
-  if $ORG_LSP_TEST_CLIENT ==# 'coc'
-    return
-  endif
+  " `win_split_size`: lines for a split.
   let g:org_lsp.win_split_size = 6
   call org_lsp#run('org.agenda.list')
   call s:until('the agenda of 6 lines', {-> s:agenda_window() != 0 && winheight(s:agenda_window()) == 6})
@@ -314,10 +340,6 @@ endfunction
 call s:test('a hover shows the entry of an agenda line', function('s:agenda_hover'))
 
 function! s:agenda_tab() abort
-  " coc.nvim opens documents where it opens them.
-  if $ORG_LSP_TEST_CLIENT ==# 'coc'
-    return
-  endif
   call org_lsp#run('org.agenda.list')
   call s:until('the agenda', {-> s:agenda_window() != 0})
   let agenda = s:agenda_window()
@@ -346,9 +368,6 @@ call s:test('TAB shows the entry in another window', function('s:agenda_tab'))
 " F (follow mode): the entry of the cursor's line in another window as the
 " cursor moves, the cursor staying in the agenda.
 function! s:agenda_follow() abort
-  if $ORG_LSP_TEST_CLIENT ==# 'coc'
-    return
-  endif
   call org_lsp#run('org.agenda.list')
   call s:until('the agenda', {-> s:agenda_window() != 0})
   let agenda = s:agenda_window()
@@ -452,6 +471,43 @@ function! s:agenda_clocking() abort
   call s:until('the agenda closed', {-> s:agenda_window() == 0})
 endfunction
 call s:test('highlights the clocked line of the agenda', function('s:agenda_clocking'))
+
+" A shrunk column has `…` after its fields, an inlay hint, gone when it is
+" shrunk no more (ALE shows no inlay hints).
+function! s:shrink() abort
+  if org_lsp#adapter() ==# 'ale'
+    return
+  endif
+  let file = s:work . '/notes/shrink.org'
+  call writefile(['| <3>    |', '| abcdef |'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  let nr = bufnr()
+  let Hints = {-> len(filter(prop_list(1, {'bufnr': nr, 'end_lnum': 2}), {_, p -> get(p, 'text', '') =~# '…'}))}
+  call cursor(2, 3)
+  call org_lsp#run('org.table.toggle.column.width')
+  call s:until('the column shrunk', {-> Hints() > 0})
+  call org_lsp#run('org.table.toggle.column.width')
+  call s:until('the column whole again', {-> Hints() == 0})
+  execute 'buffer' s:work_buf
+endfunction
+call s:test('a shrunk column has … after it until it is whole again', function('s:shrink'))
+
+" With `org_return_follows_link`, RET on a link in Insert mode follows it
+" and types nothing, the target in the same file.
+function! s:return_follows_link() abort
+  let file = s:work . '/notes/follow.org'
+  let lines = ['* Links', 'Go to [[*Target][the target]] end', '* Target']
+  call writefile(lines, file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call cursor(2, 20)
+  call feedkeys("i\<CR>\<Esc>", 'xt')
+  call s:until('the target', {-> line('.') == 3})
+  call assert_equal(lines, getline(1, '$'))
+  execute 'buffer' s:work_buf
+endfunction
+call s:test('RET on a link follows it', function('s:return_follows_link'))
 
 function! s:return() abort
   let file = s:work . '/notes/return.org'
@@ -584,8 +640,8 @@ endfunction
 call s:test('<< and >> promote and demote headlines, and move subtrees', function('s:structure'))
 
 " On a Visual selection the keys of the commands Org gives a region work
-" on it: `>>` demotes the headlines selected, `\o*` makes the lines
-" selected headings (through Emacs).
+" on it, through Emacs: `>>` demotes the headlines selected, `\o*` makes
+" the lines selected headings.
 function! s:region() abort
   let file = s:work . '/notes/region.org'
   call writefile(['* A', '* B', 'one', 'two'], file)
@@ -593,19 +649,19 @@ function! s:region() abort
   call s:until('the server', {-> org_lsp#ready(bufnr())})
   call cursor(1, 1)
   call feedkeys('Vj>>', 'xt')
-  call s:until('both headlines demoted', {-> getline(1, '$') == ['** A', '** B', 'one', 'two']})
-  if executable('emacs')
-    call cursor(3, 1)
-    call feedkeys("Vj\\o*", 'xt')
-    " A level below the headline above, as Emacs makes them.
-    call s:until('the lines made headings', {-> getline(1, '$') == ['** A', '** B', '*** one', '*** two']}, 60000)
-    " The cursor goes where Emacs left the point, after the edit.
-    sleep 1500m
-    call feedkeys('', 'x')
-  endif
+  call s:until('both headlines demoted', {-> getline(1, '$') == ['** A', '** B', 'one', 'two']}, 60000)
+  call cursor(3, 1)
+  call feedkeys("Vj\\o*", 'xt')
+  " A level below the headline above, as Emacs makes them.
+  call s:until('the lines made headings', {-> getline(1, '$') == ['** A', '** B', '*** one', '*** two']}, 60000)
+  " The cursor goes where Emacs left the point, after the edit.
+  sleep 1500m
+  call feedkeys('', 'x')
   silent write
 endfunction
-call s:test('a selection is the region of the commands Org gives one', function('s:region'))
+if executable('emacs')
+  call s:test('a selection is the region of the commands Org gives one', function('s:region'))
+endif
 
 " On list items `>>` and `<<` indent and outdent the item, `\oJ` moves
 " it with the cursor, `<S-Right>` cycles the bullets and `<C-Space>`
@@ -799,7 +855,10 @@ function! s:code_link_note() abort
   call assert_match('python', Syntax(9, 32))
   call assert_notmatch('python', Syntax(9, 30))
   call assert_notmatch('python', Syntax(9, 50))
-  call assert_match('lisp', Syntax(11, 2))
+  call assert_match('lispDecl', Syntax(11, 2))
+  " Within the block of the plugin's syntax for Org, whose region takes
+  " the whole block.
+  call assert_match('orgSyntaxRawBlock orgLspSrcCode_python python', Syntax(3, 1))
   " What an example block holds is no block.
   call assert_notmatch('python', Syntax(15, 1))
   " The regions move with the code, and go with it.
@@ -883,10 +942,60 @@ function! s:virtual_indent() abort
   let row = screenpos(win_getid(), 4, 1).row
   let left = win_screenpos(0)[1] + off
   let Shown = {r -> join(map(range(left, left + 23), {_, c -> screenstring(r, c)}), '')}
-  call assert_equal([' ** B and a title that  ', '   wraps                '], [Shown(row), Shown(row + 1)])
+  call assert_equal(['  * B and a title that  ', '   wraps                '], [Shown(row), Shown(row + 1)])
   close
 endfunction
 call s:test('org-indent-mode shows the file indented, unchanged', function('s:virtual_indent'))
+
+" The first 14 columns of `line` as the screen shows them, redrawn.
+function! s:shown(line) abort
+  doautocmd <nomodeline> CursorMoved
+  redraw
+  let row = screenpos(win_getid(), a:line, 1).row
+  return join(map(range(1, 14), {_, c -> screenstring(row, c)}), '')
+endfunction
+
+" What Org hides is concealed: a link's brackets and target, and an
+" entity shows as its character (`org-lsp/display`). The cursor's line
+" shows as it is.
+function! s:conceals() abort
+  let file = s:work . '/notes/concealed.org'
+  call writefile(['#+STARTUP: entitiespretty', 'See [[https://orgmode.org][Org]] and \alpha.', 'last'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call cursor(3, 1)
+  call s:until('the link and the entity concealed', {-> s:shown(2) ==# 'See Org and α.'})
+  call cursor(2, 1)
+  call assert_equal('See [[https://', s:shown(2))
+  call cursor(3, 1)
+  call assert_equal('See Org and α.', s:shown(2))
+  " Concealed on the cursor's line too in Normal mode ('concealcursor').
+  setlocal concealcursor=n
+  call cursor(2, 1)
+  call assert_equal('See Org and α.', s:shown(2))
+  setlocal concealcursor=
+  bwipeout!
+  execute 'buffer' s:work_buf
+endfunction
+call s:test('conceals what Org hides, but on the cursor line', function('s:conceals'))
+
+" A command's edit (the TODO keyword cycled) is highlighted as soon as
+" the server has it, not when Vim next sees the change ('updatetime').
+function! s:highlights_edits() abort
+  let file = s:work . '/notes/cycled.org'
+  call writefile(['* TODO Cycle me'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call s:until('highlighting', {-> index(s:types(1), 'org_lsp_todoKeyword') >= 0})
+  call cursor(1, 3)
+  let start = reltime()
+  call org_lsp#run('org.todo.next')
+  call s:until('DONE highlighted', {-> getline(1) =~# 'DONE' && index(s:types(1), 'org_lsp_todoKeyword.done') >= 0}, 2000)
+  call assert_true(reltimefloat(reltime(start)) < 2.0)
+  bwipeout!
+  execute 'buffer' s:work_buf
+endfunction
+call s:test('highlights the edit of a command at once', function('s:highlights_edits'))
 
 " Indentation by the server: a line opened below a list item starts at
 " the item's text, as Org's RET has it, and `==` re-indents a line as
@@ -957,10 +1066,6 @@ endif
 " the node's backlinks; it follows the cursor to another node; the command
 " again hides it.
 function! s:roam_buffer() abort
-  " coc.nvim opens documents where it opens them.
-  if $ORG_LSP_TEST_CLIENT ==# 'coc'
-    return
-  endif
   let dir = s:work . '/roam'
   call mkdir(dir, 'p')
   call writefile([':PROPERTIES:', ':ID:       a-id', ':END:', '#+title: A note', '', 'Text.'], dir . '/a.org')
@@ -1051,17 +1156,22 @@ endfunction
 call s:test('TAB on a new headline cycles its level', function('s:cycle_level'))
 
 " `:Org` takes a range, as a selection of whole lines: `:2,3Org meta right`
-" demotes both headlines. `:Org agenda <Tab>` completes the next word.
+" demotes both headlines (through Emacs, as a selection). `:Org agenda
+" <Tab>` completes the next word.
 function! s:org_range() abort
   let file = s:work . '/notes/range.org'
   call writefile(['* C', '* D', '* E'], file)
   execute 'edit' fnameescape(file)
   call s:until('the server', {-> org_lsp#ready(bufnr())})
-  2,3Org meta right
-  call s:until('both demoted', {-> getline(1, '$') == ['* C', '** D', '** E']})
+  if executable('emacs')
+    2,3Org meta right
+    call s:until('both demoted', {-> getline(1, '$') == ['* C', '** D', '** E']}, 60000)
+  endif
   let words = org_lsp#complete('', 'Org agenda ', 11)
   call assert_true(index(words, 'list') >= 0 && index(words, 'dispatch') >= 0, string(words))
   call assert_equal(['list'], org_lsp#complete('li', 'Org agenda li', 13))
+  call assert_equal(['indent.mode'], org_lsp#complete('indent.m', 'Org indent.m', 12))
+  call assert_equal(['schedule.delay', 'schedule.remove'], org_lsp#complete('schedule.', 'Org schedule.', 13))
   silent! write
   execute 'buffer' s:work_buf
 endfunction

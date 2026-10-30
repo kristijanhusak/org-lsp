@@ -49,7 +49,7 @@ the server says which to use instead.
 :CUSTOM_ID: the-shared-configuration-file
 :END:
 
-The server reads the first of these that is there:
+The server reads the first of these that is named, or there:
 
 1. the file the editor names with the ~config_file~ option (see
    [[#leaving-the-file-out-or-using-another][below]]);
@@ -57,6 +57,10 @@ The server reads the first of these that is there:
 3. ~config.toml~ or ~config.json~ in =$XDG_CONFIG_HOME/org-lsp=;
 4. ~config.toml~ or ~config.json~ in =~/.config/org-lsp= (on Windows,
    =%APPDATA%\org-lsp=).
+
+A file named by ~config_file~ or =$ORG_LSP_CONFIG= that is not there is a
+problem the server, ~org-lsp agenda~ and ~org-lsp mcp~ report; the others
+may be missing.
 
 Write it in [[https://toml.io][TOML]] or in JSON, whichever you prefer. With both there, the
 server reads ~config.toml~ and says that it leaves ~config.json~ out. A file
@@ -442,9 +446,11 @@ require('org-lsp').setup({
   -- Fold with the server's folding ranges.
   folding = true,
 
-  -- Turn off Vim's regex syntax for Org once the server's highlighting
-  -- arrives.
-  replace_syntax = true,
+  -- Turn off the syntax for Org once the server's highlighting arrives.
+  -- The plugin's syntax colors what a pattern finds as the server does
+  -- (see Neovim's page), and colors what you type before the server
+  -- answers.
+  replace_syntax = false,
 
   -- Highlight the code of source and export blocks (`#+begin_src python`,
   -- `#+begin_export html`) and of inline source blocks (`src_python{…}`),
@@ -708,12 +714,13 @@ what you set is merged into the defaults.
 | ~download~          | ~1~                | When no server is found, download the build of ~release~ for this platform into =~/.local/share/vim/org-lsp= (with ~curl~ and ~tar~) and start it. ~:OrgLspDownload~ downloads it again, to update it.                                              |
 | ~release~           | ~'nightly'~        | The release to download: ~'nightly'~ (built from the latest ~main~), or a version tag such as ~'v0.2.0'~.                                                                                                                                           |
 | ~settings~          | ~{}~               | The server's options, passed to it as they are.                                                                                                                                                                                                     |
-| ~client~            | ~'auto'~           | The LSP client: ~'lsp'~ (yegappan/lsp), ~'vim-lsp'~, ~'coc'~ or ~'ale'~. ~'auto'~ takes the first of these that is installed.                                                                                                                       |
+| ~client~            | ~'auto'~           | The LSP client: ~'lsp'~ (yegappan/lsp), ~'coc'~, ~'vim-lsp'~ or ~'ale'~. ~'auto'~ takes the first of these that is installed.                                                                                                                       |
 | ~folding~           | ~1~                | Fold with the server's folding ranges, and cycle with ~<Tab>~ and ~<S-Tab>~.                                                                                                                                                                        |
 | ~startup_folded~    | ~''~               | ~'overview'~ opens files with every fold closed, ~'showeverything'~ with every fold open. Empty: the server's ~org_startup_folded~, the file's ~#+STARTUP:~ and its ~VISIBILITY~ properties decide, as in Emacs.                                    |
 | ~highlight~         | ~1~                | Highlight with the server's tokens.                                                                                                                                                                                                                 |
 | ~indent~            | ~1~                | Indent as Org does, with the server: new lines through 'indentexpr' (~org-indent-line~), and ~=~ (~org-indent-region~), following ~org_adapt_indentation~.                                                                                          |
 | ~virtual_indent~    | ~1~                | Show files with ~org-indent-mode~ (~org_startup_indented~, ~#+STARTUP: indent~) indented by level without changing them, and their hidden leading stars in the color of the background, as Org's ~org-hide~ face does. Needs Vim 9.0.0067 or later. |
+| ~conceal~           | ~1~                | Hide what Org hides (link brackets and targets, emphasis markers with ~org_hide_emphasis_markers~), and show what stands in for hidden text: entities as their characters, the bullets of ~org_bullets_mode~, shrunk table fields. Sets 'conceallevel' 2 in Org windows (a level set before stays); the cursor's line shows everything. Needs Vim 9.0.0067 or later. |
 | ~src_highlight~     | ~1~                | Highlight the code of source and export blocks and of inline source blocks with the syntax file of its language, where the server says it is, as Emacs's ~org-src-fontify-natively~ does.                                                           |
 | ~win_split_mode~    | ~'split'~          | How the agenda and capture buffers open: ~'split'~, ~'vsplit'~, ~'current'~, or an Ex command that opens a window (~'botright split'~, ~'tabnew'~).                                                                                                 |
 | ~win_split_size~    | ~0~                | How big that window is: lines for a split, columns for a vertical one (~vsplit~, ~vnew~, ~vertical~), or below 1 that part of the editor. ~0~ leaves it as the command makes it.                                                                    |
@@ -759,7 +766,7 @@ with their types and defaults.
 |-------------------------------+------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ~org-lsp.settings~            | ~{}~             | The server's options, passed to it as they are.                                                                                                                                                                                                               |
 | ~org-lsp.server.path~         | ~""~             | The server binary. Empty: the one bundled with the extension, or else ~org-lsp~ from PATH.                                                                                                                                                                    |
-| ~org-lsp.keys~                | ~"emacs"~        | Which keys are bound: ~"emacs"~, ~"vim"~ (the Neovim plugin's, for VSCodeVim) or ~"custom"~ (none); see [[file:keys/vscode.org][keys/vscode.org]].                                                                                                                                      |
+| ~org-lsp.keys~                | ~"emacs"~        | Which keys are bound: ~"emacs"~ (Emacs's but those VS Code uses for text), ~"emacs_full"~ (all of Emacs's), ~"vim"~ (the Neovim plugin's, for VSCodeVim) or ~"custom"~ (none); see [[file:keys/vscode.org][keys/vscode.org]].                                                                          |
 | ~org-lsp.conceal~             | ~true~           | Hide what Org hides: link brackets and targets (~org_link_descriptive~), emphasis markers (~org_hide_emphasis_markers~). The line with the cursor shows everything.                                                                                           |
 | ~org-lsp.images~              | ~true~           | Show images in place of links to image files and of LaTeX fragments (~C-c C-x C-v~, ~C-c C-x C-l~, ~#+STARTUP: inlineimages~, ~latexpreview~). VS Code cannot leave lines free for an image, so an image is as high as a line; hover over it to see it whole. |
 | ~org-lsp.headlineLevelColors~ | ~false~          | Color each level of headlines in a color of the theme, as Emacs's ~outline-N~ faces; see [[file:vscode.org::#headline-levels-in-colors][Headline levels in colors]].                                                                                                                                           |
@@ -816,7 +823,7 @@ Palette, which opens the defaults beside your own
 |-------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ~command~               | The server command. By default the package finds the server or downloads it; see [[file:sublime.org][sublime.org]].                                                                                                                          |
 | ~initializationOptions~ | The server's options, passed to it as they are.                                                                                                                                                                        |
-| ~org_keys~              | The keys: ~"emacs"~ (the default), ~"vim"~ (for Vintage and NeoVintageous, in command mode) or ~"custom"~ (none); see [[file:keys/sublime.org][keys/sublime.org]].                                                                                |
+| ~org_keys~              | The keys: ~"emacs"~ (the default: Emacs's but those Sublime Text uses for text), ~"emacs_full"~ (all of Emacs's), ~"vim"~ (for Vintage and NeoVintageous, in command mode) or ~"custom"~ (none); see [[file:keys/sublime.org][keys/sublime.org]].               |
 | ~org_images~            | Whether images show below the lines of links to image files and of LaTeX fragments (~C-c C-x C-v~, ~C-c C-x C-l~, ~#+STARTUP: inlineimages~, ~latexpreview~): ~true~ (the default) or ~false~. PNG, JPEG and GIF only. |
 | ~org_messages~          | How Org's messages show: ~"popup"~ (the default), at the cursor for a few seconds and in the status bar, or ~"status"~, in the status bar only.                                                                        |
 | ~semantic_tokens~       | The scopes of the server's tokens; written from the server.                                                                                                                                                            |
@@ -835,7 +842,11 @@ The settings go in Zed's settings (*zed: open settings*):
 #+begin_src json
 {
   "languages": {
-    "Org": { "semantic_tokens": "combined", "inlay_hints": { "enabled": true } }
+    "Org": {
+      "semantic_tokens": "combined",
+      "document_folding_ranges": "on",
+      "inlay_hints": { "enabled": true }
+    }
   },
   "lsp": {
     "org-lsp": {
@@ -853,6 +864,9 @@ The settings go in Zed's settings (*zed: open settings*):
   its language's colors through the grammar's injections, with ~combined~
   only. The grammar has no node for inline source blocks
   (~src_python{…}~), so their code is not colored.
+- ~document_folding_ranges~: Zed asks the server for its folds
+  (headlines, drawers, blocks) only with ~on~; without it, an Org file has
+  no folds at all.
 - ~inlay_hints~: files with ~org-indent-mode~ (~org_startup_indented~,
   ~#+STARTUP: indent~) show indented by level, without being changed,
   through inlay hints of blanks before their lines. The leading stars still
@@ -5859,11 +5873,11 @@ org_startup_with_latex_preview = false
 
 Show files indented by level without changing them (~org-indent-mode~): the
 text under a headline lines up with its title, and leading stars are hidden.
-~#+STARTUP: indent~ and ~noindent~ decide for a file. It turns
-~org_adapt_indentation~ off in such files, unless that is ~"headline-data"~.
-The lines a long line wraps into go on under its text, a headline's title or
-an item's text (~wrap-prefix~) in Neovim and Vim, without the prefix; under
-the prefix in Zed and Helix.
+~#+STARTUP: indent~ and ~noindent~ decide for a file, and ~org.indent.mode~
+turns it on and off. It turns ~org_adapt_indentation~ off in such files,
+unless that is ~"headline-data"~. The lines a long line wraps into go on under
+its text, a headline's title or an item's text (~wrap-prefix~) in Neovim and
+Vim, without the prefix; under the prefix in Zed and Helix.
 
 - Org's option :: ~org-startup-indented~
 - Type :: boolean
@@ -7540,6 +7554,27 @@ The TODO keyword of a new inline task (~org.inlinetask.insert~).
 - Org's option :: ~org-inlinetask-default-state~
 - Type :: string
 - Default :: unset: no keyword
+
+*** org_support_shift_select
+:PROPERTIES:
+:CUSTOM_ID: org_support_shift_select
+:END:
+
+Where Shift and the arrows select text, as they do in the editor, instead of
+running Org's commands (~S-<left>~ and its kin, ~C-S-<left>~ and
+~C-S-<right>~): ~always~ everywhere but on a timestamp and the ~#+BEGIN:~ line
+of a clock table; ~true~ everywhere but there, on headlines, list items'
+bullets, property lines and tables; ~false~ nowhere, Org's commands wherever
+they apply. With text selected, ~always~ and ~true~ extend it. Emacs's default
+is ~false~; org-lsp's is ~always~, as editors select with these keys.
+
+- Org's option :: ~org-support-shift-select~
+- Type :: "always", true, false
+- Default :: ~"always"~
+
+#+begin_src toml
+org_support_shift_select = "always"
+#+end_src
 
 *** org_special_ctrl_o
 :PROPERTIES:

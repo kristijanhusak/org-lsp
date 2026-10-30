@@ -115,3 +115,19 @@ fn sets_tags_as_emacs_does() {
         failures.iter().take(12).cloned().collect::<Vec<_>>().join("\n")
     );
 }
+
+/// What a file adds to `org-global-tags-completion-table`, as Emacs gives
+/// it for these two files with `org-tag-alist` `(("global" . ?g))`: the
+/// headlines' tags and `#+FILETAGS:`, with the `#+TAGS:` tags, or else
+/// those of `org-tag-alist`.
+#[test]
+fn offers_the_tags_of_the_tags_lines_too() {
+    let settings = settings(&serde_json::json!({ "org_tag_alist": "global(g)" }));
+    let sorted = |text: &str| {
+        let mut tags = tags::global_tags(text, &settings);
+        tags.sort();
+        tags
+    };
+    assert_eq!(sorted("#+TAGS: work(w) home(h)\n* TODO A :work:\n* B\n"), ["home", "work"]);
+    assert_eq!(sorted("#+FILETAGS: :proj:\n* C :errand:\n"), ["errand", "global", "proj"]);
+}

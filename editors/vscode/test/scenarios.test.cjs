@@ -7,13 +7,22 @@
 // tests/e2e/expected/NAME.txt); tests/nvim/scenarios.lua does the same in
 // Neovim.
 //
+// Everything is typed into VS Code's window, as the user types it: the
+// keys of each step, the text a step types, and the answers to what a
+// command asks, in VS Code's own quick picks and input boxes (a key as its
+// choice shows it, then Enter) and in the date prompt (`i`, the date,
+// Enter). Nothing is answered for the user: the test only watches what VS
+// Code shows, and checks that what is typed is taken as meant before it
+// presses Enter. Opening a file, going to a tab and putting the cursor on
+// a line are done as a click does them.
+//
 // `ORG_LSP_TEST_PRESET` is the preset (`org-lsp.keys`) run.mjs started VS
 // Code with. A command with no key in it fails, unless
-// tests/e2e/exceptions.json says why under `editors.vscode` (the emacs
-// preset) or `editors.vscode-vim`; it then runs as from the command
-// palette. A step with a count presses a key run.mjs bound with the count,
-// as a user binds one (docs/keys/vscode.org). `snapshots.vscode` there
-// names what VS Code shows otherwise on purpose.
+// tests/e2e/exceptions.json says why under `editors.vscode` (the
+// emacs_full preset) or `editors.vscode-vim`: run.mjs binds it to a key of the
+// user's then, as a step with a count presses a key run.mjs bound with
+// the count, as a user binds one (docs/keys/vscode.org).
+// `snapshots.vscode` there names what VS Code shows otherwise on purpose.
 const assert = require('node:assert/strict');
 const { execFile, execFileSync } = require('node:child_process');
 const fs = require('node:fs');
@@ -23,10 +32,8 @@ const vscode = require('vscode');
 
 const root = path.resolve(__dirname, '..', '..', '..');
 const e2e = path.join(root, 'tests', 'e2e');
-const preset = process.env.ORG_LSP_TEST_PRESET || 'emacs';
-const editorName = preset === 'emacs' ? 'vscode' : `vscode-${preset}`;
+const preset = process.env.ORG_LSP_TEST_PRESET || 'emacs_full';
 const exceptions = JSON.parse(fs.readFileSync(path.join(e2e, 'exceptions.json'), 'utf8'));
-const excepted = exceptions.editors?.[editorName] ?? {};
 /** The snapshots VS Code differs in, whatever the keys: `NAME STEP KIND`. */
 const differences = exceptions.snapshots?.vscode ?? {};
 
@@ -56,17 +63,90 @@ let api;
 
 /** What was said, as the user sees it: notifications. */
 let messages = [];
-/** What is asked is answered from the step's answers, in turn. */
-let answers = [];
-/** What went wrong in a prompt, for the step to fail with. */
-let failure;
+/**
+ * The prompts shown, the last one last: `kind` `pick` (a quick pick),
+ * `input` (an input box) or `text` (text typed with completions offered),
+ * with what VS Code tells of it as the user types: the item `active`, the
+ * text typed (`value`). Each is `shown` once VS Code shows it, and `done`
+ * once it is answered or gone.
+ */
+let prompts = [];
 
-function nextAnswer(prompt) {
-  if (answers.length === 0) {
-    failure ??= `\`${prompt}\` is asked and the step has no answer left`;
-    return undefined;
+/** The prompt that waits for an answer now. */
+function openPrompt() {
+  return prompts.find((prompt) => prompt.shown && !prompt.done);
+}
+
+/**
+ * Watch what VS Code shows, without answering anything: the prompts are
+ * VS Code's own, answered by keys typed into its window; their options
+ * are passed on with listeners added, that tell what VS Code shows.
+ */
+function watchPrompts() {
+  for (const kind of ['showInformationMessage', 'showWarningMessage', 'showErrorMessage']) {
+    const show = vscode.window[kind];
+    vscode.window[kind] = (message, ...rest) => {
+      messages.push(String(message).replace(/^org-lsp: /, ''));
+      return show.call(vscode.window, message, ...rest);
+    };
   }
-  return answers.shift();
+  const showQuickPick = vscode.window.showQuickPick;
+  vscode.window.showQuickPick = (items, options = {}, token) => {
+    const prompt = { kind: 'pick', title: options.placeHolder, items: [], shown: false, done: false };
+    prompts.push(prompt);
+    Promise.resolve(items).then((list) => (prompt.items = list));
+    // VS Code tells of the item it makes active, the first one once it shows.
+    const selected = options.onDidSelectItem;
+    const onDidSelectItem = (item) => {
+      prompt.active = item;
+      prompt.shown = true;
+      return selected?.(item);
+    };
+    const answered = showQuickPick.call(vscode.window, items, { ...options, onDidSelectItem }, token);
+    answered.then(
+      () => (prompt.done = true),
+      () => (prompt.done = true),
+    );
+    return answered;
+  };
+  const showInputBox = vscode.window.showInputBox;
+  vscode.window.showInputBox = (options = {}, token) => {
+    const prompt = { kind: 'input', title: options.prompt, value: options.value ?? '', shown: false, done: false };
+    prompts.push(prompt);
+    // VS Code validates the text once it shows, and at each change.
+    const validate = options.validateInput;
+    const validateInput = (value) => {
+      prompt.value = value;
+      prompt.shown = true;
+      return validate?.(value);
+    };
+    const answered = showInputBox.call(vscode.window, { ...options, validateInput }, token);
+    answered.then(
+      () => (prompt.done = true),
+      () => (prompt.done = true),
+    );
+    return answered;
+  };
+  const createQuickPick = vscode.window.createQuickPick;
+  vscode.window.createQuickPick = (...args) => {
+    const quickPick = createQuickPick.call(vscode.window, ...args);
+    const prompt = { shown: false, done: false };
+    // What it shows is given after it is made: keys to pick (items with a
+    // `key`), or text typed with completions.
+    Object.defineProperties(prompt, {
+      kind: { get: () => (quickPick.items.some((item) => 'key' in item) ? 'pick' : 'text') },
+      title: { get: () => quickPick.title ?? quickPick.placeholder },
+      items: { get: () => quickPick.items },
+      value: { get: () => quickPick.value },
+    });
+    prompts.push(prompt);
+    quickPick.onDidChangeActive((items) => {
+      prompt.active = items[0];
+      prompt.shown = true;
+    });
+    quickPick.onDidHide(() => (prompt.done = true));
+    return quickPick;
+  };
 }
 
 /** The item of `items` an answer picks: a key, or `{ choice: label }`. */
@@ -79,64 +159,65 @@ function pick(items, answer) {
   return items.find((item) => label(item) === answer.choice) ?? items.find((item) => label(item).includes(answer.choice));
 }
 
-function stubPrompts() {
-  for (const kind of ['showInformationMessage', 'showWarningMessage', 'showErrorMessage']) {
-    vscode.window[kind] = (message) => {
-      messages.push(String(message).replace(/^org-lsp: /, ''));
-      return Promise.resolve(undefined);
-    };
+function xdotool(...args) {
+  return new Promise((resolve, reject) => execFile('xdotool', args, (error) => (error ? reject(error) : resolve())));
+}
+
+/** Type `text` into VS Code's window, as the user types it. */
+function typeText(text) {
+  return text ? xdotool('type', '--delay', '40', '--', text) : Promise.resolve();
+}
+
+/** How a key shows in its choice (`[SPC] …`), as the extension names it. */
+function keyName(key) {
+  const named = { ' ': 'SPC', '\r': 'RET', '\t': 'TAB' }[key];
+  if (named) return named;
+  const code = key.length === 1 ? key.charCodeAt(0) : -1;
+  return code > 0 && code < 32 ? `C-${String.fromCharCode(code + 96)}` : key;
+}
+
+/**
+ * Answer `prompt` with `given` as the user does: type it, see that VS
+ * Code takes it as meant (the item it makes active, the text it has),
+ * then press Enter. A key is typed as its choice shows it, a choice from
+ * a list as its label, text as it is.
+ */
+async function answer(prompt, given) {
+  const what = `\`${prompt.title}\``;
+  if (prompt.kind === 'pick') {
+    const wanted = pick(prompt.items, given);
+    assert.ok(wanted, `${what}: no choice ${JSON.stringify(given)} in ${JSON.stringify(prompt.items.map((item) => item.label))}`);
+    const typed = typeof given === 'string' ? keyName(given) : given.choice;
+    await typeText(typed);
+    await until(`${what} to take ${JSON.stringify(typed)}`, () => prompt.active === wanted, 3000).catch(() =>
+      assert.fail(`${what}: typed ${JSON.stringify(typed)}, Enter would pick ${JSON.stringify(prompt.active?.label)}, not ${JSON.stringify(wanted.label)}`),
+    );
+  } else {
+    assert.equal(typeof given, 'string', `${what} asks for text, not ${JSON.stringify(given)}`);
+    // The box may start with text, as Emacs's minibuffer does: what the
+    // answer adds to it is typed after it, or else the user selects it
+    // all to type over it.
+    const start = prompt.value ?? '';
+    if (start && given.startsWith(start)) {
+      await typeText(given.slice(start.length));
+    } else {
+      if (start) {
+        await xdotool('key', 'ctrl+a');
+      }
+      await typeText(given);
+    }
+    await until(`${what} to take ${JSON.stringify(given)}`, () => prompt.value === given, 3000).catch(() =>
+      assert.fail(`${what}: typed ${JSON.stringify(given)}, VS Code has ${JSON.stringify(prompt.value)}`),
+    );
+    // Enter takes the item active: the text typed, once the items follow it.
+    if (prompt.kind === 'text') {
+      await until(`${what} to offer ${JSON.stringify(given)}`, () => prompt.active?.label === given, 3000).catch(() =>
+        assert.fail(`${what}: typed ${JSON.stringify(given)}, Enter would take ${JSON.stringify(prompt.active?.label)}`),
+      );
+    }
   }
-  vscode.window.showQuickPick = async (items, options) => {
-    const shown = await items;
-    const answer = nextAnswer(options?.placeHolder);
-    if (answer === undefined) {
-      return undefined;
-    }
-    const picked = pick(shown, answer);
-    if (!picked) {
-      failure ??= `no choice ${JSON.stringify(answer)} in ${JSON.stringify(shown.map((item) => item.label))}`;
-    }
-    return picked;
-  };
-  vscode.window.showInputBox = async (options) => {
-    const answer = nextAnswer(options?.prompt);
-    if (answer !== undefined && typeof answer !== 'string') {
-      failure ??= `\`${options?.prompt}\` asks for text, not ${JSON.stringify(answer)}`;
-      return undefined;
-    }
-    return answer;
-  };
-  // Text typed with completions offered: the answer is typed, then Enter.
-  vscode.window.createQuickPick = () => {
-    const listeners = { value: [], accept: [], hide: [] };
-    const quickPick = {
-      items: [],
-      selectedItems: [],
-      value: '',
-      onDidChangeValue: (listener) => listeners.value.push(listener),
-      onDidAccept: (listener) => listeners.accept.push(listener),
-      onDidHide: (listener) => listeners.hide.push(listener),
-      show() {
-        const answer = nextAnswer(quickPick.title);
-        setTimeout(() => {
-          if (typeof answer !== 'string') {
-            quickPick.hide();
-            return;
-          }
-          quickPick.value = answer;
-          listeners.value.forEach((listener) => listener(answer));
-          // VS Code keeps the items that match what is typed, the first
-          // of them active.
-          const typed = answer.toLowerCase();
-          quickPick.selectedItems = quickPick.items.filter((item) => item.label.toLowerCase().includes(typed)).slice(0, 1);
-          listeners.accept.forEach((listener) => listener());
-        });
-      },
-      hide: () => listeners.hide.forEach((listener) => listener()),
-      dispose() {},
-    };
-    return quickPick;
-  };
+  await xdotool('key', 'Return');
+  await until(`${what} to take the answer`, () => prompt.done, 5000);
 }
 
 // ----- keys
@@ -253,14 +334,15 @@ function xdotoolKeys(key) {
   });
 }
 
-/** Press `key` in VS Code's window; with `command`, check that it ran. */
-async function press(key, command) {
+/**
+ * Press `key` in VS Code's window; with `command`, check that it ran,
+ * and answer what it asks with `answers`, in turn, until it is done.
+ */
+async function press(key, command, answers = []) {
   // The keys go to the editor at hand.
   await vscode.commands.executeCommand('workbench.action.focusActiveEditorGroup');
   const before = api.commands().count;
-  await new Promise((resolve, reject) =>
-    execFile('xdotool', ['key', '--delay', '30', ...xdotoolKeys(key)], (error) => (error ? reject(error) : resolve())),
-  );
+  await xdotool('key', '--delay', '30', ...xdotoolKeys(key));
   if (command) {
     await until(`\`${key}\` to run ${command}`, () => api.commands().count > before, 5000);
     // The first command run since: the extension keeps the last ones.
@@ -268,7 +350,37 @@ async function press(key, command) {
     const ran = run[run.length - (count - before)];
     assert.equal(ran, command, `\`${key}\` ran ${ran}, not ${command}`);
   }
-  await settle();
+  await answered(answers);
+}
+
+/**
+ * Answer each prompt VS Code shows with the next of `answers`, until
+ * nothing is under way, nothing changes and nothing is asked.
+ */
+async function answered(answers) {
+  for (;;) {
+    const prompt = await until('the command to finish or ask', () => openPrompt() ?? (api.commands().running === 0 && 'done'), 60000);
+    if (prompt === 'done') {
+      await settle();
+      if (!openPrompt()) {
+        return;
+      }
+      continue;
+    }
+    if (answers.length === 0) {
+      // Given up, as the user gives up: the step fails.
+      await xdotool('key', 'Escape');
+      assert.fail(`\`${prompt.title}\` is asked and the step has no answer left`);
+    }
+    try {
+      await answer(prompt, answers.shift());
+    } catch (error) {
+      if (!prompt.done) {
+        await xdotool('key', 'Escape');
+      }
+      throw error;
+    }
+  }
 }
 
 // ----- the editor's state
@@ -510,16 +622,16 @@ class Scenario {
     }
     await this.place(step);
     if (step.type) {
+      // Typed into the editor; Enter is Org's (`org.return`), as in Emacs.
       const editor = vscode.window.activeTextEditor;
-      const at = editor.selection.active;
-      await editor.edit((edit) => edit.insert(at, step.type));
-      const end = editor.document.positionAt(editor.document.offsetAt(at) + step.type.length);
-      editor.selection = new vscode.Selection(end, end);
+      await vscode.commands.executeCommand('workbench.action.focusActiveEditorGroup');
+      await typeText(step.type);
+      const first = step.type.split('\n')[0];
+      await until(`${JSON.stringify(step.type)} to be typed`, () => editor.document.getText().includes(first));
       await settle();
     }
     if (step.command) {
-      answers = structuredClone(step.answers ?? []);
-      failure = undefined;
+      const answers = structuredClone(step.answers ?? []);
       if (step.wait === 'columns') {
         this.columnsBefore = api.columnsReported();
       }
@@ -527,33 +639,26 @@ class Scenario {
       // the line, as the keys of modal editors do (`<Leader><CR>`), the
       // cursor goes to its end first (`C-e M-RET`).
       if (step.below) {
-        const editor = vscode.window.activeTextEditor;
-        const end = editor.document.lineAt(editor.selection.active.line).range.end;
-        editor.selection = new vscode.Selection(end, end);
+        await vscode.commands.executeCommand('workbench.action.focusActiveEditorGroup');
+        await xdotool('key', 'End');
         await settle();
       }
       const key = keyOf(step.command, step.count);
-      if (key) {
-        await press(key, step.command);
-      } else if (excepted[step.command]) {
-        // Run as from the command palette, or a key of the user's with the count.
-        await vscode.commands.executeCommand(step.command, ...(step.count ? [{ count: step.count }] : []));
-        await settle();
-      } else {
+      if (!key) {
         const where = vscode.window.activeTextEditor?.document.languageId;
         assert.fail(`${step.command}${step.count ? ` with count ${step.count}` : ''} has no key in VS Code's ${preset} preset here (${where})`);
       }
-      // Dates are typed in the date prompt's input box.
-      while (answers.length > 0 && !failure && vscode.window.activeTextEditor?.document.uri.toString() === DATE_PROMPT) {
+      await press(key, step.command, answers);
+      // Dates are typed in the date prompt's input box, which `i` opens.
+      while (answers.length > 0 && vscode.window.activeTextEditor?.document.uri.toString() === DATE_PROMPT) {
         const type = keyOf('org.calendar.type');
         assert.ok(type, 'no key for org.calendar.type');
-        await press(type, 'org.calendar.type');
+        await press(type, 'org.calendar.type', answers);
       }
       if (step.wait === 'columns') {
         await until('column view', () => api.columnsReported() !== this.columnsBefore, 30000);
         await settle();
       }
-      assert.ok(!failure, failure);
       assert.equal(answers.length, 0, `${step.command} did not ask for ${JSON.stringify(answers)}`);
     }
     for (const kind of step.expect ?? []) {
@@ -597,7 +702,7 @@ describe(`The scenarios, with the ${preset} keys`, function () {
     api = await vscode.extensions.getExtension('kristijanhusak.org-lsp').activate();
     const keybindings = path.join(process.env.ORG_LSP_TEST_USER_DATA ?? '', 'User', 'keybindings.json');
     userBindings = fs.existsSync(keybindings) ? JSON.parse(fs.readFileSync(keybindings, 'utf8')) : [];
-    stubPrompts();
+    watchPrompts();
   });
 
   const name = process.env.ORG_LSP_TEST_SCENARIO;

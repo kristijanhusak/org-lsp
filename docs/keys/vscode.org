@@ -3,11 +3,16 @@
 
 The setting ~org-lsp.keys~ picks which keys the extension binds:
 
-- ~"emacs"~ (the default): Emacs's keys, in Org files (~Ctrl+C Ctrl+T~, ~Tab~,
-  ~Shift~ and the arrows …), in capture buffers, and Org's single letters in
-  the agenda and the date prompt, which are read-only. In Org files ~Ctrl+C~
-  then waits for a second key instead of copying; ~Ctrl+Insert~ and the
-  context menu still copy.
+- ~"emacs"~ (the default): Emacs's keys but those VS Code uses for text, in
+  Org files (~Ctrl+C Ctrl+T~, ~Tab~, ~Alt~ and the arrows …), in capture
+  buffers, and Org's single letters in the agenda and the date prompt,
+  which are read-only. In Org files Shift, Alt+Shift and Ctrl+Shift with
+  the arrows select, Ctrl+A, Ctrl+E, Ctrl+K, Ctrl+O, Ctrl+X, Ctrl+Y and
+  Ctrl+Enter are VS Code's, and ~Ctrl+C~ copies a selection: Org's ~Ctrl+C~
+  keys start where nothing is selected.
+- ~"emacs_full"~: all of Emacs's keys, those too, listed below under
+  /Emacs, every key/. In Org files ~Ctrl+C~ then always waits for a second
+  key instead of copying; ~Ctrl+Insert~ and the context menu still copy.
 - ~"vim"~: the Neovim plugin's keys, for VSCodeVim. In Org files, VS Code
   binds only the keys that take nothing from Vim (~Tab~, ~Shift+Tab~,
   ~Ctrl+Space~, ~Ctrl+A~, ~Ctrl+X~, ~Shift+Up~, ~Shift+Down~), in Normal mode;
@@ -53,8 +58,6 @@ extension.
 | ~Ctrl+C Ctrl+X x~ | ~org.dblock.insert~ | Insert a dynamic block |
 | ~Ctrl+C Ctrl+A~ | ~org.attach~ | Attachments of the entry |
 | ~Ctrl+C Ctrl+T~ | ~org.todo~ | Change the TODO state |
-| ~Ctrl+Shift+Right~ | ~org.todo.nextset~ | Switch to the next TODO keyword set |
-| ~Ctrl+Shift+Left~ | ~org.todo.previousset~ | Switch to the previous TODO keyword set |
 | ~Ctrl+C ,~ | ~org.priority~ | Set the priority |
 | ~Ctrl+C Ctrl+X p~ | ~org.property.set~ | Set a property of the entry |
 | ~Ctrl+C Ctrl+X e~ | ~org.effort.set~ | Set the effort of the entry |
@@ -66,18 +69,11 @@ extension.
 | ~Enter~ ¹ | ~org.return~ | New line, as Org's RET makes it |
 | ~Alt+Enter~ | ~org.meta.return~ | New heading, item or table row |
 | ~Alt+Shift+Enter~ | ~org.insert.todo.heading~ | New TODO heading, or item with a checkbox |
-| ~Ctrl+Enter~ | ~org.insert.heading.after~ | New heading after the subtree |
-| ~Ctrl+Shift+Enter~ | ~org.insert.todo.heading.after~ | New TODO heading after the subtree |
 | ~Ctrl+C Ctrl+X t~ | ~org.inlinetask.insert~ | Insert an inline task |
 | ~Alt+Left~ ¹ | ~org.meta.left~ | Promote the heading; outdent the item; move the table column left |
 | ~Alt+Right~ ¹ | ~org.meta.right~ | Demote the heading; indent the item, the drawer or the block; move the table column right |
-| ~Alt+Shift+Left~ ¹ | ~org.shiftmeta.left~ | Promote the subtree; outdent the item with its children; delete the table column |
-| ~Alt+Shift+Right~ ¹ | ~org.shiftmeta.right~ | Demote the subtree; indent the item with its children; insert a table column |
 | ~Alt+Up~ ¹ | ~org.meta.up~ | Move the subtree, the item or the table row up |
 | ~Alt+Down~ ¹ | ~org.meta.down~ | Move the subtree, the item or the table row down |
-| ~Alt+Shift+Up~ ¹ | ~org.shiftmeta.up~ | Delete the table row |
-| ~Alt+Shift+Down~ ¹ | ~org.shiftmeta.down~ | Insert a table row above |
-| ~Ctrl+O~ | ~org.open.line~ | Open a line, or in a table insert a row |
 | ~Ctrl+C -~ | ~org.table.hline~ | Insert a rule below the table row |
 | ~Ctrl+C Enter~ | ~org.table.hline.move~ | Insert a rule below the table row and go below it |
 | ~Ctrl+C Shift+6~ | ~org.sort~ | Sort the entries, the items or the table rows |
@@ -86,7 +82,6 @@ extension.
 | ~Ctrl+C Ctrl+X Ctrl+W~ | ~org.cut.subtree~ | Cut the subtree |
 | ~Ctrl+C Ctrl+X Alt+W~ | ~org.copy.subtree~ | Copy the subtree |
 | ~Ctrl+C Ctrl+X Ctrl+Y~ | ~org.paste.subtree~ | Paste the subtree |
-| ~Ctrl+Y~ ¹ | ~org.yank~ | Yank, a subtree at its level |
 | ~Ctrl+C Ctrl+W~ | ~org.refile~ | Refile the entry |
 | ~Ctrl+C Alt+W~ | ~org.refile.copy~ | Copy the entry to a refile target |
 | ~Ctrl+C Ctrl+Z~ | ~org.add.note~ | Add a note to the entry |
@@ -102,9 +97,6 @@ extension.
 | ~Ctrl+C Ctrl+U~ | ~org.heading.up~ | Move to the parent heading |
 | ~Ctrl+C Ctrl+X Ctrl+N~ | ~org.link.next~ | Move to the next link |
 | ~Ctrl+C Ctrl+X Ctrl+P~ | ~org.link.previous~ | Move to the previous link |
-| ~Ctrl+A~ ¹ | ~org.beginning.of.line~ | Move to the start of the headline's title |
-| ~Ctrl+E~ ¹ | ~org.end.of.line~ | Move to the end of the headline's title |
-| ~Ctrl+K~ ¹ | ~org.kill.line~ | Kill the headline's text to the tags, or the tags |
 | ~Ctrl+C Ctrl+J~ | ~org.goto~ | Go to a heading of the file |
 | ~Ctrl+C Ctrl+X f~ | ~org.footnote.action~ | Make a footnote, or go between a footnote and its definition |
 | ~Ctrl+C ;~ | ~org.toggle.comment~ | Toggle the COMMENT keyword of the heading |
@@ -125,9 +117,6 @@ extension.
 | ~Ctrl+C Alt+F~ | ~org.block.next~ | Move to the next block |
 | ~Ctrl+C Alt+B~ | ~org.block.previous~ | Move to the previous block |
 | ~Ctrl+C '~ | ~org.edit.special~ | Edit the block in a file of its own |
-| ~Ctrl+X n s~ | ~org.narrow.subtree~ | Narrow to the subtree: it in a file of its own |
-| ~Ctrl+X n b~ | ~org.narrow.block~ | Narrow to the block: it in a file of its own |
-| ~Ctrl+X n w~ | ~org.narrow.widen~ | Widen: the narrowed file written back and closed |
 | ~Ctrl+C Ctrl+X b~ | ~org.tree.indirect~ | Show the subtree in a file of its own |
 | ~Ctrl+C `~ | ~org.table.edit.field~ | Edit the table field in a file of its own |
 | ~Ctrl+C Ctrl+X Ctrl+C~ | ~org.columns~ | Column view |
@@ -158,10 +147,6 @@ extension.
 | ~Ctrl+C j f~ | ~org.journal.next.entry~ | Journal: next entry |
 | ~Ctrl+C j b~ | ~org.journal.previous.entry~ | Journal: previous entry |
 | ~Ctrl+C j s~ | ~org.journal.search~ | Journal: search between two dates |
-| ~Shift+Up~ ¹ | ~org.shift.up~ | Increase the timestamp part, raise the priority, or go to the previous item |
-| ~Shift+Down~ ¹ | ~org.shift.down~ | Decrease the timestamp part, lower the priority, or go to the next item |
-| ~Shift+Left~ ¹ | ~org.shift.left~ | Move the date a day earlier, or cycle the TODO state or the list's bullets backward |
-| ~Shift+Right~ ¹ | ~org.shift.right~ | Move the date a day later, or cycle the TODO state or the list's bullets forward |
 | ~Ctrl+C Ctrl+S~ | ~org.schedule~ | Schedule the entry |
 | ~Ctrl+C Ctrl+D~ | ~org.deadline~ | Set the deadline of the entry |
 | ~Ctrl+C .~ | ~org.timestamp.insert~ | Insert or change a timestamp |
@@ -328,6 +313,39 @@ extension.
 | ~t~ | ~org.calendar.time~ | Date prompt: pick the time, or go back to the day |
 | ~q~, ~Ctrl+G~ | ~org.calendar.cancel~ | Date prompt: cancel |
 
+** Emacs, every key (~"org-lsp.keys": "emacs_full"~)
+
+All of Emacs's keys: the keys above, and those the default leaves to
+the editor, listed here. In Org files and capture buffers Shift,
+Alt+Shift and Ctrl+Shift with the arrows are then Org's (where
+~org_support_shift_select~ lets them), and so are Ctrl+A, Ctrl+E,
+Ctrl+K, Ctrl+O, Ctrl+X, Ctrl+Y and Ctrl+Enter; Org's ~Ctrl+C~ keys start
+with text selected too, so that ~Ctrl+C~ no longer copies (~Ctrl+Insert~
+still does).
+
+| Keys | Command | What it does |
+|---+---+---|
+| ~Ctrl+Shift+Right~ | ~org.todo.nextset~ | Switch to the next TODO keyword set |
+| ~Ctrl+Shift+Left~ | ~org.todo.previousset~ | Switch to the previous TODO keyword set |
+| ~Ctrl+Enter~ | ~org.insert.heading.after~ | New heading after the subtree |
+| ~Ctrl+Shift+Enter~ | ~org.insert.todo.heading.after~ | New TODO heading after the subtree |
+| ~Alt+Shift+Left~ | ~org.shiftmeta.left~ | Promote the subtree; outdent the item with its children; delete the table column |
+| ~Alt+Shift+Right~ | ~org.shiftmeta.right~ | Demote the subtree; indent the item with its children; insert a table column |
+| ~Alt+Shift+Up~ | ~org.shiftmeta.up~ | Delete the table row |
+| ~Alt+Shift+Down~ | ~org.shiftmeta.down~ | Insert a table row above |
+| ~Ctrl+O~ | ~org.open.line~ | Open a line, or in a table insert a row |
+| ~Ctrl+Y~ | ~org.yank~ | Yank, a subtree at its level |
+| ~Ctrl+A~ | ~org.beginning.of.line~ | Move to the start of the headline's title |
+| ~Ctrl+E~ | ~org.end.of.line~ | Move to the end of the headline's title |
+| ~Ctrl+K~ | ~org.kill.line~ | Kill the headline's text to the tags, or the tags |
+| ~Ctrl+X n s~ | ~org.narrow.subtree~ | Narrow to the subtree: it in a file of its own |
+| ~Ctrl+X n b~ | ~org.narrow.block~ | Narrow to the block: it in a file of its own |
+| ~Ctrl+X n w~ | ~org.narrow.widen~ | Widen: the narrowed file written back and closed |
+| ~Shift+Up~ | ~org.shift.up~ | Increase the timestamp part, raise the priority, or go to the previous item |
+| ~Shift+Down~ | ~org.shift.down~ | Decrease the timestamp part, lower the priority, or go to the next item |
+| ~Shift+Left~ | ~org.shift.left~ | Move the date a day earlier, or cycle the TODO state or the list's bullets backward |
+| ~Shift+Right~ | ~org.shift.right~ | Move the date a day later, or cycle the TODO state or the list's bullets forward |
+
 ** Vim (~"org-lsp.keys": "vim"~)
 
 *** In Org files
@@ -467,9 +485,10 @@ extension.
 | ~q~, ~Escape~ | ~org.calendar.cancel~ | Date prompt: cancel |
 
 ¹ Where the command does not apply, the key does what it does without
-the extension: ~Shift+Up~ off a timestamp or headline selects, ~Tab~ off
-a headline, block or drawer indents, ~Enter~ in a source block's code
-is VS Code's own.
+the extension: ~Tab~ off a headline, block or drawer indents, ~Enter~
+in a source block's code is VS Code's own, and with ~emacs_full~
+~Shift+Up~ off a timestamp selects (and on a headline too, as
+~org_support_shift_select~ says).
 
 *** The leader keys, for VSCodeVim
 
@@ -653,7 +672,9 @@ every file; outside Org files the commands say they do not apply):
 | ~org.clock.goto~ | Org: Go to the clocked entry |
 | ~org.clock.display~ | Org: Show the time clocked under each headline |
 | ~org.num.mode~ | Org: Number the headlines, or stop numbering them |
+| ~org.indent.mode~ | Org: Indent the text by the level of its headline, or stop indenting it |
 | ~org.custom.properties.toggle~ | Org: Hide the properties of org_custom_properties, or show them again |
+| ~org.version~ | Org: Show the version of the server |
 | ~org.clock.report~ | Org: Insert or update a clock table |
 | ~org.dblock.update~ | Org: Update the dynamic block |
 | ~org.dblock.insert~ | Org: Insert a dynamic block |
@@ -931,10 +952,13 @@ Questions are asked in VS Code's own way:
   ~org_time_stamp_rounding_minutes~), and ~t~ again goes back to the days,
   keeping the time.
 - *One key*, such as a TODO keyword with a key or a capture template, is
-  picked from a list that shows each choice's key (~[t] TODO~). Type to
-  narrow the list, then press ~Enter~.
+  picked from a list that shows each choice's key (~[t] TODO~). Type the
+  key (or its name, as ~SPC~) and press ~Enter~; other text narrows the
+  list.
 - *A choice from a list*, such as a refile target, is picked from a list.
-- *Text*, such as a capture prompt, is typed in an input box.
+- *Text*, such as a capture prompt, is typed in an input box. It starts
+  with what Emacs's minibuffer starts with (a headline's tags, the time of
+  a timestamp being changed), the cursor after it.
 - *A state note* (a keyword with ~@~, as ~WAIT(w@)~) is written in a note
   buffer that opens like a capture buffer, as Emacs's =*Org Note*=:
   ~Ctrl+C Ctrl+C~ stores it, ~Ctrl+C Ctrl+K~ changes the state without it.

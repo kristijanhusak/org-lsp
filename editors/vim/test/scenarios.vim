@@ -25,12 +25,7 @@ let s:excepted = get(get(s:json(s:e2e . '/exceptions.json'), 'editors', {}), 'vi
 
 " Steps a client cannot take as the others do, by client, scenario and
 " step (from 1), with the reason: the scenario stops before them.
-let s:skips = {
-      \ 'coc': {
-      \   'capture': {'3': 'coc.nvim shows the capture buffer itself, in Normal mode with the cursor on the line''s last character, not after it where `%?` was'},
-      \   'agenda-navigation': {'18': 'coc.nvim shows the entry''s file itself, in the current window (`coc.preferences.jumpCommand`), the agenda''s, not in the window that shows the file, which stays on the line it was'},
-      \ },
-      \ }
+let s:skips = {}
 
 " coc.nvim opens the files it edits that are not loaded
 " (`workspace.openResourceCommand`), and Vim tells of each: with the
@@ -107,9 +102,13 @@ endfunction
 " What the server said, as the user sees it: the messages since they were
 " last looked at.
 function! s:messages() abort
-  " Not Vim's own about the files it reads (`"Agenda.org-agenda" 3L, 70B`),
-  " nor coc.nvim's about the files it edits.
-  return filter(split(execute('messages'), "\n"), {_, line -> line !~# '^".*" .*\d\+L, \d\+B$' && line !~# '^\[coc\.nvim\] '})
+  " Not Vim's own about the files it reads (`"Agenda.org-agenda" 3L, 70B`)
+  " and the buffers it shows again (`… line 3 of 7 --42%-- col 1`, as
+  " vim-lsp edits a file in the agenda's window and goes back), nor the
+  " blank one it keeps when insert mode ends, nor coc.nvim's about the
+  " files it edits.
+  return filter(split(execute('messages'), "\n"), {_, line -> line !~# '^".*" .*\d\+L, \d\+B$'
+        \ && line !~# '^".*" .*line \d\+ of \d\+ --\d\+%-- col ' && line !~# '^\s*$' && line !~# '^\[coc\.nvim\] '})
 endfunction
 
 " A buffer the server knows, to ask it through.
@@ -339,8 +338,8 @@ function! s:expected() abort
   return expected
 endfunction
 
-" Put the cursor where the step says, as a user moves it there.
-function! s:place(step) abort
+" Put the cursor where the step says, if it says.
+function! s:place_cursor(step) abort
   if has_key(a:step, 'line')
     let [row, column] = [a:step.line, get(a:step, 'column', 0)]
   elseif has_key(a:step, 'at')
@@ -356,9 +355,17 @@ function! s:place(step) abort
       call s:fail(printf('`%s` is not in %s', a:step.at, s:name_of(bufnr())))
     endif
   else
-    return
+    return 0
   endif
   call cursor(row, column + 1)
+  return 1
+endfunction
+
+" Put the cursor where the step says, as a user moves it there.
+function! s:place(step) abort
+  if !s:place_cursor(a:step)
+    return
+  endif
   " `CursorMoved` comes from the main loop, which a script does not run.
   silent doautocmd <nomodeline> CursorMoved
   call s:settle()
@@ -500,6 +507,410 @@ function! s:run_step(index, step, expected) abort
   endif
 endfunction
 
+" ----- the steps typed
+"
+" With $ORG_LSP_TEST_TYPED, nothing stands in for the plugin's prompts:
+" the keys of each step, and the answers to what it asks (a key at a
+" menu, text at a prompt, a number from a list, a date in the calendar),
+" are typed into the terminal by typist.py through tmux, as the user types
+" them. The steps run from a timer, which gives Vim back to its main loop
+" between ticks: 'updatetime' passes, CursorHold and the client's
+" autocommands run, and a prompt waits for its key as it does for the
+" user's. A step is a list of actions, each asked at every tick until it
+" is done.
+
+let s:typed = !empty($ORG_LSP_TEST_TYPED)
+let s:actions = []
+
+" An action: `s:do_{name}` called with its state and `args`, until it
+" says it is done (1), or gives the actions that take its place (a list).
+function! s:action(name, ...) abort
+  return {'name': a:name, 'args': a:000, 'state': {}}
+endfunction
+
+" The keys of `keys` (Vim's notation, the leader as `<Leader>`) as
+" typist.py types them: tmux's names for the keys named, the rest as text.
+function! s:tmux_keys(keys) abort
+  let names = {'cr': 'Enter', 'enter': 'Enter', 'return': 'Enter', 'tab': 'Tab', 's-tab': 'BTab',
+        \ 'esc': 'Escape', 'space': 'Space', 'bs': 'BSpace', 'del': 'DC', 'nul': 'C-Space',
+        \ 'c-@': 'C-Space', 'c-space': 'C-Space', 'pageup': 'PageUp', 'pagedown': 'PageDown'}
+  let texts = {'bar': '|', 'lt': '<', 'bslash': '\'}
+  let rest = substitute(a:keys, '\c<Leader>', escape(get(g:, 'mapleader', '\'), '\&'), 'g')
+  let out = []
+  while !empty(rest)
+    let named = matchstr(rest, '^<\%([CSMA]-\)*[^<> -]\+>\|^<\%([CSMA]-\)\+.>')
+    if !empty(named)
+      let rest = rest[len(named):]
+      let name = tolower(named[1:-2])
+      if has_key(texts, name)
+        call add(out, ['text', texts[name]])
+        continue
+      endif
+      let modifiers = toupper(substitute(matchstr(name, '^\%([csma]-\)*'), 'a-', 'm-', 'g'))
+      let base = name[len(modifiers):]
+      let key = has_key(names, name) ? names[name]
+            \ : modifiers . get(names, base, len(base) == 1 ? named[-2:-2] : toupper(base[0]) . base[1:])
+      call add(out, ['key', key])
+      continue
+    endif
+    let char = strcharpart(rest, 0, 1)
+    let rest = rest[len(char):]
+    if !empty(out) && out[-1][0] ==# 'text'
+      let out[-1][1] .= char
+    else
+      call add(out, ['text', char])
+    endif
+  endwhile
+  return out
+endfunction
+
+" A key of an answer as tmux names it: the blank ones and the control
+" characters by their names, the others as text.
+function! s:tmux_key(key) abort
+  let names = {"\r": 'Enter', "\t": 'Tab', ' ': 'Space', "\<Esc>": 'Escape'}
+  if has_key(names, a:key)
+    return ['key', names[a:key]]
+  elseif strlen(a:key) == 1 && char2nr(a:key) < 32
+    return ['key', 'C-' . nr2char(char2nr(a:key) + 96)]
+  endif
+  return ['text', a:key]
+endfunction
+
+" Type `items` (from s:tmux_keys): done once typist.py has typed them.
+function! s:do_keys(state, items) abort
+  let path = $ORG_LSP_TEST_WORK . '/keys'
+  if !get(a:state, 'written', 0)
+    call writefile([json_encode(a:items)], path . '.part')
+    call rename(path . '.part', path)
+    let a:state.written = 1
+    let a:state.since = reltime()
+    return 0
+  endif
+  if reltimefloat(reltime(a:state.since)) > 10
+    call s:fail('the keys were not typed: ' . string(a:items))
+  endif
+  return !filereadable(path)
+endfunction
+
+function! s:do_call(state, Function, args) abort
+  call call(a:Function, a:args)
+  return 1
+endfunction
+
+function! s:do_pause(state, milliseconds) abort
+  let a:state.since = get(a:state, 'since', reltime())
+  return reltimefloat(reltime(a:state.since)) * 1000 >= a:milliseconds
+endfunction
+
+function! s:do_until(state, what, Probe, timeout) abort
+  let a:state.since = get(a:state, 'since', reltime())
+  if a:Probe()
+    return 1
+  elseif reltimefloat(reltime(a:state.since)) * 1000 >= a:timeout
+    call s:fail('timed out waiting for ' . a:what)
+  endif
+  return 0
+endfunction
+
+" The text of a line of the screen.
+function! s:screen_line(row) abort
+  return substitute(join(map(range(1, &columns), {_, column -> screenstring(a:row, column)}), ''), '\s\+$', '', '')
+endfunction
+
+" What waits for the user: `text` typed at input(), a number at
+" inputlist(), a `key` read by getcharstr() (in the plugin's prompt,
+" which runs from a timer: this tick runs inside it), Vim's `more` or
+" hit-enter prompt, or '' when nothing does.
+function! s:waiting() abort
+  let mode = mode(1)
+  if mode ==# 'c'
+    return getcmdtype() ==# '@' ? 'text' : getcmdtype() ==# '' ? 'list' : 'command line'
+  elseif mode =~# '^r'
+    return 'more'
+  elseif state() =~# 'c.*c' && (!empty(popup_list()) || !empty(s:screen_line(&lines)))
+    return 'key'
+  endif
+  return ''
+endfunction
+
+" What the screen shows of a prompt: its last lines.
+function! s:prompt_shown() abort
+  return join(map(range(max([1, &lines - 2]), &lines), {_, row -> s:screen_line(row)}), ' | ')
+endfunction
+
+" Wait until nothing changes: the server has answered two requests in a
+" row, the screen, the buffers and what waits for the user stay the same
+" for longer than 'updatetime' a few times over, and no key is pending.
+function! s:do_settle(state) abort
+  let st = a:state
+  let st.since = get(st, 'since', reltime())
+  if get(st, 'asked', 0)
+    if !st.answered
+      return reltimefloat(reltime(st.since)) > 20
+    endif
+    let st.asked = 0
+    let signature = [bufnr(), getcurpos(), len(s:messages()), mode(1), s:waiting(), getcmdline(), winnr('$'), popup_list(), s:screen_line(&lines)]
+          \ + map(getbufinfo({'bufloaded': 1}), '[v:val.bufnr, v:val.changedtick]')
+    if signature !=# get(st, 'last', v:null)
+      let st.last = signature
+      let st.changed = reltime()
+      let st.rounds = 0
+    endif
+    let st.rounds = get(st, 'rounds', 0) + 1
+    if st.rounds >= 2 && reltimefloat(reltime(st.changed)) * 1000 >= 4 * &updatetime && state() !~# 'm'
+      return 1
+    endif
+    " As the scripted steps do, the steps go on past what never settles.
+    return reltimefloat(reltime(st.since)) > 20
+  endif
+  let nr = s:server_buffer()
+  if nr < 0
+    return reltimefloat(reltime(st.since)) * 1000 >= 4 * &updatetime
+  endif
+  let st.asked = 1
+  let st.answered = 0
+  call org_lsp#request(nr, 'org-lsp/test-sync', v:null, {... -> extend(st, {'answered': 1})})
+  return 0
+endfunction
+
+function! s:settle_typed() abort
+  return s:action('settle')
+endfunction
+
+" Open `file` as the user does, with `:edit`.
+function! s:typed_open(file) abort
+  return [s:action('keys', s:tmux_keys(':edit ' . fnameescape(s:dir . '/' . a:file) . '<CR>')),
+        \ s:action('until', 'the server', {-> exists('b:org_lsp_attached') && org_lsp#ready(bufnr())}, 30000)]
+        \ + (s:client ==# 'coc' ? [s:action('pause', 500)] : [])
+        \ + [s:settle_typed()]
+endfunction
+
+" Type `text` where the cursor is: in insert mode if it is (a capture
+" buffer starts there), else from `i`; <Esc> after.
+function! s:do_type(state, text) abort
+  let items = mode() =~# '^i' ? [] : [['text', 'i']]
+  let lines = split(a:text, "\n", 1)
+  for i in range(len(lines))
+    if i > 0
+      call add(items, ['key', 'Enter'])
+    endif
+    if !empty(lines[i])
+      call add(items, ['text', lines[i]])
+    endif
+  endfor
+  call add(items, ['key', 'Escape'])
+  return [s:action('keys', items), s:settle_typed()]
+endfunction
+
+" Press the key of `command` with `times` before it, as found where the
+" cursor is then.
+function! s:do_press(state, command, times) abort
+  let key = s:key_of(a:command)
+  if empty(key)
+    if a:command ==# 'quit'
+      call s:fail(printf('no key to close %s', s:name_of(bufnr())))
+    elseif !has_key(s:excepted, a:command)
+      call s:fail(printf('%s has no key in Vim here (%s)', a:command, join(s:scopes(), ', ')))
+    endif
+    " Run as the plugin runs a command without a key.
+    call org_lsp#run(a:command, {'count': a:times})
+    return 1
+  endif
+  return [s:action('keys', s:tmux_keys((a:times > 0 ? a:times : '') . key))]
+endfunction
+
+" The next answer typed, once what the step asks waits for it; the date
+" prompt's calendar is first told that a date is typed (`i`).
+function! s:do_answer(state) abort
+  let waiting = s:waiting()
+  " coc.nvim tells of the files it edits that are not loaded (their names,
+  " `Use ':wa' to save changes`): with the command's message, more than
+  " the command line holds, and Vim waits for Enter, which the user types.
+  if waiting ==# 'more' && s:client ==# 'coc' && s:prompt_shown() =~# '\V[coc.nvim] \|' . escape(s:dir, '\')
+    return [s:action('keys', [['key', 'Enter']]), s:settle_typed(), s:action('answer')]
+  endif
+  if empty(s:answers)
+    if !empty(waiting)
+      call s:fail(printf('`%s` is asked and the step has no answer left', s:prompt_shown()))
+    endif
+    return 1
+  endif
+  let answer = s:answers[0]
+  let label = type(answer) == v:t_dict ? answer.choice : answer
+  if waiting ==# 'key'
+    if type(answer) == v:t_dict
+      let item = ['text', s:choice_key(label)]
+    else
+      let item = s:tmux_key(answer)
+    endif
+    let items = [item]
+  elseif waiting ==# 'text'
+    " What the prompt has typed already (the time of the date changed)
+    " replaced: an answer is the whole text.
+    let items = [['key', 'C-u'], ['text', label], ['key', 'Enter']]
+  elseif waiting ==# 'list'
+    let items = [['text', s:choice_number(label)], ['key', 'Enter']]
+  elseif empty(waiting) && &filetype ==# 'org-date'
+    let type = s:key_of('org.calendar.type')
+    if empty(type)
+      call s:fail('no key for org.calendar.type')
+    endif
+    return [s:action('keys', s:tmux_keys(type)), s:settle_typed(), s:action('answer')]
+  elseif empty(waiting)
+    call s:fail(printf('%s did not ask for %s', s:command_name, string(s:answers)))
+  else
+    call s:fail(printf('Vim waits at its %s prompt: %s', waiting, s:prompt_shown()))
+  endif
+  call remove(s:answers, 0)
+  return [s:action('keys', items), s:settle_typed(), s:action('answer')]
+endfunction
+
+" The key of the choice labelled `label` in the popup of choices
+" (`[k] label`), the exact label first.
+function! s:choice_key(label) abort
+  let lines = []
+  for id in popup_list()
+    let lines += getbufline(winbufnr(id), 1, '$')
+  endfor
+  for exact in [1, 0]
+    for line in lines
+      let m = matchlist(line, '^\[\(.\{-}\)\] \(.*\)$')
+      if !empty(m) && (exact ? m[2] ==# a:label : stridx(m[2], a:label) >= 0)
+        return m[1] ==# 'SPC' ? ' ' : m[1]
+      endif
+    endfor
+  endfor
+  call s:fail(printf('no choice `%s` in %s', a:label, string(lines)))
+endfunction
+
+" The number of the choice labelled `label` in the list shown
+" (`2. label`), the exact label first.
+function! s:choice_number(label) abort
+  let lines = map(range(1, &lines), {_, row -> s:screen_line(row)})
+  for exact in [1, 0]
+    for line in lines
+      let m = matchlist(line, '^\s*\(\d\+\)\. \(.*\)$')
+      if !empty(m) && (exact ? m[2] ==# a:label : stridx(m[2], a:label) >= 0)
+        return m[1]
+      endif
+    endfor
+  endfor
+  call s:fail(printf('no choice `%s` in %s', a:label, string(filter(lines, '!empty(v:val)'))))
+endfunction
+
+" Compare what `kind` shows with what is expected, given 3 s more for
+" what comes later than the server's last answer.
+function! s:do_expect(state, kind, want) abort
+  let a:state.since = get(a:state, 'since', reltime())
+  let got = substitute(s:snapshot(a:kind), '\V' . escape(s:dir, '\'), '$DIR', 'g')
+  if got ==# a:want
+    return 1
+  elseif reltimefloat(reltime(a:state.since)) >= 3
+    call s:fail(printf("%s:\n--- expected\n%s--- actual\n%s", a:kind, a:want, got))
+  endif
+  return 0
+endfunction
+
+" Go to the buffer of `focus` by a command typed: Vim waits for keys with
+" what the current buffer maps (whether CTRL-C is mapped), and a timer
+" that changed it would leave that as it was.
+function! s:do_focus(state, focus) abort
+  let nr = a:focus ==# 'agenda' ? s:agenda_buffer() : s:file_buffer(a:focus)
+  if nr < 0
+    call s:fail(printf('no buffer %s to go to', a:focus))
+  endif
+  let win = bufwinid(nr)
+  let command = win != -1 ? 'call win_gotoid(' . win . ')' : 'buffer ' . nr
+  return [s:action('keys', s:tmux_keys(':' . command . '<CR>'))]
+endfunction
+
+function! s:typed_command(step) abort
+  let s:answers = deepcopy(get(a:step, 'answers', []))
+  let s:command_name = a:step.command
+  let s:columns_before = org_lsp#columns_on(bufnr())
+  let s:columns_buffer = get(a:step, 'wait', '') ==# 'columns' ? bufnr() : s:columns_buffer
+endfunction
+
+function! s:typed_answered(step) abort
+  if !empty(s:answers)
+    call s:fail(printf('%s did not ask for %s', a:step.command, string(s:answers)))
+  endif
+endfunction
+
+" The actions of step `index`.
+function! s:typed_step(index, step, expected) abort
+  let actions = []
+  if has_key(a:step, 'open')
+    let actions += s:typed_open(a:step.open)
+  endif
+  if has_key(a:step, 'focus')
+    let actions += [s:action('focus', a:step.focus), s:settle_typed()]
+  endif
+  if get(a:step, 'close', v:false)
+    let actions += [s:action('press', 'quit', 0), s:settle_typed()]
+  endif
+  if has_key(a:step, 'line') || has_key(a:step, 'at')
+    let actions += [s:action('call', function('s:place_cursor'), [a:step]), s:settle_typed()]
+  endif
+  if has_key(a:step, 'type')
+    let actions += [s:action('type', a:step.type)]
+  endif
+  if has_key(a:step, 'command')
+    let actions += [s:action('call', function('s:typed_command'), [a:step]),
+          \ s:action('press', a:step.command, get(a:step, 'count', 0)), s:settle_typed(), s:action('answer')]
+    if get(a:step, 'wait', '') ==# 'columns'
+      let actions += [s:action('until', 'column view', {-> org_lsp#columns_on(s:columns_buffer) != s:columns_before}, 30000),
+            \ s:action('call', {-> extend(s:, {'columns_seen': 1})}, []), s:settle_typed()]
+    endif
+    let actions += [s:action('call', function('s:typed_answered'), [a:step])]
+  endif
+  for kind in get(a:step, 'expect', [])
+    if !has_key(a:expected, a:index . ' ' . kind)
+      call s:fail(printf("no expected %s; run the server's runner with ORG_LSP_UPDATE_E2E=1", kind))
+    endif
+    let want = a:expected[a:index . ' ' . kind]
+    call add(actions, s:action('expect', kind, empty(want) ? '' : join(want, "\n") . "\n"))
+  endfor
+  if index(get(a:step, 'expect', []), 'messages') >= 0
+    call add(actions, s:action('call', {-> execute('messages clear')}, []))
+  endif
+  return actions
+endfunction
+
+let s:step = 0
+
+" A tick: the next action asked, the next step's actions once they are
+" all done.
+function! s:tick(timer) abort
+  try
+    while empty(s:actions)
+      " $ORG_LSP_TEST_STOP: Vim left as it is after that step, to go on
+      " by hand.
+      if !empty($ORG_LSP_TEST_STOP) && s:step == str2nr($ORG_LSP_TEST_STOP)
+        return timer_stop(a:timer)
+      endif
+      if s:step == len(s:spec.steps)
+        call timer_stop(a:timer)
+        return s:result([printf('ok - %s (%d steps, typed)', s:name, len(s:spec.steps))])
+      endif
+      let s:step += 1
+      let s:actions = s:typed_step(s:step, s:spec.steps[s:step - 1], s:expected_snapshots)
+    endwhile
+    let action = s:actions[0]
+    let done = call('s:do_' . action.name, [action.state] + action.args)
+    if type(done) == v:t_list
+      call remove(s:actions, 0)
+      call extend(s:actions, done, 0)
+    elseif done
+      call remove(s:actions, 0)
+    endif
+  catch
+    call timer_stop(a:timer)
+    let message = v:exception =~# '^scenario: ' ? v:exception[10:] : v:exception . ' (' . v:throwpoint . ')'
+    return s:result(split(printf('not ok - %s: step %d (typed): %s', s:name, s:step, message), "\n"))
+  endtry
+endfunction
+
 function! s:result(lines) abort
   " Written whole, then renamed: the runner stops Vim as soon as the file
   " is there.
@@ -515,18 +926,28 @@ function! s:run(...) abort
     endif
     return s:result([printf('ok - %s # skip no Emacs', s:name)])
   endif
-  " What the commands ask, answered by the steps.
   call org_lsp#config()
+  let manifest = org_lsp#manifest()
+  let s:agenda_name = manifest.agenda.fileName
+  let s:prompt_name = manifest.datePrompt.fileName
+  let s:capture_prefix = manifest.capture.prefix
+  if s:typed
+    " As a user's vimrc sets them (defaults.vim for 'ttimeout'): the
+    " client's autocommands on CursorHold run while a prompt waits, and
+    " <Esc> typed is <Esc>, not the start of a key.
+    set updatetime=100 ttimeout ttimeoutlen=100
+    let s:expected_snapshots = s:expected()
+    messages clear
+    call timer_start(20, function('s:tick'), {'repeat': -1})
+    return
+  endif
+  " What the commands ask, answered by the steps.
   function! org_lsp#prompt(input) abort
     return s:answer(a:input)
   endfunction
   function! org_lsp#read_key(prompt, choices, ...) abort
     return s:answer({'kind': 'key', 'prompt': a:prompt, 'choices': a:choices})
   endfunction
-  let manifest = org_lsp#manifest()
-  let s:agenda_name = manifest.agenda.fileName
-  let s:prompt_name = manifest.datePrompt.fileName
-  let s:capture_prefix = manifest.capture.prefix
   let skips = get(get(s:skips, s:client, {}), s:name, {})
   let expected = s:expected()
   messages clear

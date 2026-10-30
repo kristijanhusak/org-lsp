@@ -3,6 +3,52 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const vscode = require('vscode');
 
+// A key is picked from a quick pick the extension makes itself
+// (`pickKey`), which follows the key typed; the scenarios type into it.
+// Here it is answered as any list is, through `showQuickPick`, which the
+// tests answer in their place.
+const createQuickPick = vscode.window.createQuickPick;
+vscode.window.createQuickPick = (...args) => {
+  const quickPick = createQuickPick.call(vscode.window, ...args);
+  const listeners = { accept: [], hide: [] };
+  const show = quickPick.show.bind(quickPick);
+  return new Proxy(quickPick, {
+    get(target, name) {
+      if (name === 'onDidAccept' || name === 'onDidHide') {
+        return (listener) => {
+          listeners[name === 'onDidAccept' ? 'accept' : 'hide'].push(listener);
+          return { dispose() {} };
+        };
+      }
+      if (name === 'show') {
+        return () => {
+          if (!target.items.some((item) => 'key' in item)) {
+            // Text with completions: VS Code's own.
+            listeners.accept.forEach((listener) => target.onDidAccept(listener));
+            listeners.hide.forEach((listener) => target.onDidHide(listener));
+            return show();
+          }
+          void vscode.window.showQuickPick(target.items, { placeHolder: target.placeholder }).then((picked) => {
+            if (picked) {
+              Object.defineProperty(target, 'selectedItems', { value: [picked] });
+              listeners.accept.forEach((listener) => listener());
+            }
+            listeners.hide.forEach((listener) => listener());
+          });
+        };
+      }
+      if (name === 'hide') {
+        return () => (target.items.some((item) => 'key' in item) ? undefined : target.hide());
+      }
+      const value = Reflect.get(target, name);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+    set(target, name, value) {
+      return Reflect.set(target, name, value);
+    },
+  });
+};
+
 const workspace = process.env.ORG_LSP_TEST_WORKSPACE;
 const workUri = vscode.Uri.file(path.join(workspace, 'work.org'));
 
@@ -211,10 +257,15 @@ describe('Org files', () => {
       // Each keyword in its color, as `org-fast-todo-selection` shows it:
       // TODO in its face (the tests give it one), the others as TODO and
       // done keywords.
-      assert.match(require('node:fs').readFileSync(icons[0].fsPath, 'utf8'), /fill="#ff8800"/);
+      // In the colors of `org-todo` and `org-done`, for light and dark
+      // themes: a quick pick shows an icon of the theme's in one color.
+      const fill = (icon) => require('node:fs').readFileSync(icon.fsPath, 'utf8').match(/fill="([^"]*)"/)[1];
+      assert.equal(fill(icons[0]), '#ff8800');
+      // Files: a quick pick shows no icon of a `vscode-userdata:` URI.
+      assert.deepEqual([icons[0].scheme, icons[1].light.scheme, icons[1].dark.scheme], ['file', 'file', 'file']);
       assert.deepEqual(
-        icons.slice(1).map((icon) => icon && icon.color.id),
-        ['charts.red', 'charts.green', undefined],
+        icons.slice(1).map((icon) => icon && [fill(icon.light), fill(icon.dark)]),
+        [['red', 'Pink'], ['ForestGreen', 'PaleGreen'], undefined],
       );
       await until('the note buffer to close', () =>
         vscode.window.tabGroups.all.flatMap((group) => group.tabs).every((tab) => tab.label !== 'CAPTURE-Note.org'),
@@ -388,6 +439,38 @@ describe('Org files', () => {
     await vscode.commands.executeCommand('undo');
     await until('the schedule undone', () => document.lineAt(6).text === 'DEADLINE: <2026-05-20 Wed>');
     await document.save();
+  });
+
+  it('keeps the text a date prompt starts with, typing after it, as Emacs does', async () => {
+    const fs = require('node:fs');
+    // Outside the workspace, so that the agenda does not see it.
+    const file = path.join(fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'org-lsp-change-')), 'change.org');
+    fs.writeFileSync(file, '* Meeting <2026-05-18 Mon 10:00>\n');
+    const changed = await vscode.workspace.openTextDocument(file);
+    const editor = await vscode.window.showTextDocument(changed);
+    const started = [];
+    const showInputBox = vscode.window.showInputBox;
+    // ` fri` typed as VS Code types it: in place of the text selected,
+    // all of it unless the extension says otherwise.
+    vscode.window.showInputBox = async (options) => {
+      started.push(options.value);
+      const [start, end] = options.valueSelection ?? [0, options.value.length];
+      return `${options.value.slice(0, start)} fri${options.value.slice(end)}`;
+    };
+    try {
+      editor.selection = new vscode.Selection(0, 14, 0, 14);
+      await vscode.commands.executeCommand('org.timestamp.change');
+      await until('the calendar', () => vscode.window.activeTextEditor?.document.languageId === 'org-date');
+      await vscode.commands.executeCommand('org.calendar.type');
+      // Emacs's minibuffer has the time in it, the cursor after it: `10:00 fri`.
+      await until('the timestamp changed', () => changed.lineAt(0).text === '* Meeting <2026-05-22 Fri 10:00>');
+      assert.deepEqual(started, ['10:00']);
+    } finally {
+      vscode.window.showInputBox = showInputBox;
+    }
+    await vscode.window.showTextDocument(changed);
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.window.showTextDocument(document);
   });
 
   it('hides what Org hides, and shows it on the line being edited', async () => {
@@ -627,6 +710,18 @@ describe('Org files', () => {
     assert.ok(shown.some(([key, title]) => key === 'Ctrl+C Ctrl+T' && title === 'Change the TODO state'), JSON.stringify(shown));
     assert.ok(shown.some(([key]) => key === 'Tab'));
     assert.ok(!shown.some(([, title]) => title === 'Capture: finish'), 'the capture keys only in a capture buffer');
+    // `emacs`, the default, leaves VS Code the keys it uses for text;
+    // `emacs_full` has them too.
+    const left = ['Shift+Right', 'Ctrl+A', 'Ctrl+X n s', 'Alt+Shift+Left', 'Ctrl+Enter'];
+    for (const key of left) {
+      assert.ok(!shown.some(([bound]) => bound === key), key);
+    }
+    await vscode.workspace.getConfiguration('org-lsp').update('keys', 'emacs_full', vscode.ConfigurationTarget.Workspace);
+    const full = api.help(vscode.window.activeTextEditor);
+    assert.ok(full.some(([key, title]) => key === 'Ctrl+C Ctrl+T' && title === 'Change the TODO state'), JSON.stringify(full));
+    for (const key of left) {
+      assert.ok(full.some(([bound]) => bound === key), key);
+    }
     await vscode.workspace.getConfiguration('org-lsp').update('keys', 'custom', vscode.ConfigurationTarget.Workspace);
     assert.deepEqual(api.help(vscode.window.activeTextEditor), []);
     await vscode.workspace.getConfiguration('org-lsp').update('keys', undefined, vscode.ConfigurationTarget.Workspace);
@@ -766,6 +861,37 @@ describe('Org files', () => {
       assert.deepEqual(asked, ['Tags', 'Tags :work:', 'Tags :work:home:']);
     } finally {
       vscode.window.showQuickPick = showQuickPick;
+    }
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    await vscode.window.showTextDocument(document);
+  });
+
+  it('keeps the tags a headline has as tags are typed after them, as Emacs does', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'typed-tags.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* A :zeta:\n* B :old:\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the server', async () => (await tokens(file)) !== undefined);
+    // Typed into VS Code's own box, once it shows.
+    let shown = false;
+    const made = vscode.window.createQuickPick;
+    vscode.window.createQuickPick = (...args) => {
+      const pick = made(...args);
+      pick.onDidChangeActive(() => (shown = true));
+      return pick;
+    };
+    const type = (...args) => require('node:child_process').execFileSync('xdotool', args);
+    try {
+      moveTo(1, 2);
+      void vscode.commands.executeCommand('org.tags.set');
+      await until('the tags asked for', () => shown);
+      // Emacs's minibuffer has `:old:` in it, the cursor after it.
+      type('type', '--delay', '40', 'new');
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      type('key', 'Return');
+      await until('the tags set', () => editor.document.lineAt(1).text === '* B' + ' '.repeat(65) + ':old:new:');
+    } finally {
+      vscode.window.createQuickPick = made;
     }
     await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
     await vscode.workspace.fs.delete(file);

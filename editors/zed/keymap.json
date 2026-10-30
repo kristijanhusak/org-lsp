@@ -600,18 +600,6 @@
           "task_name": "Org: Change the TODO state"
         }
       ],
-      "ctrl-shift-right": [
-        "task::Spawn",
-        {
-          "task_name": "Org: Switch to the next TODO keyword set"
-        }
-      ],
-      "ctrl-shift-left": [
-        "task::Spawn",
-        {
-          "task_name": "Org: Switch to the previous TODO keyword set"
-        }
-      ],
       "ctrl-c ,": [
         "task::Spawn",
         {
@@ -1221,79 +1209,79 @@
       "ctrl-c a": [
         "task::Spawn",
         {
-          "task_name": "Org: Agenda commands"
+          "task_name": "Org: Agenda commands (at the cursor)"
         }
       ],
       "ctrl-c c": [
         "task::Spawn",
         {
-          "task_name": "Org: Capture"
+          "task_name": "Org: Capture (at the cursor)"
         }
       ],
       "ctrl-c n f": [
         "task::Spawn",
         {
-          "task_name": "Org: Roam: find a node"
+          "task_name": "Org: Roam: find a node (at the cursor)"
         }
       ],
       "ctrl-c n c": [
         "task::Spawn",
         {
-          "task_name": "Org: Roam: capture to a node"
+          "task_name": "Org: Roam: capture to a node (at the cursor)"
         }
       ],
       "ctrl-c n d n": [
         "task::Spawn",
         {
-          "task_name": "Org: Roam: capture to today's daily note"
+          "task_name": "Org: Roam: capture to today's daily note (at the cursor)"
         }
       ],
       "ctrl-c n d d": [
         "task::Spawn",
         {
-          "task_name": "Org: Roam: go to today's daily note"
+          "task_name": "Org: Roam: go to today's daily note (at the cursor)"
         }
       ],
       "ctrl-c n d t": [
         "task::Spawn",
         {
-          "task_name": "Org: Roam: go to tomorrow's daily note"
+          "task_name": "Org: Roam: go to tomorrow's daily note (at the cursor)"
         }
       ],
       "ctrl-c n d y": [
         "task::Spawn",
         {
-          "task_name": "Org: Roam: go to yesterday's daily note"
+          "task_name": "Org: Roam: go to yesterday's daily note (at the cursor)"
         }
       ],
       "ctrl-c n d v": [
         "task::Spawn",
         {
-          "task_name": "Org: Roam: capture to the daily note of a date"
+          "task_name": "Org: Roam: capture to the daily note of a date (at the cursor)"
         }
       ],
       "ctrl-c n d c": [
         "task::Spawn",
         {
-          "task_name": "Org: Roam: go to the daily note of a date"
+          "task_name": "Org: Roam: go to the daily note of a date (at the cursor)"
         }
       ],
       "ctrl-c n d .": [
         "task::Spawn",
         {
-          "task_name": "Org: Roam: open the directory of the daily notes"
+          "task_name": "Org: Roam: open the directory of the daily notes (at the cursor)"
         }
       ],
       "ctrl-c n l": [
         "task::Spawn",
         {
-          "task_name": "Org: Roam: show or hide the org-roam buffer"
+          "task_name": "Org: Roam: show or hide the org-roam buffer (at the cursor)"
         }
       ],
       "ctrl-c j j": [
         "task::Spawn",
         {
-          "task_name": "Org: Journal: new entry"
+          "task_name": "Org: Journal: new entry (at the cursor)"
         }
       ]
     }

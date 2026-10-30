@@ -267,6 +267,19 @@ describe('Highlighting', () => {
     }
   });
 
+  it('shows emphasis within emphasis with all its looks', async () => {
+    // A theme's `markup.bold` turns italic off, its `markup.italic` bold:
+    // VS Code takes one, and the extension paints the both of them.
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(sampleUri));
+    const row = editor.document.getText().split('\n').findIndex((line) => line.startsWith('Nested: *bold with /italic/'));
+    const shown = await until('/italic/ in *bold*', () => {
+      const found = extension().exports.emphasis(editor).filter(([line]) => line === row);
+      return found.length > 0 && found;
+    });
+    assert.ok(shown.some(([, text, looks]) => text.includes('italic') && looks === 'bold+italic'), JSON.stringify(shown));
+    assert.ok(shown.every(([, text]) => !text.startsWith('bold with')), 'bold alone is left to the theme');
+  });
+
   it('hides link brackets and emphasis markers', async () => {
     const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(sampleUri));
     editor.selection = new vscode.Selection(0, 0, 0, 0);

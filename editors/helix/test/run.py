@@ -7,15 +7,15 @@ server and the scenario's options added to its `config`, which Helix
 passes as the initialization options. The steps are what a Helix user
 does: the code action menu (`Space a`, then the action picked with `C-n`
 and Enter) for the commands the server offers there, in Org files, the
-agenda and capture buffers, `gd` for following a link, and for the
-others, which tests/e2e/exceptions.json names under `editors.helix` with
-the reason, `:lsp-workspace-command` with the cursor's place as its
-argument. What the server asks for is answered as docs/helix.org says: a
-choice from the code action menu, which starts with the choices while
-the question waits (`message_requests` off), and text with a rename at
-the cursor (`Space r`). Helix gives a code action no count: a step with
-one runs its command with `:lsp-workspace-command` too, the count in its
-argument.
+agenda and capture buffers, `gd` for following a link: every key typed in Helix's terminal through tmux, as a user types it.
+What the server asks for is answered as docs/helix.org says: a choice
+from the code action menu, which starts with the choices while the
+question waits (`message_requests` off), and text with a rename at the
+cursor (`Space r`, the answer typed). Helix gives a code action no count:
+a step with one picks the action that many times, or once where Org gives
+the count no meaning (`COMMAND count` under `editors.helix` in
+tests/e2e/exceptions.json). A step that adds below the cursor's line goes
+past the line's end first (`gl l`), as `C-e M-RET` does.
 
 What is looked at: the buffers as Helix has them (the text it told the
 server of, `didOpen` and `didChange`, from its log), files on disk that
@@ -69,6 +69,14 @@ ACTIONS = {
 # Helix's own keys that run a command: go to definition follows a link
 # (in an Org file; in the agenda it goes to the line's entry).
 KEYS = {"org.open": ["g", "d"]}
+# Helix's own commands that do what a command does: Helix saves its
+# files itself, as the server cannot.
+COMMAND_LINE = {"org.agenda.save": "write-all"}
+# The commands that move the subtree at the cursor: Helix applies their
+# code action's edit and leaves the cursor where it was in the text, and
+# the user goes after the subtree (a search for its line), where Emacs's
+# cursor goes with it.
+MOVES = {"org.meta.up", "org.meta.down"}
 
 # What the server says when it waits for an answer.
 RENAME = ": answer with a rename at the cursor"
@@ -320,6 +328,9 @@ class Helix:
         self.log = Log(os.path.join(self.work, "helix.log"))
         self.session = f"org-lsp-hx-{name}-{os.getpid()}"
         self.messages_from = 0
+        # The messages that others took the place of, as ranges of the
+        # log's messages.
+        self.replaced = []
         self.asked_from = 0
         self.started = False
 
@@ -332,7 +343,7 @@ class Helix:
             "XDG_CACHE_HOME": os.path.join(self.work, "cache"),
             "XDG_STATE_HOME": os.path.join(self.work, "state"),
             "XDG_DATA_HOME": os.path.join(self.work, "data"),
-            "ORG_LSP_CONFIG": "/nonexistent/config.toml",
+            "ORG_LSP_CONFIG": "/dev/null",
             "TERM": "xterm-256color",
             **self.environment,
         }
@@ -628,21 +639,6 @@ class Helix:
             raise Failure(f"no code action {kind} here; Helix offers: {[action['title'] for action in actions]}")
         self.pick_action(actions, index)
 
-    def workspace_command(self, command, step):
-        """`:lsp-workspace-command`, with the cursor's place as its argument
-        and the server applying the edit itself (`apply`)."""
-        _, path, line, column = self.status()
-        context = {
-            "textDocument": {"uri": "file://" + urllib.parse.quote(path)},
-            "position": {"line": line - 1, "character": column - 1},
-            "apply": True,
-        }
-        if "count" in step:
-            context["count"] = step["count"]
-        if step.get("below"):
-            context["below"] = True
-        self.command_line(f"lsp-workspace-command {command} {json.dumps(context, separators=(',', ':'))}")
-
     def question(self):
         """What the server asked since the last answer: `choice`, `text`
         or None."""
@@ -687,18 +683,44 @@ class Helix:
         self.asked_from = self.log.count
         started = self.log.count
         answers = list(step.get("answers", []))
-        if command in excepted:
-            self.workspace_command(command, step)
-        elif command in KEYS and self.name_of(self.status()[1]) != "agenda":
+        if step.get("below"):
+            # The code action adds where the cursor is, as M-RET does: to
+            # add below the line, the cursor goes past its end first
+            # (`gl`, then `l` onto the line's end), as `C-e M-RET` does.
             self.escape()
-            self.keys(*KEYS[command])
+            self.keys("g", "l")
+            self.keys("l")
             self.settle()
-        elif "count" in step:
-            # A code action takes no count: the command as from Helix's
-            # command line, with the count in its argument.
-            self.workspace_command(command, step)
-        else:
-            self.code_action(command)
+        # A code action takes no count: it is picked that many times, or
+        # once for a command Org gives the count no meaning (`COMMAND
+        # count` in the exceptions).
+        times = 1 if f"{command} count" in excepted else step.get("count", 1)
+        if command in MOVES:
+            _, path, line, _ = self.status()
+            moved = ((self.text(path) or "").split("\n") + [""])[line - 1]
+        first = self.log.count
+        for time_ in range(times):
+            if time_ > 0:
+                # What the action taken again says takes the place of what
+                # it said before, as in Emacs's echo area for one key with
+                # a count.
+                self.log.read()
+                self.replaced.append((first, self.log.count))
+            if command in KEYS and self.name_of(self.status()[1]) != "agenda":
+                self.escape()
+                self.keys(*KEYS[command])
+                self.settle()
+            elif command in COMMAND_LINE:
+                self.command_line(COMMAND_LINE[command])
+            else:
+                self.code_action(command)
+        if command in MOVES:
+            _, path, line, _ = self.status()
+            if ((self.text(path) or "").split("\n") + [""])[line - 1] != moved:
+                self.place({"at": moved})
+        if command == "org.agenda.save":
+            # Each Org file as Helix has it is on disk.
+            self.wait(self.saved, "Helix to save the Org files", read=True)
         for answer in answers:
             self.answer(answer, command)
         # Helix shows a document the server shows without the focus (an
@@ -711,6 +733,14 @@ class Helix:
             self.keys("C-w", "h")
             self.settle()
 
+    def saved(self):
+        for path, text in self.log.documents.items():
+            if path.startswith(self.directory + "/") and os.path.exists(path):
+                with open(path, encoding="utf-8") as file:
+                    if file.read() != text:
+                        return False
+        return True
+
     # What is looked at.
 
     def messages(self):
@@ -719,7 +749,7 @@ class Helix:
         them)."""
         said = []
         for index, message in self.log.received:
-            if index <= self.messages_from:
+            if index <= self.messages_from or any(start < index <= end for start, end in self.replaced):
                 continue
             if message.get("method") == "window/showMessage":
                 text = message["params"]["message"]
@@ -796,6 +826,13 @@ def run_scenario(name, spec, exceptions):
         helix.start(first)
         for number, step in enumerate(steps, start=1):
             if f"{name} {number}" in skipped:
+                # Where the step puts the cursor, which the steps after it
+                # need, without what Helix cannot do there.
+                if step.get("focus") == "agenda" and helix.agenda():
+                    helix.go_to_buffer(helix.agenda())
+                elif "focus" in step:
+                    helix.open(step["focus"])
+                helix.place(step)
                 continue
             try:
                 if "open" in step and number > 1:

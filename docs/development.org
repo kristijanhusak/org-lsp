@@ -44,9 +44,19 @@ others), as close to Emacs Org mode as it can get.
 :END:
 
 - All at once: ~scripts/check.sh~ (the fast checks) and
-  ~scripts/test-all.sh~ (those, then each editor end to end);
+  ~scripts/test-all.sh~ (those and each editor end to end, side by side,
+  half as many at a time as there are CPUs, ~ORG_LSP_TEST_JOBS~ to say
+  otherwise, each into a log of its own; ~ORG_LSP_SERIAL=1~ one after
+  another);
   ~scripts/regen.sh~ writes the generated files again. ~CLAUDE.md~ lists
   the environment they read.
+- By hand, in real editors, before a change is merged: each editor it
+  touches, installed as users install it (Neovim through lazy.nvim and
+  through =pack/*/start=, Vim through =pack/*/start= with each LSP client
+  it affects, the others from what ~install.sh~ installs), the feature
+  used as a user uses it and what shows looked at. The harnesses set the
+  editors up their own way, which can hide what a user hits; the pull
+  request says which editors and installs were tried.
 - Rust: ~cargo test --workspace~,
   ~cargo clippy --workspace --all-targets -- -D warnings~, ~cargo fmt --all~.
   CI's toolchain is newer than what
@@ -65,6 +75,7 @@ others), as close to Emacs Org mode as it can get.
   | org-journal's entries, carryover, motion, calendar keys: with ~ORG_LSP_EMACS_PACKAGES~                                                                   | ~tests/journal/cases.json~         | ~scripts/update-journal-fixtures.py~                                               | ~scripts/fuzz-journal.py~       |
   | TODO changes                                                                                                                                             | ~tests/todo/cases.json~            | ~scripts/update-todo-fixtures.py~                                                  | ~scripts/fuzz-todo.py~          |
   | Priorities, timestamps                                                                                                                                   | ~tests/shift/cases.json~           | ~scripts/update-shift-fixtures.py~                                                 | ~scripts/fuzz-shift.py~         |
+  | Where Shift and the arrows are Org's and where they select (~org-support-shift-select~)                                                                  | ~tests/shift-select/cases.json~    | ~scripts/shift_select_reference.py~                                                |                                 |
   | Agenda commands                                                                                                                                          | ~tests/agenda-actions/cases.json~  | ~scripts/update-agenda-action-fixtures.py~                                         |                                 |
   | Folding subtrees                                                                                                                                         | ~tests/folding/cases.json~         | ~scripts/update-fold-fixtures.py~                                                  | ~scripts/fuzz-fold.py~          |
   | Date prompt                                                                                                                                              | ~tests/read-date/cases.json~       | ~scripts/update-read-date-fixtures.py~                                             | ~scripts/fuzz-read-date.py~     |
@@ -98,7 +109,21 @@ others), as close to Emacs Org mode as it can get.
   the same steps.
 - Neovim: ~scripts/test-nvim.sh~ (set ~NVIM~ to the binary), on 0.12.0 and
   stable. Tests run headless against the real server; ~tests/nvim/scenarios.lua~
-  is its adapter of the scenarios. On a nightly build of 0.13,
+  is its adapter of the scenarios, which runs them typed: each in Neovim's
+  own terminal UI in tmux, nothing replaced, ~'updatetime'~ 100.
+  That Neovim plays the scenario on timers and writes down the keys it
+  wants typed; the runner (~--typed~) types them with ~tmux send-keys~, a
+  key at a time, and each answer as what the screen asks for takes it: a
+  key at a key prompt, text in the command line, the number of a choice in
+  the list ~vim.ui.select~ shows. It presses Enter at a hit-enter prompt, as
+  a user does, and the scenario fails when one comes before what is asked
+  could be answered. Neovim's own typed checks, of what the scenarios do
+  not see, are in ~tests/nvim/typed/NAME.json~, steps of the same kind with
+  ~keys~ typed as they are and ~screen~, text the screen must show.
+  ~ORG_LSP_NVIM_TESTS=typed scripts/test-nvim.sh [NAME…]~
+  runs only the typed ones; ~ORG_LSP_NVIM_TESTS=headless~ runs the scenarios
+  headless instead, their keys fed and the prompts answered: the same steps,
+  quicker to look into when a typed one fails. On a nightly build of 0.13,
   ~tests/nvim/highlight.lua~ may stop on Neovim's own assertion
   (~grid_line_flush: Assertion `grid_line_clear_to <= grid_line_maxcol'~)
   when it redraws the date prompt's calendar in its headless 140 by 50
@@ -108,17 +133,37 @@ others), as close to Emacs Org mode as it can get.
   through ~VSCODE_EXECUTABLE~, set to its ~codium~ binary, not the
   launcher in ~bin/~). The tests of the extension run first, then
   ~editors/vscode/test/scenarios.test.cjs~, its adapter of the scenarios,
-  which presses keys with ~xdotool~.
+  with each preset's keys (~npm test -- scenarios vim~ runs one). It types
+  everything with ~xdotool~ into VS Code's window, as the user types it:
+  each step's keys, its text, and the answers to what a command asks, in
+  VS Code's own quick picks and input boxes and in the date prompt (~i~,
+  the date, ~Enter~). Nothing answers for the user: the test watches what
+  VS Code shows, checks that what is typed is taken as meant (the choice
+  Enter would pick, the text the box has), then presses ~Enter~. A
+  command a preset has no key for (~tests/e2e/exceptions.json~) gets a key
+  of the user's, as a count does.
 - Vim: ~CLIENTS=dir editors/vim/test/run.sh~, with the four clients
   checked out in ~dir~ (~lsp~, ~vim-lsp~, ~coc.nvim~ on its ~release~
   branch, ~ale~); Vim runs in tmux. ~editors/vim/test/scenarios.vim~ is its
-  adapter of the scenarios.
+  adapter of the scenarios. The tests answer prompts themselves, and the
+  scenarios run typed, everything through tmux as the user types it (see
+  [[#end-to-end-scenarios][End-to-end scenarios]]); ~editors/vim/test/typed.vim~ types the agenda
+  dispatcher's key, with ~'updatetime'~ passing while it waits for one,
+  and the key of a prompt of two lines.
 - Sublime Text: ~node editors/sublime/generate.mjs --check~,
-  ~python3 editors/sublime/test/test_plugin.py~.
+  ~python3 editors/sublime/test/test_plugin.py~: the plugin against
+  stand-ins for Sublime Text and the LSP package, as Sublime itself cannot
+  run in the workspace. The stand-ins keep Sublime's order of things: what
+  ~set_timeout~ puts off and the server's answers come once the code that
+  asked has returned, in the order of their time, and a panel waits for
+  the user, who answers it a few seconds later (after a message's popup
+  has gone); a panel shown over another cancels that one, as Sublime's do.
+  Some keys are pressed through the package's keymap, its contexts asked
+  of the plugin as Sublime asks them.
 - Zed: ~node editors/zed/generate.mjs --check~,
   ~cargo build --target wasm32-wasip2~ in ~editors/zed~; the queries are compiled against the
-  grammar with the tree-sitter CLI. Zed itself cannot run in the
-  workspace.
+  grammar with the tree-sitter CLI; with ~ZED~ set, the scenarios in Zed
+  itself ([[#end-to-end-scenarios][below]]).
 - CI, started by hand, runs seven jobs: server, Neovim 0.12.0, Neovim stable, VS Code, Vim (with each of its four LSP clients), Sublime Text (generated files, the plugin against stand-ins), Zed (the build, generated rules, queries).
 
 * End-to-end scenarios
@@ -134,22 +179,41 @@ it sees is in ~tests/e2e/expected/NAME.txt~, written again with
 ~ORG_LSP_UPDATE_E2E=1~ (~ORG_LSP_E2E=NAME~ runs only the scenarios whose name
 has ~NAME~ in it). Each editor has an adapter that presses that editor's keys
 for the same steps and must see the same; Neovim's is
-~tests/nvim/scenarios.lua~ (~scripts/test-nvim.sh~ runs it), Vim's
+~tests/nvim/scenarios.lua~ (~scripts/test-nvim.sh~ runs it typed), Vim's
 ~editors/vim/test/scenarios.vim~, which ~editors/vim/test/run.sh~ runs with
 each LSP client after the plugin's own tests, each scenario in a Vim of its
 own, four at a time:
 
 #+begin_src sh
-CLIENTS=~/vim-clients editors/vim/test/run.sh                  # the tests, then the scenarios
-ORG_LSP_VIM_TESTS=scenarios ORG_LSP_E2E=capture \
+CLIENTS=~/vim-clients editors/vim/test/run.sh                  # the tests, then the scenarios typed
+ORG_LSP_VIM_TESTS=typed ORG_LSP_E2E=capture \
   CLIENTS=~/vim-clients editors/vim/test/run.sh coc            # one scenario, one client
+ORG_LSP_VIM_TESTS=scenarios ORG_LSP_E2E=capture \
+  CLIENTS=~/vim-clients editors/vim/test/run.sh coc            # the same, keys fed, not typed
 #+end_src
 
-~ORG_LSP_VIM_TESTS~ is ~cases~ or ~scenarios~ for only those,
+~ORG_LSP_VIM_TESTS~ is ~cases~, ~scenarios~ (fed, which the typed ones
+cover: quicker to look into) or ~typed~ for only those,
 ~ORG_LSP_E2E_JOBS~ how many Vims run at once. Each scenario prints one line,
 with the step that failed and what it saw; a step a client cannot take as
 the others do is skipped, with the reason, from ~s:skips~ in
 ~scenarios.vim~ (coc.nvim shows the documents the server asks for itself).
+
+The first time, the plugin's prompts are replaced by the steps' answers and
+the keys are fed (~feedkeys()~). The second time (~typed~, with
+~ORG_LSP_TEST_TYPED~ set) nothing stands in for anything: Vim runs the steps
+from a timer, between turns of its main loop, with ~'updatetime'~ at 100 ms,
+so CursorHold and the client's autocommands run as for a user. Where a step
+needs keys, Vim writes them to ~keys~ in its work directory and
+~editors/vim/test/typist.py~ types them into the tmux session: the command's
+key, then each answer once its prompt waits (a key at a menu, text at
+~input()~ after ~CTRL-U~, the number of a choice in a list, ~i~ then the date
+in the date prompt's calendar), files opened with ~:edit~, text typed in
+insert mode. A step is done when the server has answered and nothing has
+changed for a while; Vim's hit-enter prompt is a failure, except after
+coc.nvim's own messages about the files it edits, where Enter is typed.
+~ORG_LSP_TEST_STOP=N~ leaves the typed Vim as it is after step ~N~, to go
+on by hand.
 
 A scenario has:
 
@@ -198,8 +262,8 @@ VS Code's adapter is ~editors/vscode/test/scenarios.test.cjs~, run by
 ~npm test~ after the extension's tests (~npm test -- scenarios~ for the
 scenarios only, ~npm test -- scenarios vim~ for one preset;
 ~ORG_LSP_E2E=NAME~ as above). Each scenario runs in a VS Code of its own,
-with each preset of ~org-lsp.keys~: ~emacs~ (~editors.vscode~ in the
-exceptions) and ~vim~ (~editors.vscode-vim~, which leaves the keys of Vim's
+with two presets of ~org-lsp.keys~: ~emacs_full~, all of Emacs's keys
+(~editors.vscode~ in the exceptions), and ~vim~ (~editors.vscode-vim~, which leaves the keys of Vim's
 normal mode in Org files to VSCodeVim). The adapter finds the key
 ~package.json~ binds to the step's command where the cursor is, by its
 ~when~ clause, and presses it in VS Code's window with ~xdotool~, so that
@@ -215,18 +279,26 @@ the window that has the focus.
 Helix's adapter is ~editors/helix/test/run.py~: each scenario in a Helix
 of its own in a tmux session, with [[file:../editors/helix/languages.toml][editors/helix/languages.toml]] pointing
 at the debug build and the scenario's options as its ~config~. It does
-what a Helix user does: picks the command's code action in the menu
-(~Space a~, then ~C-n~ and ~RET~), in Org files, the agenda and capture
-buffers, follows a link with ~gd~, picks the answer to a choice from the
-code actions, where it comes first, answers what the server asks for as
-text with a rename (~Space r~), goes back to the agenda from the buffer
-picker (~Space b~), and runs the commands that are not among the code
-actions (~editors.helix~) with ~:lsp-workspace-command~ and the cursor's
-place as their argument, as it does a step with a count: a code action
-takes none. It reads the buffers' text from what Helix tells the server
-(~didOpen~ and ~didChange~ in its log), the cursor from the status line and
-the messages from the log too. The date prompt and column view are not
-there (~scenarios.helix~). ~HX~ is the ~hx~ to run (~HELIX_RUNTIME~ its
+what a Helix user does, every key typed in Helix's terminal through tmux:
+picks the command's code action in the menu (~Space a~, then ~C-n~ and
+~RET~), in Org files, the agenda and capture buffers, follows a link with
+~gd~, saves with ~:write-all~ (the agenda's save, which Helix does not
+do for a server), picks the answer to a choice from the code actions,
+where it comes first, answers what the server asks for as text with a
+rename (~Space r~, the answer typed), goes to a line with ~:goto~ or a
+search, opens a file with ~:open~ and goes back to the agenda from the
+buffer picker (~Space b~). A code action takes no count: a step with one
+picks the action that many times, or once where Org gives the count no
+meaning (~COMMAND count~ under ~editors.helix~). A step that adds below the
+cursor's line goes past its end first (~gl l~), as ~C-e M-RET~ does, and
+after moving a subtree, whose code action leaves the cursor where it was
+in the text, the adapter goes after the subtree with a search. What Helix
+cannot do (follow mode, the entry in another window, a count Org reads
+as more than a repeat) is under ~steps.helix~, whose steps still put the
+cursor where they say for the steps after them. It reads the buffers'
+text from what Helix tells the server (~didOpen~ and ~didChange~ in its
+log), the cursor from the status line and the messages from the log too.
+The date prompt and column view are not there (~scenarios.helix~). ~HX~ is the ~hx~ to run (~HELIX_RUNTIME~ its
 ~runtime~ directory, by default the one beside it; ~ORG_LSP_HX_KEEP~ keeps
 each scenario's directory and Helix's log); ~scripts/test-all.sh~ runs it
 when ~HX~ is set:
@@ -251,13 +323,20 @@ Each scenario runs in a Zed of its own, on an X display of its own
 (~ZED_ORG_GRAMMAR~, an ~org.wasm~; or ~ZED_TREE_SITTER_ORG~, a checkout of
 tree-sitter-org, and ~WASI_SDK~ to build it), and the tasks and the keymap
 of [[file:keys/zed.org::#keys-through-tasks][keys through tasks]].
-The adapter presses with ~xdotool~ the key ~keymap.json~ binds to the step's
-command (a task, which reaches the server through its command port); a
-command with no key in Zed (~editors.zed~ in the exceptions) runs from the
-code actions (~ctrl-.~). It clicks the buttons of a question, answers typed
-text with a rename at the cursor (~F2~), goes to a line with ~ctrl-g~ and
-opens a file with Zed's command line. A key that takes a count is pressed
-that many times, as Zed gives a key none. Zed opens a file a server's edit
+Every step is typed in Zed's window with ~xdotool~, as a user types it.
+The adapter presses the key ~keymap.json~ binds to the step's command (a
+task, which reaches the server through its command port, or Zed's own
+~workspace::SaveAll~ for the agenda's save, after which the files are
+checked on disk); a command with no key in Zed (~editors.zed~ in the
+exceptions) runs from the code actions (~ctrl-.~, down to the action,
+~RET~). It clicks the buttons of a question with the mouse (Zed's
+notifications take no keys), answers typed text with a rename at the
+cursor (~F2~, the answer typed), goes to a line with ~ctrl-g~ and opens a
+file, or goes back to the agenda, with the file finder (~ctrl-p~, the
+file's name typed, ~RET~). A key that takes a count is pressed that many
+times, as Zed gives a key none. One key is the adapter's own, bound to
+Zed's ~workspace::ClearAllNotifications~: the messages it clears would
+cover a question's buttons. Zed opens a file a server's edit
 changes when no tab shows it, and takes the focus to what it is asked to
 show without it (follow mode): the adapter goes back to where it was, as a
 user does. What Zed has open, the text of its buffers and where its cursor
@@ -265,13 +344,19 @@ is come from what it tells the server, which ~editors/zed/test/proxy.py~
 writes down; the current buffer is the window's title. ~snapshots.zed~ in
 the exceptions names what Zed shows otherwise as ~NAME STEP KIND~, and the
 steps it cannot take as ~NAME STEP~; ~scenarios.zed~ the scenarios it cannot
-take at all (the date prompt, column view). Each wait has a bound: a
+take at all (the date prompt, column view). After the scenarios come
+checks of Zed's own, written as they are, with what they expect (~CHECKS~
+in ~run.py~): ~zed-capture-here~ captures with ~ctrl-c c~ in an Org file,
+whose ~%a~ links to the cursor's heading, with the agenda open too. Each
+wait has a bound: a
 request left with no answer fails the step, and a scenario fails when it
 takes more than ~ORG_LSP_ZED_BUDGET~ seconds (600), with the step and what
 it waited for. Stopped (~SIGTERM~, ~SIGINT~), the adapter closes its Zeds
 and their displays. A failure leaves a screenshot
 in ~target/zed-e2e~; ~ORG_LSP_ZED_KEEP=1~ keeps each scenario's directory,
 and ~ORG_LSP_ZED_PAUSE=1~ leaves Zed open at a failure, to look at.
+Each Zed takes the first free X display from ~ORG_LSP_ZED_DISPLAY~ (90)
+up.
 
 * Highlighting
 :PROPERTIES:
@@ -318,9 +403,12 @@ check copies it and starts the server with those options.
 The checks against Emacs and the editors' tests need the tools installed.
 What works on a Debian or Ubuntu machine: ~apt-get install emacs-nox
 faketime~; Org 9.8.10 from its GitHub mirror (~git clone --depth 1 --branch
-release_9.8.10 https://github.com/bzg/org-mode~, then ~make autoloads~),
+release_9.8.10 https://github.com/bzg/org-mode~, then ~make compile~),
 with ~ORG_LISP_DIR~ set to its ~lisp~ directory; Neovim and VSCodium from
-their GitHub releases.
+their GitHub releases. Compiled, Org loads three times faster, and works as
+it does where users install it: a ~defsubst~ such as ~org-current-line~ is
+then part of the functions that call it, and the bridge cannot stand in for
+it.
 
 * Publishing
 :PROPERTIES:
@@ -346,14 +434,23 @@ git tag v0.2.0 origin/main
 git push origin v0.2.0
 #+end_src
 
+The tag can also be made on GitHub's page, /Releases › Draft a new
+release/: the workflow then puts the files on that release, its title and
+notes as written there. A release that failed is made again by running
+the workflow by hand on main with its tag (/Actions › Release › Run
+workflow/, ~tag~ ~v0.2.0~): it builds that tag again and publishes it, as
+this workflow does, where running it again for the tag would be the
+workflow as it was at the tag.
+
 The Release workflow (~.github/workflows/release.yml~) fails when the tag
 is not ~v~ and the version, builds everything, makes the GitHub release,
 then publishes it: each of these jobs is skipped while its secret is not
-set, and the nightly build (the workflow run by hand on main) publishes
-none of them.
+set, and the nightly build (each push to main, or the workflow run by
+hand on main) publishes none of them.
 
-- ~vscode-marketplace~ (secret ~VSCE_PAT~) :: the VS Code packages, one a
-  platform, on the VS Code Marketplace;
+- ~vscode-marketplace~ (the environment ~marketplace~'s ~AZURE_CLIENT_ID~,
+  or the secret ~VSCE_PAT~) :: the VS Code packages, one a platform, on the
+  VS Code Marketplace;
 - ~open-vsx~ (~OVSX_PAT~) :: the same packages on Open VSX;
 - ~zed-registry~ (~ZED_EXTENSIONS_TOKEN~) :: a pull request to Zed's
   extension registry for the new version;
@@ -362,9 +459,7 @@ none of them.
 
 The VS Code packages have the server inside. The Zed extension and the
 Sublime Text package download the server of their own release (~v0.2.0~
-for version 0.2.0); those of the nightly build, the nightly server. The
-VS Code extension is marked as a preview (~"preview": true~ in
-~package.json~) until that line goes.
+for version 0.2.0); those of the nightly build, the nightly server.
 
 The secrets go in the repository's settings, under /Secrets and
 variables › Actions/
@@ -376,30 +471,42 @@ What has to be done once, by hand, before each job can publish:
 :CUSTOM_ID: vs-code-marketplace
 :END:
 
+The job publishes as an app of Microsoft Entra ID, which GitHub Actions
+signs in as with no secret of its own (a federated credential), and which
+is a member of the publisher. What has to be done once:
+
 - [ ] The publisher ~kristijanhusak~ (/Kristijan Husak/) exists:
   [[https://marketplace.visualstudio.com/manage/publishers/kristijanhusak]].
-- [ ] An Azure DevOps organization, created at [[https://dev.azure.com]] with
-  the Microsoft account of the publisher.
-- [ ] A personal access token of that account: in Azure DevOps, /User
-  settings › Personal access tokens › New Token/, with /Organization/ set
-  to /All accessible organizations/ and /Scopes/ to /Custom defined/, then
-  /Show all scopes › Marketplace › Manage/.
-  ~npx vsce verify-pat kristijanhusak~ (in ~editors/vscode~, after ~npm
-  ci~) checks it.
-- [ ] The token as the secret ~VSCE_PAT~.
+- [ ] An Azure account ([[https://azure.microsoft.com/free]]), whose sign-up
+  makes its Microsoft Entra ID tenant.
+- [ ] The app: in the Azure portal, /Microsoft Entra ID › App
+  registrations › New registration/, /Single tenant/, no redirect URI.
+  Its /Overview/ has its /Application (client) ID/ and /Directory (tenant)
+  ID/.
+- [ ] Its federated credentials: /Certificates & secrets › Federated
+  credentials › Add credential/, /GitHub Actions deploying Azure
+  resources/, the organization ~kristijanhusak~, the repository
+  ~org-lsp~, the entity /Environment/ ~marketplace~. GitHub's tokens name
+  the repository with or without the IDs of its owner and itself, so
+  there are two, one of each subject:
+  ~repo:kristijanhusak@1782860/org-lsp@1404580301:environment:marketplace~
+  and ~repo:kristijanhusak/org-lsp:environment:marketplace~.
+- [ ] The environment ~marketplace~ in the repository (/Settings ›
+  Environments/), with the secrets ~AZURE_CLIENT_ID~ and
+  ~AZURE_TENANT_ID~.
+- [ ] The app a member of the publisher: run /Actions › Marketplace
+  identity › Run workflow/ (~.github/workflows/marketplace-identity.yml~),
+  which signs in as the app and says its ID; add that ID at the
+  publisher's /Members/ as a /Contributor/. Run it again: its last step
+  says whether the app may publish as ~kristijanhusak~.
 
-When the Azure DevOps sign-up is stuck, a separate Microsoft account made
-for publishing can do it: add it to the publisher as a /Contributor/
-([[https://marketplace.visualstudio.com/manage/publishers/kristijanhusak]],
-/Members/), and let it own the organization and the token.
-
-Azure DevOps retires tokens for all accessible organizations on December
-1, 2026, and the Marketplace takes no other kind
-([[https://code.visualstudio.com/api/working-with-extensions/publishing-extension][Publishing Extensions]]). After that, publishing goes through Microsoft
-Entra ID (~vsce publish --azure-credential~, with an Azure identity that
-GitHub Actions logs in as and that is a member of the publisher), which
-the job does not do yet; the packages of the GitHub release can be
-uploaded by hand at [[https://marketplace.visualstudio.com/manage]] meanwhile.
+The job publishes with the secret ~VSCE_PAT~ instead where the
+environment has no ~AZURE_CLIENT_ID~: a personal access token of an Azure
+DevOps organization of the publisher (/User settings › Personal access
+tokens/, /All accessible organizations/, /Marketplace › Manage/), which
+Azure DevOps takes until December 1, 2026
+([[https://code.visualstudio.com/api/working-with-extensions/publishing-extension][Publishing Extensions]]). The packages of a GitHub release can also be
+uploaded by hand at [[https://marketplace.visualstudio.com/manage]].
 
 ** Open VSX
 :PROPERTIES:

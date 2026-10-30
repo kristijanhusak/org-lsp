@@ -47,7 +47,9 @@ To build the server instead (with [[https://rustup.rs][cargo]]), run
 ~:OrgLspBuild~, in the autocommand in place of ~OrgLspDownload~ to build it
 on each update. A
 build in the plugin's directory and ~org-lsp~ on PATH come before the
-download.
+download. ~:Org version~ says which server runs, with the commit it was
+built from (~org-lsp version 0.1.0-f7e7b68~; ~-dev~ after it for a server
+built by hand, not by the release workflow).
 
 ~:checkhealth org-lsp~ reports the server the plugin found, where it came
 from, and the agenda files.
@@ -92,6 +94,20 @@ on top of it. [[file:configuration.org][configuration.org]] has everything else:
 (windows, the calendar, the statusline, highlighting, images) and [[file:configuration.org::#every-option-at-its-default][every
 option of the server]] with its default.
 
+The plugin's syntax for Org (=syntax/org.vim=) colors what a pattern can
+tell, as the server does and in the same colors: headline stars and titles
+by level, timestamps, planning and clock lines, links, emphasis, code,
+lists, tables, drawers, blocks, keywords and comments. TODO keywords and
+the headlines they start, keywords and tags with faces of their own
+(~org_todo_keyword_faces~, ~org_tag_faces~) and the options of how
+headlines look it colors as the server tells it for each file; before it
+has, from the file's ~#+TODO:~ lines. It shows a file before the server's
+highlighting arrives, and what you type before the server has answered.
+What only the server can tell (priorities, entities, LaTeX, what other
+options change) waits for it. Keep ~:syntax on~
+(Neovim's default); ~replace_syntax = true~ turns the syntax off once the
+server's highlighting has come.
+
 * Keys
 
 The plugin binds nvim-orgmode's default keys: ~cit~ changes the TODO
@@ -105,6 +121,9 @@ The agenda has the keys it has in every editor: Emacs's (~f~ and ~b~, ~t~,
 ~v~ (~vd~, ~vw~), so that no motion is taken; ~q~ closes it. Counts work,
 and the editing keys repeat with ~.~. Dates are asked for with Emacs's
 calendar, or typed as at Org's prompt (~fri 10:00~, ~+2d~, ~2/15~, ~++1w~).
+Keys that a mapping or a macro gives after a key that asks wait for the
+question and answer it, as in Emacs; keys pasted a few milliseconds after
+~<Leader>ois~, before the calendar is there, may reach the Org file instead.
 
 [[file:keys/neovim.org][keys/neovim.org]] lists every key and how to change it.
 

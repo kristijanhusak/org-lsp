@@ -19,6 +19,7 @@
 //!
 //! Messages are JSON-RPC, one per line, as MCP's stdio transport has them.
 
+use std::collections::HashMap;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
 
@@ -57,26 +58,65 @@ pub fn run() -> std::io::Result<()> {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
     let folder = std::env::current_dir().ok();
-    for line in stdin.lock().lines() {
-        let line = line?;
-        if line.trim().is_empty() {
-            continue;
-        }
-        let env = |name: &str| std::env::var(name).ok();
-        if let Some(answer) = answer(&line, folder.as_deref(), &env) {
-            writeln!(stdout, "{answer}")?;
-            stdout.flush()?;
-        }
+    // What the configuration file has wrong, in the client's log.
+    for problem in crate::config::load(None, &|name| std::env::var(name).ok()).problems {
+        eprintln!("org-lsp mcp: {problem}");
     }
-    Ok(())
+    let env = |name: &str| std::env::var(name).ok();
+    serve(stdin.lock(), &mut stdout, folder.as_deref(), &env)
 }
 
-/// The answer to one message, or `None` for a notification.
+/// Answer each line of `input` on `output` until `input` ends.
+fn serve(
+    mut input: impl BufRead,
+    output: &mut impl Write,
+    folder: Option<&Path>,
+    env: &dyn Fn(&str) -> Option<String>,
+) -> std::io::Result<()> {
+    let mut bytes = Vec::new();
+    loop {
+        bytes.clear();
+        if input.read_until(b'\n', &mut bytes)? == 0 {
+            return Ok(());
+        }
+        // A line that is not UTF-8 is a message that cannot be parsed,
+        // not the end of the session.
+        let answer = match std::str::from_utf8(&bytes) {
+            Ok(line) if line.trim().is_empty() => continue,
+            Ok(line) => answer(line, folder, env),
+            Err(error) => Some(failure(Value::Null, -32700, &format!("Parse error: {error}"))),
+        };
+        if let Some(answer) = answer {
+            writeln!(output, "{answer}")?;
+            output.flush()?;
+        }
+    }
+}
+
+/// The answer to one line, or `None` for a notification: to a batch (an
+/// array of messages, which the protocol before 2025-06-18 allows), the
+/// answers to its requests, or `None` when it has only notifications.
 pub fn answer(line: &str, folder: Option<&Path>, env: &dyn Fn(&str) -> Option<String>) -> Option<Value> {
     let message: Value = match serde_json::from_str(line) {
         Ok(message) => message,
         Err(error) => return Some(failure(Value::Null, -32700, &format!("Parse error: {error}"))),
     };
+    match message {
+        Value::Array(messages) if messages.is_empty() => Some(failure(Value::Null, -32600, "Invalid Request")),
+        Value::Array(messages) => {
+            let answers: Vec<Value> =
+                messages.into_iter().filter_map(|message| answer_message(message, folder, env)).collect();
+            (!answers.is_empty()).then_some(Value::Array(answers))
+        }
+        message => answer_message(message, folder, env),
+    }
+}
+
+/// The answer to one message, or `None` for a notification.
+fn answer_message(message: Value, folder: Option<&Path>, env: &dyn Fn(&str) -> Option<String>) -> Option<Value> {
+    if !message.is_object() {
+        return Some(failure(Value::Null, -32600, "Invalid Request"));
+    }
     let id = message.get("id").cloned()?;
     let method = message.get("method").and_then(Value::as_str).unwrap_or_default();
     let params = message.get("params").cloned().unwrap_or(Value::Null);
@@ -87,7 +127,7 @@ pub fn answer(line: &str, folder: Option<&Path>, env: &dyn Fn(&str) -> Option<St
             json!({
                 "protocolVersion": version,
                 "capabilities": { "tools": {}, "prompts": {} },
-                "serverInfo": { "name": "org-lsp", "version": env!("CARGO_PKG_VERSION") },
+                "serverInfo": { "name": "org-lsp", "version": env!("ORG_LSP_VERSION") },
                 "instructions": "The user's Org mode agenda, read as Emacs's Org builds it. \
                     Dates are YYYY-MM-DD. The views are text as Org's agenda shows them: \
                     category, time, TODO keyword, headline and tags on each line, then where \
@@ -422,6 +462,11 @@ pub(crate) fn agenda_paths_at(options: &Options, folder: Option<&Path>, now: Dat
     paths
 }
 
+/// The files `org_agenda_files` names that are not there.
+pub(crate) fn missing_agenda_files(options: &Options, folder: Option<&Path>) -> Vec<PathBuf> {
+    workspace(options, folder).missing()
+}
+
 /// The agenda files and the folder the server runs in, as the server
 /// looks for files there.
 fn workspace(options: &Options, folder: Option<&Path>) -> crate::workspace::Workspace {
@@ -494,27 +539,45 @@ fn build_view(
     let files: Vec<String> =
         agenda_paths(&loaded.options, folder).iter().map(|path| path.display().to_string()).collect();
     if view.is_empty() {
-        return Ok(if files.is_empty() { "No agenda files.".to_string() } else { files.join("\n") });
+        return Ok(if files.is_empty() { no_agenda_files(&loaded, folder) } else { files.join("\n") });
     }
     if files.is_empty() {
-        return Err(
-            "No agenda files: set org_agenda_files in the configuration file (`org-lsp config` shows it).".into()
-        );
+        return Err(no_agenda_files(&loaded, folder).into());
     }
-    view.extend(["--options".into(), loaded.merged.to_string()]);
+    view.extend(["--options".into(), loaded.readable.to_string()]);
     view.extend(files.iter().cloned());
     let lines = crate::cli::agenda_lines(&view)?;
     Ok(with_references(lines, &files))
 }
 
+/// Why there are no agenda files: what `org_agenda_files` names that is
+/// not there, and what the configuration file has wrong.
+pub(crate) fn no_agenda_files(loaded: &crate::config::Loaded, folder: Option<&Path>) -> String {
+    let missing = missing_agenda_files(&loaded.options, folder);
+    let mut out = if loaded.options.agenda_files.is_empty() {
+        "No agenda files: set org_agenda_files in the configuration file (`org-lsp config` shows it).".to_string()
+    } else if missing.is_empty() {
+        "No agenda files: org_agenda_files names no Org file.".to_string()
+    } else {
+        let missing: Vec<String> = missing.iter().map(|path| path.display().to_string()).collect();
+        format!("No agenda files: these are not there: {}", missing.join(", "))
+    };
+    for problem in &loaded.problems {
+        out.push_str(&format!("\nThe configuration: {problem}"));
+    }
+    out
+}
+
 /// The lines of a view, each entry's ending with `[file:line]`: the line
 /// of its headline in its file, named as `file_label` names it.
 fn with_references(lines: Vec<crate::cli::AgendaLine>, files: &[String]) -> String {
+    let labels = file_labels(files.iter().map(String::as_str));
     let mut out = String::new();
     for line in lines {
         out.push_str(&line.text);
         if let Some((file, number)) = &line.entry {
-            out.push_str(&format!("  [{}:{number}]", file_label(file, files)));
+            let label = labels.get(file.as_str()).cloned().unwrap_or_else(|| file_label(file, files));
+            out.push_str(&format!("  [{label}:{number}]"));
         }
         out.push('\n');
     }
@@ -531,6 +594,22 @@ fn file_label(file: &str, files: &[String]) -> String {
     } else {
         file.to_string()
     }
+}
+
+/// [`file_label`] of each of `files`, all at once.
+fn file_labels<'a>(files: impl Iterator<Item = &'a str> + Clone) -> HashMap<&'a str, String> {
+    let name = |file: &str| Path::new(file).file_name().map(|name| name.to_string_lossy().into_owned());
+    let mut counts: HashMap<Option<String>, usize> = HashMap::new();
+    for file in files.clone() {
+        *counts.entry(name(file)).or_default() += 1;
+    }
+    files
+        .map(|file| {
+            let own = name(file);
+            let alone = own.is_some() && counts.get(&own) == Some(&1);
+            (file, if alone { own.unwrap_or_default() } else { file.to_string() })
+        })
+        .collect()
 }
 
 // ----- edits
@@ -561,6 +640,26 @@ fn canonical(path: &Path) -> PathBuf {
     std::fs::canonicalize(path).or_else(|_| std::path::absolute(path)).unwrap_or_else(|_| path.to_path_buf())
 }
 
+/// [`canonical`] for a file that may not be there yet: the directories
+/// that are there as the file system has them, then the rest.
+fn resolved(path: &Path) -> PathBuf {
+    let absolute = std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
+    let mut rest = Vec::new();
+    let mut there = absolute.as_path();
+    loop {
+        if let Ok(found) = std::fs::canonicalize(there) {
+            return rest.iter().rev().fold(found, |path, part| path.join(part));
+        }
+        match (there.parent(), there.file_name()) {
+            (Some(parent), Some(name)) => {
+                rest.push(name.to_os_string());
+                there = parent;
+            }
+            _ => return absolute,
+        }
+    }
+}
+
 /// The file `given` names, among `files`, those a tool may change: by its
 /// path (`~/` the home directory, relative to the folder the server runs
 /// in), or by its name as the views give it.
@@ -580,8 +679,14 @@ fn editable_file(given: &str, files: &[PathBuf], kinds: &str, folder: Option<&Pa
         return Ok(found.clone());
     }
     if !given.contains(['/', '\\']) {
-        let named: Vec<&PathBuf> =
-            files.iter().filter(|file| file.file_name().is_some_and(|name| name == given)).collect();
+        // A file listed twice (an agenda file that a capture template or
+        // `org_refile_targets` names too) is one file.
+        let mut seen = std::collections::HashSet::new();
+        let named: Vec<&PathBuf> = files
+            .iter()
+            .filter(|file| file.file_name().is_some_and(|name| name == given))
+            .filter(|file| seen.insert(canonical(file)))
+            .collect();
         match named[..] {
             [one] => return Ok(one.clone()),
             [_, _, ..] => {
@@ -594,9 +699,36 @@ fn editable_file(given: &str, files: &[PathBuf], kinds: &str, folder: Option<&Pa
     Err(format!("{given} is {kinds}: org-lsp mcp changes only those").into())
 }
 
-/// Write `text` to `path` at once: into a file beside it, which then
-/// takes its place, so that no one reads it half written.
-fn write_file(path: &Path, text: &str) -> Result<(), Call> {
+/// Whether the tool may write `path`, whose text it read as `read` (`None`
+/// when it was not there): not when the file is read-only, as Emacs does
+/// not change a read-only buffer, nor when it has changed since, as an
+/// editor's save would be lost.
+fn may_write(path: &Path, read: Option<&str>) -> Result<(), Call> {
+    let now = match std::fs::read(path) {
+        Ok(bytes) => Some(bytes),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => return Err(format!("Cannot read {}: {error}", path.display()).into()),
+    };
+    if now.as_deref() != read.map(str::as_bytes) {
+        return Err(format!(
+            "{} has changed since it was read, and nothing was written: look for the entry again",
+            path.display()
+        )
+        .into());
+    }
+    if std::fs::metadata(path).is_ok_and(|metadata| metadata.permissions().readonly()) {
+        let name = path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
+        return Err(format!("Buffer is read-only: #<buffer {name}>").into());
+    }
+    Ok(())
+}
+
+/// Write `text` to `path`, whose text the tool read as `read` (`None` when
+/// it was not there), at once: into a file beside it, which then takes its
+/// place, so that no one reads it half written. Refused as [`may_write`]
+/// refuses it.
+fn write_file(path: &Path, read: Option<&str>, text: &str) -> Result<(), Call> {
+    may_write(path, read)?;
     // A link stays a link: the file it points to is written.
     let path = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
     let directory = path.parent().filter(|parent| !parent.as_os_str().is_empty()).unwrap_or(Path::new("."));
@@ -732,7 +864,7 @@ fn set_todo_state(arguments: &Arguments, options: &Options, folder: Option<&Path
         out.push_str("Dry run: nothing was written. The change would be:\n");
         out.push_str(&diff(&name, &text, &outcome.text));
     } else {
-        write_file(&path, &outcome.text)?;
+        write_file(&path, Some(&text), &outcome.text)?;
     }
     let headline = outcome.text.lines().nth(line - 1).unwrap_or("");
     out.push_str(&format!("{name}:{line}: {headline}"));
@@ -975,11 +1107,12 @@ fn capture(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> R
         TargetSpec::Clock => return Err("No running clock that could be used as capture target".into()),
         TargetSpec::Function { .. } => return Err(NEEDS_EMACS.into()),
     };
-    let before = match std::fs::read_to_string(&path) {
-        Ok(text) => text,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+    let read = match std::fs::read_to_string(&path) {
+        Ok(text) => Some(text),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
         Err(error) => return Err(format!("Cannot read {}: {error}", path.display()).into()),
     };
+    let before = read.clone().unwrap_or_default();
     let keywords = org_syntax::parse(&before, &options.todo_keywords()).todo_keywords().clone();
     let properties = capture::Properties {
         prepend: template.prepend.unwrap_or(false),
@@ -1012,7 +1145,7 @@ fn capture(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> R
             diff(&name, &before, &done)
         ));
     }
-    write_file(&path, &done)?;
+    write_file(&path, read.as_deref(), &done)?;
     Ok(format!("Filed in {name} at line {line}:\n{filed}"))
 }
 
@@ -1181,12 +1314,24 @@ const REFILE_EDITABLE: &str =
     "neither an agenda file, nor the target of a capture template, nor a file of org_refile_targets";
 
 /// Where a target is, as the views say where entries are: `[file:line]`,
-/// or `[file]` for a file's top level.
-fn target_reference(files: &[TargetFile], file: usize, offset: Option<usize>) -> String {
-    let paths: Vec<String> = files.iter().map(|file| file.full.clone()).collect();
-    let label = file_label(&files[file].full, &paths);
+/// or `[file]` for a file's top level. `labels` are the files' labels,
+/// and `starts` where their lines start, found once for all the targets.
+fn target_reference(
+    files: &[TargetFile],
+    labels: &HashMap<&str, String>,
+    starts: &mut HashMap<usize, Vec<usize>>,
+    file: usize,
+    offset: Option<usize>,
+) -> String {
+    let label = labels.get(files[file].full.as_str()).cloned().unwrap_or_else(|| files[file].full.clone());
     match offset {
-        Some(at) => format!("[{label}:{}]", files[file].text[..at].matches('\n').count() + 1),
+        Some(at) => {
+            let text = &files[file].text;
+            let starts = starts
+                .entry(file)
+                .or_insert_with(|| std::iter::once(0).chain(text.match_indices('\n').map(|(at, _)| at + 1)).collect());
+            format!("[{label}:{}]", starts.partition_point(|start| *start <= at).max(1))
+        }
         None => format!("[{label}]"),
     }
 }
@@ -1219,16 +1364,18 @@ fn refile_targets(arguments: &Arguments, options: &Options, folder: Option<&Path
     let filter = arguments.text("filter").filter(|filter| !filter.is_empty());
     let lowered = filter.as_ref().map(|filter| filter.to_lowercase());
     let mut out = String::new();
-    let mut seen: Vec<&str> = Vec::new();
+    let labels = file_labels(files.iter().map(|file| file.full.as_str()));
+    let mut starts = HashMap::new();
+    let mut seen = std::collections::HashSet::new();
     for (file, target) in &all {
-        if seen.contains(&target.name.as_str()) {
+        if !seen.insert(target.name.as_str()) {
             continue;
         }
-        seen.push(&target.name);
         if lowered.as_ref().is_some_and(|filter| !target.name.to_lowercase().contains(filter)) {
             continue;
         }
-        out.push_str(&format!("{}  {}\n", target.name, target_reference(&files, *file, target.offset)));
+        let reference = target_reference(&files, &labels, &mut starts, *file, target.offset);
+        out.push_str(&format!("{}  {reference}\n", target.name));
     }
     if out.is_empty() {
         return Ok(format!("No refile target has \"{}\".", filter.unwrap_or_default()));
@@ -1395,8 +1542,11 @@ fn refile(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> Re
             out.push_str(&diff(&file.full, &file.text, text));
         }
     } else {
+        for (file, _) in &changes {
+            may_write(&file.path, Some(&file.text))?;
+        }
         for (file, text) in &changes {
-            write_file(&file.path, text)?;
+            write_file(&file.path, Some(&file.text), text)?;
         }
     }
     // Where the entry is now.
@@ -1835,28 +1985,72 @@ fn roam_db(
     Ok((roam, db, mtimes))
 }
 
-/// Where a node is, `[file:line]`, its file named as among the files of
-/// `db`; `texts` keeps the files read.
-fn node_reference(
-    db: &org_core::roam::Db,
-    file: &str,
-    offset: usize,
-    texts: &mut std::collections::HashMap<String, String>,
-) -> String {
-    let labels: Vec<String> = db.files.iter().map(|(name, _)| name.clone()).collect();
-    let text = texts.entry(file.to_string()).or_insert_with(|| std::fs::read_to_string(file).unwrap_or_default());
-    format!("[{}:{}]", file_label(file, &labels), line_of(text, offset))
+/// org-roam's database looked up by node: each node by its ID, its
+/// aliases and tags, how the views name its file, and the files read,
+/// made once for a call so that listing every node stays linear.
+struct RoamIndex<'a> {
+    nodes: HashMap<&'a str, (&'a str, &'a org_core::roam::Node)>,
+    aliases: HashMap<&'a str, Vec<&'a str>>,
+    tags: HashMap<&'a str, Vec<&'a str>>,
+    /// How the views name each file of the database.
+    labels: HashMap<&'a str, String>,
+    /// The files read, with where their lines start.
+    texts: HashMap<String, (String, Vec<usize>)>,
 }
 
-/// A node's aliases and tags, in the order org-roam lists them.
-fn node_names<'a>(db: &'a org_core::roam::Db, id: &str) -> (Vec<&'a str>, Vec<&'a str>) {
-    let of = |rows: &'a [(String, String)]| {
-        let mut found: Vec<&str> =
-            rows.iter().filter(|(owner, _)| owner == id).map(|(_, name)| name.as_str()).collect();
-        found.dedup();
-        found
-    };
-    (of(&db.aliases), of(&db.tags))
+impl<'a> RoamIndex<'a> {
+    fn new(db: &'a org_core::roam::Db) -> RoamIndex<'a> {
+        let mut nodes = HashMap::new();
+        for (file, node) in &db.nodes {
+            nodes.entry(node.id.as_str()).or_insert((file.as_str(), node));
+        }
+        // In the order org-roam lists them, a name repeated in a row once.
+        let by_owner = |rows: &'a [(String, String)]| {
+            let mut found: HashMap<&str, Vec<&str>> = HashMap::new();
+            for (owner, name) in rows {
+                let names = found.entry(owner.as_str()).or_default();
+                if names.last() != Some(&name.as_str()) {
+                    names.push(name.as_str());
+                }
+            }
+            found
+        };
+        let labels = file_labels(db.files.iter().map(|(file, _)| file.as_str()));
+        RoamIndex { nodes, aliases: by_owner(&db.aliases), tags: by_owner(&db.tags), labels, texts: HashMap::new() }
+    }
+
+    /// The node whose ID is `id`, and its file.
+    fn node(&self, id: &str) -> Option<(&'a str, &'a org_core::roam::Node)> {
+        self.nodes.get(id).copied()
+    }
+
+    /// A node's aliases and tags, in the order org-roam lists them.
+    fn names(&self, id: &str) -> (Vec<&'a str>, Vec<&'a str>) {
+        let of = |map: &HashMap<&'a str, Vec<&'a str>>| map.get(id).cloned().unwrap_or_default();
+        (of(&self.aliases), of(&self.tags))
+    }
+
+    /// How the views name `file`.
+    fn label(&self, file: &str) -> String {
+        self.labels.get(file).cloned().unwrap_or_else(|| file.to_string())
+    }
+
+    /// The text of `file`, read once.
+    fn text(&mut self, file: &str) -> &(String, Vec<usize>) {
+        self.texts.entry(file.to_string()).or_insert_with(|| {
+            let text = std::fs::read_to_string(file).unwrap_or_default();
+            let starts = std::iter::once(0).chain(text.match_indices('\n').map(|(at, _)| at + 1)).collect();
+            (text, starts)
+        })
+    }
+
+    /// Where a node is, `[file:line]`, its file named as among the files
+    /// of the database.
+    fn reference(&mut self, file: &str, offset: usize) -> String {
+        let (_, starts) = self.text(file);
+        let line = starts.partition_point(|start| *start <= offset).max(1);
+        format!("[{}:{line}]", self.label(file))
+    }
 }
 
 /// `roam_find`: the lines `org-roam-node-find` offers, with where each node is.
@@ -1870,23 +2064,23 @@ fn roam_find(arguments: &Arguments, options: &Options) -> Result<String, Call> {
     }
     let query = arguments.text("query").unwrap_or_default().to_lowercase();
     let words: Vec<&str> = query.split_whitespace().collect();
-    let mut texts = std::collections::HashMap::new();
+    let mut index = RoamIndex::new(&db);
     let mut out = String::new();
     for candidate in &candidates {
         let lowered = candidate.display.to_lowercase();
         if !words.iter().all(|word| lowered.contains(word)) {
             continue;
         }
-        let Some((file, node)) = db.nodes.iter().find(|(_, node)| node.id == candidate.id) else { continue };
+        let Some((file, node)) = index.node(&candidate.id) else { continue };
         let mut line = candidate.display.trim_end().to_string();
         if candidate.title != node.title {
             line.push_str(&format!(" (alias of {})", node.title));
         }
-        let (_, tags) = node_names(&db, &node.id);
+        let (_, tags) = index.names(&node.id);
         if !tags.is_empty() {
             line.push_str(&format!("  :{}:", tags.join(":")));
         }
-        line.push_str(&format!("  id:{}  {}", node.id, node_reference(&db, file, node.offset, &mut texts)));
+        line.push_str(&format!("  id:{}  {}", node.id, index.reference(file, node.offset)));
         out.push_str(&line);
         out.push('\n');
     }
@@ -1902,8 +2096,8 @@ fn roam_node(arguments: &Arguments, options: &Options) -> Result<String, Call> {
     let wanted = arguments.required("node")?;
     let wanted = wanted.trim();
     let (roam, db, _) = roam_db(options)?;
+    let mut index = RoamIndex::new(&db);
     // By `ID`, else by title, else by alias; in any case at last.
-    let ids: Vec<&str> = db.nodes.iter().map(|(_, node)| node.id.as_str()).collect();
     let by = |same: &dyn Fn(&str) -> bool| -> Vec<String> {
         let mut found: Vec<String> =
             db.nodes.iter().filter(|(_, node)| same(&node.title)).map(|(_, node)| node.id.clone()).collect();
@@ -1913,8 +2107,8 @@ fn roam_node(arguments: &Arguments, options: &Options) -> Result<String, Call> {
         found.dedup();
         found
     };
-    let mut found = match ids.iter().find(|id| **id == wanted) {
-        Some(id) => vec![id.to_string()],
+    let mut found = match index.node(wanted) {
+        Some((_, node)) => vec![node.id.clone()],
         None => by(&|name| name == wanted),
     };
     if found.is_empty() {
@@ -1924,21 +2118,17 @@ fn roam_node(arguments: &Arguments, options: &Options) -> Result<String, Call> {
         [one] => one.clone(),
         [] => return Err(format!("No org-roam node is \"{wanted}\": roam_find lists them").into()),
         _ => {
-            let mut texts = std::collections::HashMap::new();
-            let listed: Vec<String> = found
-                .iter()
-                .filter_map(|id| db.nodes.iter().find(|(_, node)| node.id == *id))
-                .map(|(file, node)| {
-                    format!("{} id:{} {}", node.title, node.id, node_reference(&db, file, node.offset, &mut texts))
-                })
+            let nodes: Vec<_> = found.iter().filter_map(|id| index.node(id)).collect();
+            let listed: Vec<String> = nodes
+                .into_iter()
+                .map(|(file, node)| format!("{} id:{} {}", node.title, node.id, index.reference(file, node.offset)))
                 .collect();
             return Err(format!("More than one node is \"{wanted}\": give its ID ({})", listed.join("; ")).into());
         }
     };
-    let (file, node) = db.nodes.iter().find(|(_, node)| node.id == id).ok_or("No such node")?;
-    let mut texts = std::collections::HashMap::new();
-    let mut out = format!("{}  id:{}  {}\n", node.title, node.id, node_reference(&db, file, node.offset, &mut texts));
-    let (aliases, tags) = node_names(&db, &id);
+    let (file, node) = index.node(&id).ok_or("No such node")?;
+    let mut out = format!("{}  id:{}  {}\n", node.title, node.id, index.reference(file, node.offset));
+    let (aliases, tags) = index.names(&id);
     if !aliases.is_empty() {
         out.push_str(&format!("Aliases: {}\n", aliases.join(", ")));
     }
@@ -1950,7 +2140,7 @@ fn roam_node(arguments: &Arguments, options: &Options) -> Result<String, Call> {
     if !refs.is_empty() {
         out.push_str(&format!("Refs: {}\n", refs.join(" ")));
     }
-    let text = texts.get(file.as_str()).cloned().unwrap_or_default();
+    let text = index.text(file).0.clone();
     let shown = if node.level == 0 { text.clone() } else { subtree_text(&text, node.offset, Path::new(file), options) };
     out.push('\n');
     out.push_str(shown.trim_end_matches('\n'));
@@ -1965,20 +2155,21 @@ fn roam_node(arguments: &Arguments, options: &Options) -> Result<String, Call> {
     let grep = crate::server::roam::buffer::grep_files(&directory, &roam.files.extensions);
     let read = |file: &str| std::fs::read_to_string(file).ok();
     let sections = buffer::sections(&db, &id, &kinds, &read, &grep);
+    let grep_labels = file_labels(grep.iter().map(String::as_str));
     for section in &sections {
         out.push_str(&format!("\n{}\n", buffer::heading(section)));
         for item in &section.items {
             match item {
                 Item::Node { title, outline, preview, file, offset } => {
-                    let reference = node_reference(&db, file, *offset, &mut texts);
+                    let reference = index.reference(file, *offset);
                     out.push_str(&format!("- {title} ({})  {reference}\n", buffer::outline_text(outline)));
                     for line in preview.lines() {
                         out.push_str(&format!("  {line}\n").replace("  \n", "\n"));
                     }
                 }
                 Item::Grep { file, row, line, .. } => {
-                    let labels: Vec<String> = grep.clone();
-                    out.push_str(&format!("- {}  [{}:{row}]\n", line.trim(), file_label(file, &labels)));
+                    let label = grep_labels.get(file.as_str()).cloned().unwrap_or_else(|| file.clone());
+                    out.push_str(&format!("- {}  [{label}:{row}]\n", line.trim()));
                 }
             }
         }
@@ -2188,15 +2379,25 @@ mod tests {
         }
 
         fn ask(&self, method: &str, params: Value) -> Value {
+            self.ask_in(&self.folder, method, params)
+        }
+
+        /// [`Setup::ask`] of a server started in `folder`.
+        fn ask_in(&self, folder: &std::path::Path, method: &str, params: Value) -> Value {
             let config = self.config.display().to_string();
             let env = |name: &str| (name == "ORG_LSP_CONFIG").then(|| config.clone());
             let line = json!({ "jsonrpc": "2.0", "id": 1, "method": method, "params": params }).to_string();
-            answer(&line, Some(&self.folder), &env).expect("an answer")
+            answer(&line, Some(folder), &env).expect("an answer")
         }
 
         /// The text a tool answers, and whether it is an error.
         fn call(&self, name: &str, arguments: Value) -> (String, bool) {
-            let answer = self.ask("tools/call", json!({ "name": name, "arguments": arguments }));
+            self.call_in(&self.folder, name, arguments)
+        }
+
+        /// [`Setup::call`] of a server started in `folder`.
+        fn call_in(&self, folder: &std::path::Path, name: &str, arguments: Value) -> (String, bool) {
+            let answer = self.ask_in(folder, "tools/call", json!({ "name": name, "arguments": arguments }));
             let text = answer["result"]["content"][0]["text"].as_str().unwrap_or_default().to_string();
             (text, answer["result"]["isError"] == true)
         }
@@ -2236,6 +2437,66 @@ mod tests {
         assert_eq!(edit["annotations"]["destructiveHint"], false);
         assert_eq!(edit["annotations"]["idempotentHint"], false);
         assert!(tools.iter().any(|tool| tool["name"] == "capture"));
+    }
+
+    #[test]
+    fn answers_past_a_line_that_is_not_utf8_and_answers_batches() {
+        let no_env = |_: &str| None;
+        let input: &[u8] = b"\xff\xfe\n{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"ping\"}\n\
+            [{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"},\
+            {\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"nothing\"}]\n\
+            [{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}]\n[]\n5\n";
+        let mut output = Vec::new();
+        serve(input, &mut output, None, &no_env).unwrap();
+        let answers: Vec<Value> =
+            String::from_utf8(output).unwrap().lines().map(|line| serde_json::from_str(line).unwrap()).collect();
+        assert_eq!(answers.len(), 5, "{answers:?}");
+        assert_eq!(answers[0]["error"]["code"], -32700);
+        assert_eq!(answers[1], json!({ "jsonrpc": "2.0", "id": 9, "result": {} }));
+        let batch = answers[2].as_array().expect("a batch");
+        assert_eq!(batch.len(), 2, "{batch:?}");
+        assert_eq!((batch[0]["id"].clone(), batch[1]["error"]["code"].clone()), (json!(1), json!(-32601)));
+        assert_eq!(
+            (answers[3]["error"]["code"].clone(), answers[4]["error"]["code"].clone()),
+            (json!(-32600), json!(-32600))
+        );
+    }
+
+    #[test]
+    fn a_read_only_or_changed_file_is_not_written() {
+        let setup = Setup::new("read-only", "mcp_edits = true", &[("tasks.org", TASKS)]);
+        let path = setup.folder.join("tasks.org");
+        let mut permissions = std::fs::metadata(&path).unwrap().permissions();
+        permissions.set_readonly(true);
+        std::fs::set_permissions(&path, permissions.clone()).unwrap();
+        let (text, error) = setup.call("set_todo_state", json!({ "file": "tasks.org", "line": 3, "state": "DONE" }));
+        assert!(error && text == "Buffer is read-only: #<buffer tasks.org>", "{text}");
+        assert_eq!(setup.read("tasks.org"), TASKS);
+        #[allow(clippy::permissions_set_readonly_false)]
+        permissions.set_readonly(false);
+        std::fs::set_permissions(&path, permissions).unwrap();
+        // Changed since it was read, as by an editor's save.
+        let refused = write_file(&path, Some("* TODO Something else\n"), "* DONE Something else\n");
+        assert!(matches!(refused, Err(Call::Failed(message)) if message.contains("has changed since it was read")));
+        assert_eq!(setup.read("tasks.org"), TASKS);
+        // Not there when read, and there now.
+        assert!(write_file(&path, None, "* New\n").is_err());
+        assert!(write_file(&path, Some(TASKS), "* New\n").is_ok());
+        assert_eq!(setup.read("tasks.org"), "* New\n");
+    }
+
+    #[test]
+    fn a_malformed_option_leaves_the_others_to_the_views() {
+        let config =
+            "org_todo_keywords = [\"TODO\", \"NEXT\", \"|\", \"DONE\"]\norg_log_done = 5\norg_agenda_span = {}";
+        let setup = Setup::new("malformed", config, &[("tasks.org", "* NEXT Call the plumber\n")]);
+        let (todo, error) = setup.call("todo_list", json!({}));
+        assert!(!error && todo.contains("NEXT Call the plumber"), "{todo}");
+        // No agenda files: what is not there, and what the file has wrong.
+        std::fs::remove_file(setup.folder.join("tasks.org")).unwrap();
+        let (text, error) = setup.call("todo_list", json!({}));
+        assert!(error && text.contains("these are not there") && text.contains("tasks.org"), "{text}");
+        assert!(text.contains("`org_log_done` is malformed"), "{text}");
     }
 
     #[test]
@@ -2423,6 +2684,24 @@ template = "* %(format-time-string \"%Y\") %?"
         let (text, error) = off.call("refile", json!({ "file": "tasks.org", "line": 3, "target": "Inbox" }));
         assert!(error && text.contains("mcp_edits = true"), "{text}");
         assert_eq!(off.read("tasks.org"), TASKS);
+    }
+
+    #[test]
+    fn a_file_listed_twice_is_named_by_its_name() {
+        // The agenda file is a capture target and, by default, the refile
+        // targets' file too; the server runs in another folder.
+        let config = "mcp_edits = true\n[[org_capture_templates]]\nkey = \"t\"\ndescription = \"Task\"\n\
+                      target = [\"file+headline\", \"tasks.org\", \"Inbox\"]\ntemplate = \"* TODO %?\"\n";
+        let setup = Setup::new("twice", config, &[("tasks.org", TASKS)]);
+        let elsewhere = std::env::temp_dir();
+        let arguments = json!({ "file": "tasks.org", "line": 3, "state": "DONE", "dry_run": true });
+        let (text, error) = setup.call_in(&elsewhere, "set_todo_state", arguments);
+        assert!(!error && text.contains("Dry run"), "{text}");
+        let (text, error) = setup.call_in(&elsewhere, "refile_targets", json!({ "file": "tasks.org" }));
+        assert!(!error && text.starts_with("Inbox  [tasks.org:2]"), "{text}");
+        let arguments = json!({ "file": "tasks.org", "line": 4, "target": "Inbox", "dry_run": true });
+        let (text, error) = setup.call_in(&elsewhere, "refile", arguments);
+        assert!(!error && text.contains("Dry run"), "{text}");
     }
 
     #[test]

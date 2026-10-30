@@ -1835,7 +1835,9 @@ impl Doc<'_> {
     }
 
     fn named_result(&self) -> Found {
-        let outline = crate::outline::Outline::new(self.parse, self.text, "");
+        // The outline, built for the first named result of a source block
+        // only: most files have none.
+        let outline = std::cell::OnceCell::new();
         let mut out = Vec::new();
         for node in self.root.descendants().filter(is_element) {
             let (Some(results), Some(name)) = (element_results(&node), element_name(&node)) else { continue };
@@ -1853,7 +1855,8 @@ impl Doc<'_> {
             }) else {
                 continue;
             };
-            if !matches!(self.exports(&origin, &outline).as_str(), "results" | "both") {
+            let outline = outline.get_or_init(|| crate::outline::Outline::new(self.parse, self.text, ""));
+            if !matches!(self.exports(&origin, outline).as_str(), "results" | "both") {
                 out.push((
                     range(&node).0,
                     format!(

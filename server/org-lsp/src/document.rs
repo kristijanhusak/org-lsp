@@ -83,7 +83,9 @@ impl Document {
     ///
     /// The text, its index, version and parse change together: a parser
     /// that fails on the new text leaves an empty parse, not the old one,
-    /// so the text and version still agree with the editor's.
+    /// so the text and version still agree with the editor's. A change of
+    /// a range is parsed again where it is (`Parse::edit`: the lines of the
+    /// headline it is in), the whole text when one replaces it.
     ///
     /// What changed, in order, each in the text the ones before left: the
     /// bytes from `start` to `end` became `length` bytes.
@@ -97,6 +99,9 @@ impl Document {
         let mut text = self.text.clone();
         let mut index = self.index.clone();
         let mut changed = Vec::new();
+        // The parse of `text` as far as the changes went, while each one
+        // could be parsed where it is.
+        let mut parse = Some(self.parse.clone());
         for change in changes {
             match change.range {
                 Some(range) => {
@@ -105,23 +110,53 @@ impl Document {
                     // What changed of it: a client may send whole lines
                     // (vim-lsp), and the places in them stay.
                     let narrowed = Change::between(&text[start..end], &change.text);
-                    changed.push(Change {
-                        start: start + narrowed.start,
-                        end: start + narrowed.end,
-                        length: narrowed.length,
+                    let (start, end) = (start + narrowed.start, start + narrowed.end);
+                    changed.push(Change { start, end, length: narrowed.length });
+                    let before = text.clone();
+                    text.replace_range(start..end, &change.text[narrowed.start..narrowed.start + narrowed.length]);
+                    parse = parse.and_then(|parse| {
+                        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                            parse.edit(&before, start, end, &text, todo)
+                        }))
+                        .ok()
                     });
-                    text.replace_range(start..end, &change.text);
                 }
                 None => {
-                    changed.extend(Change::all_between(&text, &change.text));
-                    text = change.text;
+                    // The runs of lines that changed, each parsed where it
+                    // is, the last first: the text before each is as it
+                    // will be. Many at once are parsed as a whole.
+                    let mut runs = crate::actions::edits_between(&text, &change.text);
+                    runs.reverse();
+                    if runs.len() > 8 {
+                        parse = None;
+                    }
+                    for run in &runs {
+                        let (start, end) = (usize::from(run.range.start()), usize::from(run.range.end()));
+                        changed.push(Change { start, end, length: run.new_text.len() });
+                        let before = text.clone();
+                        text.replace_range(start..end, &run.new_text);
+                        parse = parse.and_then(|parse| {
+                            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                                parse.edit(&before, start, end, &text, todo)
+                            }))
+                            .ok()
+                        });
+                    }
+                    if text != change.text {
+                        // The runs did not give the editor's text: it is
+                        // parsed as a whole.
+                        text = change.text;
+                        parse = None;
+                    }
                 }
             }
             // Later changes in the same notification refer to the new text.
             index = LineIndex::new(&text);
         }
-        let parse = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| org_syntax::parse(&text, todo)))
-            .unwrap_or_else(|_| org_syntax::parse("", todo));
+        let parse = parse.unwrap_or_else(|| {
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| org_syntax::parse(&text, todo)))
+                .unwrap_or_else(|_| org_syntax::parse("", todo))
+        });
         *self = Document { version, text, index, parse };
         changed
     }
@@ -178,6 +213,38 @@ mod tests {
         let moved = |offset: usize| changes.iter().fold(offset, |offset, change| change.moved(offset));
         // Each headline, where it is now.
         assert_eq!([moved(0), moved(4), moved(8)], [0, 6, 12]);
+    }
+
+    /// Changes of ranges and whole texts alike leave the parse the whole
+    /// text gives, whether they were parsed where they are or not.
+    #[test]
+    fn a_change_parses_as_the_whole_text_does() {
+        let todo = TodoKeywords::default();
+        let start = "#+TITLE: T\n* TODO A\nSCHEDULED: <2026-05-18 Mon>\nbody *bold*\n** B\n- item\n* C\n#+begin_src sh\necho\n#+end_src\n";
+        let mut document = Document::new(start.to_string(), 1, &todo);
+        let same = |document: &Document| {
+            assert_eq!(
+                document.syntax().green().into_owned(),
+                org_syntax::parse(&document.text, &todo).syntax().green().into_owned(),
+                "{:?}",
+                document.text
+            );
+        };
+        type Range = Option<(u32, u32, u32, u32)>;
+        let steps: Vec<(Range, &str)> = vec![
+            (Some((1, 7, 1, 8)), "a"),
+            (Some((3, 0, 3, 0)), "more "),
+            (Some((5, 2, 5, 6)), "[ ] item"),
+            (Some((4, 4, 4, 4)), "\n* New"),
+            (Some((7, 0, 7, 0)), "#+TODO: WAIT | OK\n"),
+            (None, "#+TITLE: T\n* WAIT A\nbody\n** B\n- item\n* C\n#+begin_src sh\necho\n#+end_src\n"),
+            (None, "#+TITLE: T\n* WAIT Ab\nbody\n** B\n- item\n* C\n#+begin_src sh\necho \"x\"\n#+end_src\n"),
+            (None, "* only\n"),
+        ];
+        for (version, (range, text)) in steps.into_iter().enumerate() {
+            document.apply(vec![change(range, text)], version as i32 + 2, Encoding::Utf16, &todo);
+            same(&document);
+        }
     }
 
     #[test]

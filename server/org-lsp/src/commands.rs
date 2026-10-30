@@ -195,7 +195,10 @@ pub const CLOCK_CANCEL: &str = "org.clock.cancel";
 pub const CLOCK_GOTO: &str = "org.clock.goto";
 pub const CLOCK_DISPLAY: &str = "org.clock.display";
 pub const NUM_MODE: &str = "org.num.mode";
+pub const INDENT_MODE: &str = "org.indent.mode";
 pub const CUSTOM_PROPERTIES_TOGGLE: &str = "org.custom.properties.toggle";
+/// `org-version`: the server's version, with the commit it was built from.
+pub const VERSION: &str = "org.version";
 pub const CLOCK_REPORT: &str = "org.clock.report";
 pub const DBLOCK_UPDATE: &str = "org.dblock.update";
 pub const DBLOCK_INSERT: &str = "org.dblock.insert";
@@ -627,8 +630,12 @@ pub const COMMANDS: &[Command] = &[
     },
     // `org-num-mode`: numbers before the headlines, or none again.
     command(NUM_MODE, "Number the headlines, or stop numbering them"),
+    // `org-indent-mode`, which has no key in Emacs: the text indented by
+    // the level of its headline, or no longer.
+    command(INDENT_MODE, "Indent the text by the level of its headline, or stop indenting it"),
     // `org-toggle-custom-properties-visibility`, which has no key in Emacs.
     command(CUSTOM_PROPERTIES_TOGGLE, "Hide the properties of org_custom_properties, or show them again"),
+    command(VERSION, "Show the version of the server"),
     // Clock tables: `org-clock-report` inserts one or fills it in again,
     // the first of the file with a count; `org-dblock-update` fills in the
     // dynamic block the cursor is in, all of the file's with a count.
@@ -671,13 +678,14 @@ pub const COMMANDS: &[Command] = &[
     Command { ..edit(TODO_NEXT, "Cycle TODO state forward") },
     Command { vim: &[key(Org, "ciT")], ..edit(TODO_PREVIOUS, "Cycle TODO state backward") },
     // `org-shiftcontrolright` and `org-shiftcontrolleft` on a headline:
-    // `org-todo` with `nextset` and `previousset`.
+    // `org-todo` with `nextset` and `previousset`. Elsewhere, and with
+    // `org-support-shift-select`, the editor's own keys select words.
     Command {
-        emacs: &[key(Org, "C-S-<right>"), key(Agenda, "C-S-<right>")],
+        emacs: &[native(Org, "C-S-<right>"), key(Agenda, "C-S-<right>")],
         ..edit(TODO_NEXT_SET, "Switch to the next TODO keyword set")
     },
     Command {
-        emacs: &[key(Org, "C-S-<left>"), key(Agenda, "C-S-<left>")],
+        emacs: &[native(Org, "C-S-<left>"), key(Agenda, "C-S-<left>")],
         ..edit(TODO_PREVIOUS_SET, "Switch to the previous TODO keyword set")
     },
     Command {

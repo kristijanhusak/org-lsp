@@ -378,10 +378,24 @@
     }
   },
   {
+    "caption": "Org: Indent the text by the level of its headline, or stop indenting it",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.indent.mode"
+    }
+  },
+  {
     "caption": "Org: Hide the properties of org_custom_properties, or show them again",
     "command": "org_lsp_run",
     "args": {
       "command": "org.custom.properties.toggle"
+    }
+  },
+  {
+    "caption": "Org: Show the version of the server",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.version"
     }
   },
   {

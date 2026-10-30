@@ -257,6 +257,15 @@
       "type": "string",
       "description": "The TODO keyword of a new inline task (`org.inlinetask.insert`). (`org-inlinetask-default-state`)"
     },
+    "org_support_shift_select": {
+      "enum": [
+        "always",
+        true,
+        false
+      ],
+      "description": "Where Shift and the arrows select text, as they do in the editor, instead of running Org's commands (`S-<left>` and its kin, `C-S-<left>` and `C-S-<right>`): `always` everywhere but on a timestamp and the `#+BEGIN:` line of a clock table; `true` everywhere but there, on headlines, list items' bullets, property lines and tables; `false` nowhere, Org's commands wherever they apply. With text selected, `always` and `true` extend it. Emacs's default is `false`; org-lsp's is `always`, as editors select with these keys. (`org-support-shift-select`)",
+      "default": "always"
+    },
     "org_treat_S_cursor_todo_selection_as_state_change": {
       "type": "boolean",
       "description": "`S-<left>` and `S-<right>` on a headline change its TODO state as any change does: logged, and blocked by its dependencies. Off, they change it with nothing logged and nothing in the way. (`org-treat-S-cursor-todo-selection-as-state-change`)",
@@ -5329,7 +5338,7 @@
     },
     "org_startup_indented": {
       "type": "boolean",
-      "description": "Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It turns `org_adapt_indentation` off in such files, unless that is `\"headline-data\"`. The lines a long line wraps into go on under its text, a headline's title or an item's text (`wrap-prefix`) in Neovim and Vim, without the prefix; under the prefix in Zed and Helix. (`org-startup-indented`)",
+      "description": "Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file, and `org.indent.mode` turns it on and off. It turns `org_adapt_indentation` off in such files, unless that is `\"headline-data\"`. The lines a long line wraps into go on under its text, a headline's title or an item's text (`wrap-prefix`) in Neovim and Vim, without the prefix; under the prefix in Zed and Helix. (`org-startup-indented`)",
       "default": false
     },
     "org_startup_numerated": {

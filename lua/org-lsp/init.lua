@@ -28,7 +28,7 @@ local SERVER = 'org_lsp'
 ---@field settings? org_lsp.Settings The server's options, such as `org_agenda_files` and `org_todo_keywords`; see docs/configuration.org.
 ---@field startup_folded? 'showeverything'|'overview' How a newly opened file shows when neither the settings' `org_startup_folded` nor its `#+STARTUP:` say: everything open or every subtree folded. The file's `#+STARTUP:` and `VISIBILITY` properties always decide for it.
 ---@field folding? boolean Whether to fold with the server's folding ranges.
----@field replace_syntax? boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
+---@field replace_syntax? boolean Whether to turn off the syntax for Org (syntax/org.vim) once semantic tokens arrive.
 ---@field src_highlight? boolean Whether the code of source and export blocks and of inline source blocks (`#+begin_src python`, `src_python{…}`) is highlighted where the server says it is (`org-lsp/codeBlocks`) by the tree-sitter parser of its language, or its Vim syntax file in regions of the buffer's syntax when there is no parser, as Emacs's `org-src-fontify-natively` shows it.
 ---@field conceal? boolean Whether to conceal what the server marks hidden (link brackets and targets; emphasis markers with `org_hide_emphasis_markers`), with 'conceallevel' 2 in Org windows (a level set already, as by a `FileType` autocommand, stays).
 ---@field indent? boolean Whether the server indents as Org does: new lines through 'indentexpr' (`org-indent-line`), and `=` (`org-indent-region`), following `org_adapt_indentation`.
@@ -58,7 +58,7 @@ local defaults = {
   release = 'nightly',
   settings = {},
   folding = true,
-  replace_syntax = true,
+  replace_syntax = false,
   src_highlight = true,
   conceal = true,
   indent = true,
@@ -118,6 +118,22 @@ end
 --- directory, `org-lsp` on PATH, or the downloaded one. Returns nil when
 --- none is found.
 ---@return string[]|nil
+--- Load the plugin's syntax for Org in buffer `buf` again, with the
+--- regions of code in their languages: in place of Vim's own, or with
+--- what `org-lsp/syntax` said of the buffer.
+---@param buf integer
+function M.reload_syntax(buf)
+  if not vim.api.nvim_buf_is_valid(buf) or vim.bo[buf].syntax ~= 'org' then
+    return
+  end
+  vim.api.nvim_buf_call(buf, function()
+    vim.cmd('syntax clear')
+    vim.b.current_syntax = nil
+    vim.cmd.source(vim.fs.joinpath(plugin_root(), 'editors', 'vim', 'syntax', 'org.vim'))
+  end)
+  require('org-lsp.src').reapply(buf)
+end
+
 function M.server_command()
   if M.config.cmd then
     return M.config.cmd
@@ -373,6 +389,9 @@ function M.run(name, opts)
           M.completions = input.completions
           M.completion_separator = input.separator
           completion = 'customlist,v:lua.OrgLspCompleteInput'
+        elseif input.complete == 'file' or input.complete == 'directory' then
+          -- A file's or a directory's name (`read-file-name`).
+          completion = input.complete == 'file' and 'file' or 'dir'
         end
         -- What a date typed so far means, shown as it is typed, as
         -- `org-read-date` shows it in the minibuffer: the server writes it
@@ -582,13 +601,19 @@ local function show_choices(prompt, choices)
     end
   end
   vim.bo[buf].bufhidden = 'wipe'
-  -- Above the command line and the status line, inside the borders.
-  local height = math.max(1, math.min(#lines, vim.o.lines - vim.o.cmdheight - 4))
+  -- Above the command line and the status line, inside the borders; as
+  -- high as the lines take, those wider than the screen wrapping.
+  width = math.min(width, vim.o.columns - 2)
+  local rows = 0
+  for _, line in ipairs(lines) do
+    rows = rows + math.max(1, math.ceil(vim.fn.strdisplaywidth(line) / width))
+  end
+  local height = math.max(1, math.min(rows, vim.o.lines - vim.o.cmdheight - 4))
   return vim.api.nvim_open_win(buf, false, {
     relative = 'editor',
     row = vim.o.lines - vim.o.cmdheight - height - 3,
     col = 0,
-    width = math.min(width, vim.o.columns - 2),
+    width = width,
     height = height,
     style = 'minimal',
     border = 'rounded',
@@ -608,13 +633,26 @@ end
 function M.read_key(prompt, choices, expert)
   -- `expert` (`org-use-fast-todo-selection`): the keys are in the prompt,
   -- which shows alone, as Emacs's message does.
+  local text = expert and prompt or M.prompt_text(prompt)
+  -- A prompt longer than the echo area would scroll it and wait for Enter
+  -- (the hit-enter prompt), which then takes the prompt away before the
+  -- key is read: the command line grows to hold it while it is asked, as
+  -- Emacs's minibuffer does.
+  local cmdheight = vim.o.cmdheight
+  local width = vim.fn.strdisplaywidth(text)
+  if width >= vim.v.echospace then
+    vim.o.cmdheight = cmdheight + math.ceil((width - vim.v.echospace + 1) / vim.o.columns)
+  end
   local win = not expert and choices and #choices > 0 and show_choices(prompt, choices) or nil
-  vim.api.nvim_echo({ { expert and prompt or M.prompt_text(prompt) } }, false, {})
+  vim.api.nvim_echo({ { text } }, false, {})
   vim.cmd.redraw()
   local ok, key = pcall(vim.fn.getcharstr)
   vim.api.nvim_echo({ { '' } }, false, {})
   if win and vim.api.nvim_win_is_valid(win) then
     vim.api.nvim_win_close(win, true)
+  end
+  if vim.o.cmdheight ~= cmdheight then
+    vim.o.cmdheight = cmdheight
   end
   if not ok or key == vim.keycode('<Esc>') or key == vim.keycode('<C-c>') then
     return nil
@@ -1116,9 +1154,9 @@ local function set_window_folds(win)
   close_startup_folds(win)
 end
 
---- Vim's regex syntax for Org is an approximation and disagrees with the
---- server in places. It stays on until the first semantic tokens arrive, so
---- the buffer is never without highlighting.
+--- With `replace_syntax`, the syntax for Org (syntax/org.vim) goes when
+--- the first semantic tokens arrive; the buffer is never without
+--- highlighting.
 local function replace_syntax(bufnr)
   vim.api.nvim_create_autocmd('LspTokenUpdate', {
     buffer = bufnr,
@@ -1304,6 +1342,7 @@ local function enable()
       experimental = {
         orgImages = require('org-lsp.images').supported(),
         orgCodeBlocks = M.config.src_highlight and true or false,
+        orgSyntax = true,
       },
     }),
     handlers = view.handlers,
@@ -1382,7 +1421,8 @@ local function user_command(words, range)
 end
 
 --- The next word of `:Org`'s command after those typed: `:Org agenda <Tab>`
---- offers `list`, `todos`, `dispatch`, ….
+--- offers `list`, `todos`, `dispatch`, …, and `:Org agenda.<Tab>` the same
+--- after the dot.
 ---@param lead string what has been typed of the word
 ---@param line string the command line
 ---@param pos integer where the cursor is in it
@@ -1390,14 +1430,17 @@ end
 local function complete_user_command(lead, line, pos)
   local typed = line:sub(1, pos - #lead):gsub('^%s*%S+', '', 1)
   local before = vim.split(vim.trim(typed), '%s+', { trimempty = true })
-  local prefix = table.concat(vim.list_extend({ 'org' }, before), '.') .. '.'
+  -- The words of `lead` up to its last dot, kept as they are.
+  local done = lead:match('^.*%.') or ''
+  local partial = lead:sub(#done + 1)
+  local prefix = table.concat(vim.list_extend({ 'org' }, before), '.') .. '.' .. done
   local words, seen = {}, {}
   for _, command in ipairs(M.manifest and M.manifest.commands or {}) do
     if vim.startswith(command.command, prefix) then
       local word = command.command:sub(#prefix + 1):match('^[^.]+')
-      if word and vim.startswith(word, lead) and not seen[word] then
+      if word and vim.startswith(word, partial) and not seen[word] then
         seen[word] = true
-        table.insert(words, word)
+        table.insert(words, done .. word)
       end
     end
   end
@@ -1446,6 +1489,27 @@ function M.start()
         require('org-lsp.highlights').define(M.manifest)
         require('org-lsp.highlights').define_faces()
       end
+      -- The syntax's groups of keywords and tags with faces of their own
+      -- are made from the colors of the scheme.
+      for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_is_loaded(buf) and vim.b[buf].org_lsp_syntax then
+          M.reload_syntax(buf)
+        end
+      end
+    end,
+  })
+  -- Vim's own syntax for Org, found first when the plugin comes after
+  -- $VIMRUNTIME in 'runtimepath', gives way to the plugin's.
+  vim.api.nvim_create_autocmd('Syntax', {
+    group = group,
+    pattern = 'org',
+    callback = function(args)
+      vim.schedule(function()
+        local buf = args.buf
+        if vim.api.nvim_buf_is_valid(buf) and not vim.b[buf].org_lsp_syntax then
+          M.reload_syntax(buf)
+        end
+      end)
     end,
   })
   vim.api.nvim_create_user_command('OrgLspBuild', build, { desc = 'Build the org-lsp server with cargo' })

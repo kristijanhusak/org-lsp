@@ -889,11 +889,13 @@ message, once."
          (org-lsp-bridge--message nil)
          (result (with-temp-buffer
                    ;; Where the sexp is, for what Org says of one that
-                   ;; fails: "Bad sexp at line N in FILE: …".
+                   ;; fails: "Bad sexp at line N in FILE: …". Point on that
+                   ;; line, as `org-current-line' is inlined where Org is
+                   ;; compiled.
                    (setq buffer-file-name file)
+                   (insert (make-string (1- (or line 1)) ?\n))
                    (cl-letf (((symbol-function 'sleep-for) #'ignore)
-                             ((symbol-function 'beep) #'ignore)
-                             ((symbol-function 'org-current-line) (lambda (&rest _) (or line 1))))
+                             ((symbol-function 'beep) #'ignore))
                      (advice-add 'message :around #'org-lsp-bridge--record-message)
                      (unwind-protect
                          (org-diary-sexp-entry (alist-get 'sexp params) (alist-get 'entry params) date)

@@ -1,5 +1,5 @@
 // Write the parts of the Sublime Text package that mirror the server: the
-// key bindings of both presets, the commands for the Command Palette, and
+// key bindings of its presets, the commands for the Command Palette, and
 // the scopes of the server's semantic tokens. They come from the server's
 // manifest, so nothing about Org is listed by hand in the package.
 //
@@ -9,6 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { leftOut, needsNoSelection } from '../../scripts/emacs-keys.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..', '..');
@@ -76,6 +77,8 @@ const fallbacks = {
   'shift+down': { command: 'move', args: { by: 'lines', forward: true, extend: true } },
   'shift+left': { command: 'move', args: { by: 'characters', forward: false, extend: true } },
   'shift+right': { command: 'move', args: { by: 'characters', forward: true, extend: true } },
+  'ctrl+shift+left': { command: 'move', args: { by: 'words', forward: false, extend: true } },
+  'ctrl+shift+right': { command: 'move', args: { by: 'word_ends', forward: true, extend: true } },
   'ctrl+a': { command: 'nv_feed_key', args: { key: '<C-a>' } },
   'ctrl+x': { command: 'nv_feed_key', args: { key: '<C-x>' } },
   tab: { command: 'insert_best_completion', args: { default: '\t', exact: false } },
@@ -154,11 +157,17 @@ const bindings = [...manifest.commands, ...own, ...keysOnly]
     // In Vim's command mode a plain first key belongs to Vim (`c` of `cit`).
     if (binding.preset === 'vim' && inText && binding.mode !== 'insert' && keys[0].length === 1) return [];
     const scopes = binding.in === 'global' ? globalScopes : [binding.in];
-    return scopes.map((scope) => {
+    // An Emacs key goes in `emacs_full`, and in `emacs` unless the editor's.
+    const presets = binding.preset === 'emacs' ? ['emacs_full', 'emacs'] : [binding.preset];
+    const kept = (scope) => presets.filter((name) => name !== 'emacs' || !leftOut(binding.key, scope));
+    return scopes.flatMap((scope) => kept(scope).map((name) => {
       const context = [
-        { key: 'org_lsp.keys', operator: 'equal', operand: binding.preset },
+        { key: 'org_lsp.keys', operator: 'equal', operand: name },
         { key: 'selector', operator: 'equal', operand: selector[scope] },
       ];
+      if (name === 'emacs' && needsNoSelection(binding.key, scope)) {
+        context.push({ key: 'selection_empty', operator: 'equal', operand: true, match_all: true });
+      }
       if (scope === 'capture') context.push({ key: 'org_lsp.capture', operator: 'equal', operand: true });
       if (binding.preset === 'vim' && inText) {
         context.push({ key: 'setting.command_mode', operator: 'equal', operand: binding.mode !== 'insert' });
@@ -182,7 +191,7 @@ const bindings = [...manifest.commands, ...own, ...keysOnly]
       if (Object.keys(entry.args).length === 0) delete entry.args;
       entry.context = context;
       return entry;
-    });
+    }));
   });
 
 // The Command Palette: every command of the server's and the package's.
@@ -207,10 +216,13 @@ const palette = [
 // them, as a stack with the most specific last: Sublime Text colors a token
 // by the last scope its color scheme has a color for, so a scheme without
 // one for `constant.other.timestamp.org` still colors it as
-// `constant.numeric`.
+// `constant.numeric`. Emphasis is left to Org.sublime-syntax: LSP draws a
+// token as a region, which has the color of its scope but neither bold nor
+// italics, over the bold or italic text the syntax gave.
+const emphasis = ['*.bold', '*.italic', '*.underline', '*.strikethrough'];
 const semanticTokens = Object.fromEntries(
   manifest.highlights
-    .filter((look) => look.textmate.length > 0)
+    .filter((look) => look.textmate.length > 0 && !emphasis.includes(look.token))
     .map((look) => [look.token.replace(/^\*\./, 'text.'), [...look.textmate].reverse().join(' ')]),
 );
 

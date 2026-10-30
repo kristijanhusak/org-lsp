@@ -212,14 +212,14 @@ mod tests {
         let marker = std::env::temp_dir().join(format!("org-lsp-process-{}", std::process::id()));
         let _ = std::fs::remove_file(&marker);
         let started = Instant::now();
-        let line = format!("(sleep 2; touch {}) & sleep 30", marker.display());
+        let line = format!("(sleep 0.6; touch {}) & sleep 30", marker.display());
         let error = shell_output(&line, None, Some(Duration::from_millis(300)), PROGRAM_SIZE).unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::TimedOut);
         assert_eq!(error.to_string(), "stopped after 0.3 seconds without an end");
         assert!(started.elapsed() < Duration::from_secs(5));
         let error = output(Command::new("sleep").arg("30"), Duration::from_millis(200), PROGRAM_SIZE).unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::TimedOut);
-        std::thread::sleep(Duration::from_millis(2500));
+        std::thread::sleep(Duration::from_millis(1200));
         assert!(!marker.exists(), "what the command started ran on");
     }
 

@@ -17,8 +17,10 @@ function! org_lsp#adapter#lsp#register(cmd, options, filetypes) abort
         \   'org-lsp/clock': function('s:notification'),
         \   'org-lsp/timer': function('s:notification'),
         \   'org-lsp/virtualIndent': function('s:notification'),
+        \   'org-lsp/display': function('s:notification'),
         \   'org-lsp/lineHighlights': function('s:notification'),
         \   'org-lsp/codeBlocks': function('s:notification'),
+        \   'org-lsp/syntax': function('s:notification'),
         \   'org-lsp/viewChanged': function('s:notification'),
         \   'org-lsp/columns': function('s:notification'),
         \   'org-lsp/folds': function('s:notification'),
@@ -76,8 +78,15 @@ endfunction
 " Show the inlay hints of buffer `bufnr` again: yegappan/lsp asks for them
 " after a change of the text, not when the server has new ones (the
 " clock's times, shrunk columns), as it announces no `refreshSupport`.
+" Those shown go first: it keeps them when the server has none left (a
+" column no longer shrunk).
 function! org_lsp#adapter#lsp#inlay_hints(bufnr) abort
   if get(g:LspOptionsGet(), 'showInlayHints', v:false) && a:bufnr == bufnr()
+    for type in ['LspInlayHintsType', 'LspInlayHintsParam']
+      if !empty(prop_type_get(type))
+        call prop_remove({'type': type, 'bufnr': a:bufnr, 'all': v:true})
+      endif
+    endfor
     call lsp#inlayhints#LspInlayHintsUpdateNow(a:bufnr)
   endif
 endfunction

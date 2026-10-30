@@ -10,6 +10,21 @@ about Org is listed there by hand. It works in VS Code's relatives too
 
 * Installing
 
+The extension is on the [[https://marketplace.visualstudio.com/items?itemName=kristijanhusak.org-lsp][Visual Studio Marketplace]], and on [[https://open-vsx.org/extension/kristijanhusak/org-lsp][Open VSX]] for
+VSCodium, Cursor and the other editors that install from there: search for
+/org-lsp/ in the Extensions view and install it, or run
+
+#+begin_src sh
+code --install-extension kristijanhusak.org-lsp
+#+end_src
+
+(~codium~ or ~cursor~ in place of ~code~). It comes for Linux (x64, arm64),
+macOS (Apple silicon, Intel) and Windows (x64), and the editor updates it
+as releases come out.
+
+The nightly build, made from ~main~ after each change, is installed by a
+script instead:
+
 #+begin_src sh
 curl -fsSL https://github.com/kristijanhusak/org-lsp/releases/download/nightly/install.sh | bash -s -- vscode
 #+end_src
@@ -24,10 +39,10 @@ scripts/install.sh --source vscode           # built from this checkout (cargo, 
 
 The script downloads the package for your platform from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]]
 (or the release named), or builds it, and installs it with
-~code --install-extension~. Run it again to update, then reload the window.
-~CODE=codium~ (or ~code-insiders~, ~cursor~) installs into another editor.
-On Windows without a shell, download ~org-lsp-win32-x64.vsix~ from the
-release and run *Extensions: Install from VSIX…*.
+~code --install-extension~, in place of the store's. Run it again to
+update, then reload the window. ~CODE=codium~ (or ~code-insiders~,
+~cursor~) installs into another editor. On Windows without a shell, download ~org-lsp-win32-x64.vsix~
+from the release and run *Extensions: Install from VSIX…*.
 
 The package has the server inside. The extension looks for the server in
 this order: the ~org-lsp.server.path~ setting, the one inside the
@@ -119,13 +134,18 @@ lists the keys of the editor at hand; picking one runs it.
 
 Emacs's keys are bound in Org files (~Ctrl+C Ctrl+T~, ~Ctrl+C Ctrl+S~,
 ~Shift~ and the arrows, ~Tab~ and ~Shift+Tab~ to cycle folds …), in capture
-buffers (~Ctrl+C Ctrl+C~) and in the date prompt. In Org files ~Ctrl+C~
+buffers (~Ctrl+C Ctrl+C~) and in the date prompt. ~Shift~ and the arrows
+change timestamps and select text elsewhere; with
+[[file:configuration.org::#org_support_shift_select][org_support_shift_select]] set to ~true~ or ~false~ they change TODO
+states, priorities and bullets too, as in Emacs. In Org files ~Ctrl+C~
 waits for a second key instead of copying (~Ctrl+Insert~ still copies). The
 agenda has the keys it has in every editor: Emacs's agenda keys (~f~, ~b~,
 ~t~, ~+~, ~Enter~, ~Ctrl+C Ctrl+S~ …), with ~Shift+J~ for a date and the views
 under ~v~ (~v d~, ~v w~), so that VSCodeVim keeps its motions; ~q~ closes it.
-~org-lsp.keys~ picks other keys: ~"vim"~ binds the Neovim plugin's keys for
-VSCodeVim, ~"custom"~ none. [[file:keys/vscode.org][keys/vscode.org]] lists every key and command,
+~org-lsp.keys~ picks other keys: ~"emacs_full"~ binds all of Emacs's,
+those VS Code uses for text too (Shift, Alt+Shift and Ctrl+Shift with the
+arrows, ~Ctrl+A~, ~Ctrl+X~ …), with ~Ctrl+C~ always starting Org's keys;
+~"vim"~ binds the Neovim plugin's keys for VSCodeVim, ~"custom"~ none. [[file:keys/vscode.org][keys/vscode.org]] lists every key and command,
 and how to add, change and remove keys.
 
 A date is typed as at Org's prompt: ~fri 10:00~, ~+2d~, ~2/15~, ~++1w~,

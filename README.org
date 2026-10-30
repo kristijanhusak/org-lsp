@@ -51,7 +51,7 @@ Each editor's page says how to install org-lsp there, how to set it up,
 and what works:
 
 - [[file:docs/neovim.org][Neovim]] (0.12 or newer): the repository is the plugin.
-- [[file:docs/vim.org][Vim]] (9.0.1485 or newer), on top of yegappan/lsp, vim-lsp, coc.nvim or ALE.
+- [[file:docs/vim.org][Vim]] (9.0.1485 or newer), on top of yegappan/lsp, coc.nvim, vim-lsp or ALE.
 - [[file:docs/vscode.org][VS Code]], and VSCodium, Cursor and the like.
 - [[file:docs/sublime.org][Sublime Text]], with sublimelsp/LSP.
 - [[file:docs/zed.org][Zed]].
@@ -66,7 +66,11 @@ The server is a single binary, ~org-lsp~. CI builds it for Linux (x86_64,
 arm64), macOS (arm64, x86_64) and Windows (x86_64): the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] has
 the binaries (~org-lsp-<platform>.tar.gz~), a VS Code package for each
 platform with the server inside, the Sublime Text package and the Zed
-extension. Version tags make releases of their own. Nobody has to fetch
+extension. Version tags make releases of their own. A server says the
+commit it was built from with its version: ~org-lsp --version~ prints
+~org-lsp 0.1.0-f7e7b68~ (~0.1.0-f7e7b68-dev~ for a build of your own), and in an editor the command /Show the version of
+the server/ (~org.version~, ~:Org version~ in Neovim and Vim, a code action
+in Zed and Helix) asks the one that runs. Nobody has to fetch
 these by hand: the Neovim and Vim plugins download the server the first
 time an Org file opens, and for the other editors one script,
 ~install.sh~, installs the server and the editor's part with it (its
@@ -75,6 +79,8 @@ tasks and keys too, in Zed):
 #+begin_src sh
 curl -fsSL https://github.com/kristijanhusak/org-lsp/releases/download/nightly/install.sh | bash -s -- vscode   # or sublime, zed, helix, server
 #+end_src
+
+VS Code also has it on the [[https://marketplace.visualstudio.com/items?itemName=kristijanhusak.org-lsp][Visual Studio Marketplace]] (~code --install-extension kristijanhusak.org-lsp~), and VSCodium and Cursor on [[https://open-vsx.org/extension/kristijanhusak/org-lsp][Open VSX]].
 
 Each editor's page also says how to build it with [[https://rustup.rs][cargo]].
 
@@ -118,7 +124,7 @@ does not work there and why.
 | [[file:docs/parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#links][Links]] | 96% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#footnotes][Footnotes]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
-| [[file:docs/parity.org::#tables][Tables]] | 100% | ✅ / ❓ / ✅ / ❓ / ❓ / ❓ |
+| [[file:docs/parity.org::#tables][Tables]] | 100% | ✅ / ✅ / ✅ / ❓ / ❓ / ❓ |
 | [[file:docs/parity.org::#table-formulas][Table formulas]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ / ✅ / ❓ / ✅ / ✅ / ❌ |
@@ -140,7 +146,7 @@ Emacs Org does in that area that org-lsp does; [[file:docs/parity.org][parity.or
 # END generated
 
 Tested with Neovim 0.12.0 and 0.12.5, VSCodium 1.135, Vim 9.1 (with
-yegappan/lsp, vim-lsp, coc.nvim and ALE) and Helix 25.07.1.
+yegappan/lsp, coc.nvim, vim-lsp and ALE) and Helix 25.07.1.
 
 * AI assistants (MCP)
 :PROPERTIES:

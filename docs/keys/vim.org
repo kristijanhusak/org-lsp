@@ -309,7 +309,9 @@ in a popup. [[file:../vim.org][vim.org]] says how to install and set up the plug
 | ~org.agenda.habits~ | Agenda: show or hide habits |
 | ~org.agenda.appt~ | Add today's appointments from the agenda files |
 | ~org.num.mode~ | Number the headlines, or stop numbering them |
+| ~org.indent.mode~ | Indent the text by the level of its headline, or stop indenting it |
 | ~org.custom.properties.toggle~ | Hide the properties of org_custom_properties, or show them again |
+| ~org.version~ | Show the version of the server |
 | ~org.todo.yesterday~ | Change the TODO state as if it were yesterday |
 | ~org.todo.next~ | Cycle TODO state forward |
 | ~org.property.delete~ | Delete a property of the entry |
@@ -394,7 +396,9 @@ in a popup. [[file:../vim.org][vim.org]] says how to install and set up the plug
 
 ¹ Where the command does not apply, the key does what it does in any
 buffer: ~<C-a>~ off a timestamp still increments the number under the
-cursor, and ~<CR>~ in a source block's code is Vim's own.
+cursor, ~<S-Right>~ off a timestamp goes a word right (and on a
+headline or an item too, as ~org_support_shift_select~ says), and
+~<CR>~ in a source block's code is Vim's own.
 
 # END generated
 
@@ -424,8 +428,10 @@ passes on only an error's message, a key marked ¹ falls back to its own
 meaning whenever the server refuses.
 
 In a terminal, Vim reads a key with a modifier only as the terminal sends
-it. ~<C-Space>~ comes as NUL, which the plugin binds too (~<C-@>~).
-~<S-CR>~ and the keys with ~<M-…>~ or ~<C-S-…>~ need a terminal that reports
+it. ~<C-Space>~ comes as NUL, which the plugin binds too (~<C-@>~), and Alt
+with a character (~<M-m>~) as ~<Esc>~ then the character in tmux and most
+terminals, which it binds too (~<Esc>m~). Alt with an arrow comes as Vim
+reads it in xterm and tmux. ~<S-CR>~ and the other keys with ~<M-…>~ or ~<C-S-…>~ need a terminal that reports
 modifiers, as xterm does once Vim turns its ~modifyOtherKeys~ on; in tmux,
 GNU screen or the Linux console Shift-Enter arrives as ~<CR>~. There, bind the command to a
 key that arrives, with ~mappings~ (below) or ~:Org return item~:

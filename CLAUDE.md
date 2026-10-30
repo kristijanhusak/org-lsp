@@ -27,13 +27,14 @@ what Emacs Org does that org-lsp does not yet. Read them before larger work.
 ```sh
 scripts/regen.sh      # write every generated file again
 scripts/check.sh      # fmt, clippy, cargo test, generated files, VS Code types, Sublime tests
-scripts/test-all.sh   # check.sh, then Neovim, Vim, VS Code end to end
+scripts/test-all.sh   # check.sh, then every editor end to end, side by side
 scripts/screenshots.py  # docs/images: screenshots and animations of Neovim (NVIM)
 scripts/site.sh       # the website into target/site; --serve shows it
 ```
 
-Set `ORG_LISP_DIR` to the `lisp` directory of an Org 9.8.10 checkout: the
-tests that run Emacs use it, and
+Set `ORG_LISP_DIR` to the `lisp` directory of an Org 9.8.10 checkout,
+compiled (`make compile`: Org as users have it, and three times faster to
+load): the tests that run Emacs use it, and
 `follows_links_whose_abbreviation_calls_a_function` fails against the Org
 that Emacs ships with. `ORG_LSP_REQUIRE_EMACS=1` makes those tests fail
 instead of skipping when Emacs is missing. `test-all.sh` also reads `NVIM`,
@@ -72,6 +73,16 @@ kept by the generator), and every doc outside the generated blocks.
 
 ## Rules
 
+- **Every change is tried end to end in real editors before it is
+  merged**, not only through the test harnesses: each editor it touches,
+  installed as users install it (Neovim through lazy.nvim and through
+  `pack/*/start`; Vim through `pack/*/start` with each LSP client it
+  affects; VS Code, Sublime Text, Zed and Helix from what `install.sh`
+  installs), with its own window or terminal (tmux, Xvfb): open a file,
+  type and use the feature as a user does, and look at what shows (the
+  colors, the text, where the cursor is). A harness sets things up its own
+  way (`set rtp^=`, a minimal init) and can hide what a user hits. The pull
+  request says which editors and installs were tried, and how.
 - **Emacs is the reference.** Port Org logic from the Org 9.8.10 sources,
   and check it against Emacs with recorded cases and differential fuzzing
   (`.claude/skills/port-from-emacs`). Write down any deliberate difference.

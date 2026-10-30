@@ -638,6 +638,11 @@ local function update_prompt(bufnr, client, text)
       prompt_window(bufnr)
     end
     paint(bufnr, client, result and result.data or {})
+    -- While a date is typed below it, Neovim draws the calendar again
+    -- only when asked: what the answer means shows as it is typed.
+    if vim.fn.mode() == 'c' then
+      vim.cmd.redraw()
+    end
   end, bufnr)
 end
 
@@ -830,7 +835,12 @@ M.handlers = {
       return result
     elseif tostring(result):find('E565') then
       vim.schedule(function()
-        show_document(err, params, ctx)
+        -- Nobody waits for this answer any more: a failure is said, not
+        -- raised in a callback.
+        local shown, failure = pcall(show_document, err, params, ctx)
+        if not shown then
+          notify(tostring(failure), vim.log.levels.ERROR)
+        end
       end)
       return { success = true }
     end
@@ -872,6 +882,21 @@ M.handlers = {
   ['org-lsp/codeBlocks'] = function(_, params, ctx)
     local client = vim.lsp.get_client_by_id(ctx.client_id)
     require('org-lsp.src').apply(params, client and client.offset_encoding or 'utf-16')
+  end,
+
+  --- The TODO keywords of a document and how its headlines look, for the
+  --- syntax to color them before the tokens come: kept in
+  --- `b:org_lsp_syntax_info`, and the last in `g:org_lsp_syntax_info` for
+  --- files opened next.
+  ['org-lsp/syntax'] = function(_, params)
+    local bufnr = require('org-lsp.buffers').of(params.uri)
+    params.uri = nil
+    vim.g.org_lsp_syntax_info = params
+    if not bufnr or vim.deep_equal(vim.b[bufnr].org_lsp_syntax_info, params) then
+      return
+    end
+    vim.b[bufnr].org_lsp_syntax_info = params
+    require('org-lsp').reload_syntax(bufnr)
   end,
 
   --- What stands in for hidden text: entities, sub- and superscripts,

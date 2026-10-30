@@ -23,6 +23,7 @@ let s:defaults = {
       \ 'highlight': 1,
       \ 'src_highlight': 1,
       \ 'virtual_indent': 1,
+      \ 'conceal': 1,
       \ 'indent': 1,
       \ 'win_split_mode': 'split',
       \ 'win_split_size': 0,
@@ -103,22 +104,34 @@ endfunction
 " files it makes, which coc.nvim would have as an empty line; and that
 " this plugin shows the server's messages and asks Emacs's questions, as
 " vim-lsp and ALE show neither, and the others put their name before the
-" messages.
+" messages. coc.nvim shows the documents the server asks for on its own,
+" and passes on only an error's message: it is told the documents to show
+" as a notification, and that a command does not apply as a result.
 function! org_lsp#init_options() abort
-  return extend(deepcopy(org_lsp#config().settings), {
+  let coc = org_lsp#adapter() ==# 'coc'
+  let integration = {
         \ 'org_client': v:true,
         \ 'show_document': v:true,
+        \ 'show_document_notification': coc ? v:true : v:false,
+        \ 'refusal_results': coc ? v:true : v:false,
         \ 'create_files': v:false,
         \ 'view_changed': v:true,
         \ 'date_prompt': org_lsp#config().calendar ? v:true : v:false,
         \ 'virtual_documents': v:false,
         \ 'virtual_indent': org_lsp#config().virtual_indent && s:has_virtual_text() ? v:true : v:false,
+        \ 'display': s:has_virtual_text() ? v:true : v:false,
         \ 'line_highlights': v:true,
         \ 'code_blocks': org_lsp#config().src_highlight ? v:true : v:false,
+        \ 'syntax': v:true,
         \ 'run_command': v:true,
         \ 'message_requests': v:false,
         \ 'message_notifications': v:true,
-        \ })
+        \ }
+  " Those that are off by default are left out when off: a server older
+  " than the plugin does not know the newer ones.
+  let off = ['show_document_notification', 'refusal_results', 'date_prompt', 'virtual_indent', 'display', 'code_blocks']
+  call filter(integration, {key, value -> value isnot v:false || index(off, key) < 0})
+  return extend(deepcopy(org_lsp#config().settings), integration)
 endfunction
 
 " Whether text properties can be text of their own: Vim 9.0.0067 on.
@@ -133,26 +146,28 @@ function! s:warn(message) abort
 endfunction
 
 " What the server says (Emacs's text, as its echo area shows it), in the
-" look of its `type`: 1 an error, 2 a warning, else a message.
+" look of its `type`: 1 an error, 2 a warning, else a message. Shown and
+" kept in the messages even when it comes while a client does something
+" silently.
 function! s:say(message, type) abort
   execute 'echohl' get({1: 'ErrorMsg', 2: 'WarningMsg'}, a:type, 'None')
   for line in split(a:message, "\n")
-    echomsg line
+    unsilent echomsg line
   endfor
   echohl None
 endfunction
 
 " ----- the client
 
-" The adapter for the installed client: `lsp` (yegappan/lsp), `vim_lsp`,
-" `coc` or `ale`; empty when there is none.
+" The adapter for the installed client: `lsp` (yegappan/lsp), `coc`,
+" `vim_lsp` or `ale`; empty when there is none.
 function! org_lsp#adapter() abort
   if !exists('s:adapter')
     let wanted = org_lsp#config().client
     if wanted ==# 'auto'
       let wanted = exists('g:loaded_lsp') ? 'lsp'
-            \ : exists('g:lsp_loaded') ? 'vim_lsp'
             \ : exists('g:did_coc_loaded') ? 'coc'
+            \ : exists('g:lsp_loaded') ? 'vim_lsp'
             \ : exists('g:loaded_ale') ? 'ale' : ''
     endif
     let s:adapter = substitute(wanted, '-', '_', 'g')
@@ -275,6 +290,11 @@ function! s:flush_changes(bufnr) abort
   endfor
 endfunction
 
+" How many answers `org_lsp#request_sync()` waits for: the timers that
+" fire meanwhile leave the buffer's colors and folds for later, as the
+" answer is to come at once (the indentation of a line `o` opened).
+let s:waiting = 0
+
 " A request answered before this returns, or {'error': …} after `timeout`
 " milliseconds.
 function! org_lsp#request_sync(bufnr, method, params, timeout) abort
@@ -284,12 +304,18 @@ function! org_lsp#request_sync(bufnr, method, params, timeout) abort
     let self.error = a:error
     let self.result = a:result
   endfunction
-  call org_lsp#request(a:bufnr, a:method, a:params, state.answer)
-  let waited = 0
-  while !state.done && waited < a:timeout
-    sleep 10m
-    let waited += 10
-  endwhile
+  let start = reltime()
+  let s:waiting += 1
+  try
+    call org_lsp#request(a:bufnr, a:method, a:params, state.answer)
+    " Vim writes to the server a pipe's worth (64 KB) each time it waits:
+    " the whole text of a big file goes in pieces, each after a wait.
+    while !state.done && reltimefloat(reltime(start)) * 1000 < a:timeout
+      sleep 1m
+    endwhile
+  finally
+    let s:waiting -= 1
+  endtry
   return state.done ? {'error': state.error, 'result': state.result} : {'error': {'message': 'timed out'}}
 endfunction
 
@@ -331,11 +357,15 @@ endfunction
 
 " Column `character` of `text` as the client counts it, as a byte index.
 function! s:byte(text, character) abort
-  let encoding = s:encoding()
-  if encoding ==# 'utf-8'
+  return s:byte_in(s:encoding(), a:text, a:character)
+endfunction
+
+" `s:byte()` for the server's position encoding `encoding`.
+function! s:byte_in(encoding, text, character) abort
+  if a:encoding ==# 'utf-8'
     return a:character
   endif
-  let index = encoding ==# 'utf-32' ? byteidx(a:text, a:character) : byteidx(a:text, a:character, 1)
+  let index = a:encoding ==# 'utf-32' ? byteidx(a:text, a:character) : byteidx(a:text, a:character, 1)
   return index < 0 ? len(a:text) : index
 endfunction
 
@@ -409,7 +439,7 @@ function! org_lsp#run(name, ...) abort
     return s:own[a:name].run()
   endif
   if empty(org_lsp#adapter())
-    return s:warn('no LSP client found: install yegappan/lsp, vim-lsp, coc.nvim or ALE')
+    return s:warn('no LSP client found: install yegappan/lsp, coc.nvim, vim-lsp or ALE')
   endif
   " Rebuilding reads the files again: those changed on disk while open
   " here, and not changed here, are read again first ('autoread'), as the
@@ -531,7 +561,9 @@ function! s:executed(bufnr, name, context, opts, error, result) abort
     call org_lsp#save(result.save)
   endif
   if type(get(result, 'message', 0)) == v:t_string
-    echomsg result.message
+    " Shown and kept in the messages, though the answer comes while a
+    " client does something silently (coc.nvim opening a file it edits).
+    unsilent echomsg result.message
   endif
   if type(get(result, 'close', 0)) == v:t_string
     call org_lsp#close(result.close)
@@ -675,9 +707,9 @@ function! org_lsp#cancel_input() abort
   return ''
 endfunction
 
-" Text typed for a command (`{prompt, value, completions}`), completed from
-" the list when there is one (Emacs's `completing-read`); v:null when
-" cancelled with <Esc> or CTRL-C.
+" Text typed for a command (`{prompt, value, completions, complete}`),
+" completed from the list when there is one (Emacs's `completing-read`), or
+" as a file name; v:null when cancelled with <Esc> or CTRL-C.
 function! org_lsp#read_text(input) abort
   let s:completions = get(a:input, 'completions', [])
   let s:separator = get(a:input, 'separator', '')
@@ -687,8 +719,10 @@ function! org_lsp#read_text(input) abort
   cnoremap <Esc> <C-\>eorg_lsp#cancel_input()<CR><CR>
   let s:cancelled = 0
   try
-    let answer = input(org_lsp#prompt_text(a:input.prompt), get(a:input, 'value', ''),
+    " A file's or a directory's name (`read-file-name`): Vim completes it.
+    let complete = get({'file': 'file', 'directory': 'dir'}, get(a:input, 'complete', ''),
           \ 'customlist,org_lsp#complete_input')
+    let answer = input(org_lsp#prompt_text(a:input.prompt), get(a:input, 'value', ''), complete)
   catch /^Vim:Interrupt$/
     let s:cancelled = 1
   finally
@@ -750,22 +784,45 @@ function! org_lsp#choice_line(choice) abort
   return line
 endfunction
 
+" What `getcharstr()` gives while it waits that no key was typed for:
+" `<CursorHold>` when it waits in a callback (coc.nvim's, after
+" 'updatetime'), and the like.
+let s:not_keys = ["\<CursorHold>", "\<Ignore>", "\<FocusGained>", "\<FocusLost>"]
+
+" The next key typed.
+function! org_lsp#getkey() abort
+  let key = getcharstr()
+  while index(s:not_keys, key) >= 0
+    let key = getcharstr()
+  endwhile
+  return key
+endfunction
+
 function! org_lsp#read_key(prompt, choices, ...) abort
+  " With a third argument, the prompt as it is.
+  let text = a:0 > 0 && a:1 ? a:prompt : org_lsp#prompt_text(a:prompt)
+  " A prompt of more lines (`expert`'s keys under it, the formula
+  " debugger's history above its question) has a command line as high while
+  " it waits, as Emacs's echo area grows, not Vim's hit-enter prompt.
+  let height = &cmdheight
+  let &cmdheight = max([height, len(split(text, "\n", 1))])
   let popup = 0
   if !empty(a:choices) && exists('*popup_create')
     let lines = map(copy(a:choices), {_, c -> org_lsp#choice_line(c)})
+    " Over the command line, the question its title.
     let popup = popup_create(lines, {
           \ 'line': &lines - &cmdheight - len(lines) - 1, 'col': 1,
-          \ 'border': [], 'title': ' ' . a:prompt . ' ', 'zindex': 300,
+          \ 'border': [], 'title': ' ' . get(split(a:prompt, "\n"), -1, '') . ' ', 'zindex': 300,
           \ })
   endif
-  " With a third argument, the prompt as it is.
-  echo a:0 > 0 && a:1 ? a:prompt : org_lsp#prompt_text(a:prompt)
+  echo text
   redraw
   try
-    let key = getcharstr()
+    let key = org_lsp#getkey()
   catch /^Vim:Interrupt$/
     let key = "\<Esc>"
+  finally
+    let &cmdheight = height
   endtry
   if popup
     call popup_close(popup)
@@ -791,15 +848,19 @@ function! org_lsp#org_command(range, first, last, ...) abort
 endfunction
 
 " The next word of `:Org`'s command after those typed: `:Org agenda <Tab>`
-" offers `list`, `todos`, `dispatch`, ….
+" offers `list`, `todos`, `dispatch`, …, and `:Org agenda.<Tab>` the same
+" after the dot.
 function! org_lsp#complete(lead, line, pos) abort
   let typed = split(a:line[: a:pos - 1 - len(a:lead)])[1:]
-  let prefix = join(['org'] + typed, '.') . '.'
+  " The words of `lead` up to its last dot, kept as they are.
+  let done = matchstr(a:lead, '^.*\.')
+  let partial = a:lead[len(done):]
+  let prefix = join(['org'] + typed, '.') . '.' . done
   let words = []
   for command in get(org_lsp#manifest(), 'commands', [])
     if stridx(command.command, prefix) == 0
-      let word = matchstr(command.command[len(prefix):], '^[^.]\+')
-      if !empty(word) && stridx(word, a:lead) == 0 && index(words, word) < 0
+      let word = done . matchstr(command.command[len(prefix):], '^[^.]\+')
+      if word !=# done && stridx(word, a:lead) == 0 && index(words, word) < 0
         call add(words, word)
       endif
     endif
@@ -841,8 +902,10 @@ function! org_lsp#insert_key(index) abort
   let [nr, context] = s:cursor_context()
   let position = getcurpos()
   let answer = org_lsp#request_sync(nr, 'workspace/executeCommand', {'command': entry.name, 'arguments': [context]}, 1000)
-  " While it waits, coc.nvim moves the cursor a column to the left.
-  if getcurpos() != position
+  " While it waits, coc.nvim moves the cursor a column to the left; a link
+  " followed meanwhile (`org_return_follows_link`) takes it to another line,
+  " where it stays.
+  if getcurpos() != position && getcurpos()[1] == position[1]
     call setpos('.', position)
   endif
   let result = get(answer, 'result', v:null)
@@ -1054,13 +1117,17 @@ function! s:map_lhs(key) abort
 endfunction
 
 " The keys as a terminal sends them too: CTRL-Space comes as NUL, which
-" Vim reads as `<C-@>` (Neovim as `<C-Space>`).
+" Vim reads as `<C-@>` (Neovim as `<C-Space>`), and Alt with a character
+" (`<M-m>`) as <Esc> then the character, as tmux and most terminals send
+" it, which Vim reads as two keys.
 function! s:with_terminal_keys(list) abort
   if has('gui_running')
     return a:list
   endif
   let terminal = map(filter(copy(a:list), {_, lhs -> lhs =~? '<C-Space>'}),
         \ {_, lhs -> substitute(lhs, '\c<C-Space>', '<C-@>', 'g')})
+  let terminal += map(filter(copy(a:list), {_, lhs -> lhs =~? '^<[MA]-[^<>]>$'}),
+        \ {_, lhs -> '<Esc>' . lhs[3]})
   return a:list + terminal
 endfunction
 
@@ -1535,60 +1602,6 @@ function! s:open_prompt(path, win) abort
   call winrestview({'topline': 1, 'leftcol': 0})
 endfunction
 
-" The date prompt in a window the plugin did not open for it (coc.nvim
-" shows it in the current one, which may be the agenda's): put it at the
-" bottom, and the window back to the buffer it showed.
-function! s:place_prompt(nr) abort
-  let win = bufwinid(a:nr)
-  if win == -1 || s:opened_for(win, a:nr)
-    return
-  endif
-  let cursor = getcurpos(win)
-  call win_gotoid(win)
-  let back = bufnr('#')
-  execute org_lsp#config().calendar_win_mode
-  let prompt = win_getid()
-  let w:org_lsp_opened = s:path_of(a:nr)
-  let w:org_lsp_from = win
-  execute 'buffer' a:nr
-  call win_execute(win, back > 0 && back != a:nr ? 'buffer ' . back : 'close')
-  call win_gotoid(prompt)
-  if org_lsp#config().calendar_win_mode !~# 'v'
-    execute 'resize' line('$')
-  endif
-  call winrestview({'topline': 1, 'leftcol': 0})
-  call setpos('.', cursor[0:3])
-endfunction
-
-" The agenda in a window the plugin did not open (coc.nvim shows it in the
-" current one): in the window that shows it already, else in one apart as
-" `win_split_mode` says, and the window back to the buffer it showed, as
-" Emacs keeps the window the agenda was called from.
-function! s:place_agenda(nr) abort
-  let win = bufwinid(a:nr)
-  let mode = org_lsp#config().win_split_mode
-  if win == -1 || s:opened_for(win, a:nr) || mode ==# 'current'
-    return
-  endif
-  let cursor = getcurpos(win)
-  call win_gotoid(win)
-  let back = bufnr('#')
-  let shown = filter(win_findbuf(a:nr), {_, other -> other != win && s:opened_for(other, a:nr)})
-  if !empty(shown)
-    call win_gotoid(shown[0])
-  else
-    execute mode
-    let w:org_lsp_opened = s:path_of(a:nr)
-    let w:org_lsp_from = win
-    call s:resize_apart(mode, org_lsp#config().win_split_size)
-    execute 'buffer' a:nr
-  endif
-  let agenda = win_getid()
-  call win_execute(win, back > 0 && back != a:nr ? 'buffer ' . back : 'close')
-  call win_gotoid(agenda)
-  call setpos('.', cursor[0:3])
-endfunction
-
 " `win_split_size`: lines for a split, columns for a vertical one (`vsplit`,
 " `vnew`, `vertical`), or below 1 that part of the editor; 0 leaves the
 " window as the command made it.
@@ -1855,7 +1868,7 @@ endfunction
 " Paint buffer `nr` with the tokens it had when it had the lines `old`:
 " those of the lines before and after the part that changed.
 function! s:repaint_kept(nr, old) abort
-  let tokens = get(s:painted, a:nr, [])
+  let tokens = get(s:painted, a:nr, [[], 0])[0]
   let new = getbufline(a:nr, 1, '$')
   if empty(tokens) || new ==# a:old
     return
@@ -2147,7 +2160,12 @@ function! org_lsp#handle_request(method, params) abort
 endfunction
 
 function! org_lsp#handle_notification(method, params) abort
-  if a:method ==# 'org-lsp/save'
+  if a:method ==# 'org-lsp/showDocument'
+    " `window/showDocument` as a notification (`show_document_notification`),
+    " answered as one.
+    let result = org_lsp#show_document(a:params.params)
+    call s:call('notify', 'org-lsp/showDocumentResult', {'id': a:params.id, 'result': result})
+  elseif a:method ==# 'org-lsp/save'
     call org_lsp#save(get(a:params, 'uris', []))
   elseif a:method ==# 'org-lsp/clock'
     call s:clock_update(a:params)
@@ -2155,10 +2173,14 @@ function! org_lsp#handle_notification(method, params) abort
     call s:timer_update(a:params)
   elseif a:method ==# 'org-lsp/virtualIndent'
     call s:virtual_indent(a:params)
+  elseif a:method ==# 'org-lsp/display'
+    call s:display(a:params)
   elseif a:method ==# 'org-lsp/lineHighlights'
     call s:line_highlights(a:params)
   elseif a:method ==# 'org-lsp/codeBlocks'
     call s:code_blocks(a:params)
+  elseif a:method ==# 'org-lsp/syntax'
+    call s:syntax(a:params)
   elseif a:method ==# 'org-lsp/columns'
     call s:columns_show(a:params)
   elseif a:method ==# 'org-lsp/folds'
@@ -2198,7 +2220,7 @@ function! s:line_highlights(params) abort
     call sign_place(0, 'org_lsp_lines', name, nr, {'lnum': line.line + 1})
   endfor
   if org_lsp#config().highlight
-    call s:update_tokens(nr)
+    call s:repaint_all(nr)
   endif
 endfunction
 
@@ -2245,6 +2267,7 @@ function! s:virtual_indent(params) abort
   call prop_remove({'type': 'org_lsp_indent', 'bufnr': nr, 'all': 1})
   call prop_remove({'type': 'org_lsp_star', 'bufnr': nr, 'all': 1})
   let last = getbufinfo(nr)[0].linecount
+  let hidden_stars = {}
   for [line, prefix, wrap, stars] in a:params.lines
     " For older text than the buffer has: newer prefixes are on their way.
     if line >= last
@@ -2255,8 +2278,13 @@ function! s:virtual_indent(params) abort
     endif
     if stars > 0
       call prop_add(line + 1, 1, {'type': 'org_lsp_star', 'bufnr': nr, 'length': stars})
+      let hidden_stars[line + 1] = [[1, stars, repeat(' ', stars), '']]
     endif
   endfor
+  " Concealed and blanks in their place, where Vim conceals: the color of
+  " the background is no color when the colorscheme gives none.
+  call setbufvar(nr, 'org_lsp_stars', hidden_stars)
+  call s:conceal(nr)
   if !empty(a:params.lines)
     for win in win_findbuf(nr)
       call setwinvar(win, '&breakindent', 1)
@@ -2265,6 +2293,185 @@ function! s:virtual_indent(params) abort
     call setbufvar(nr, '&formatlistpat', '^\*\+ \|^\s*\%([-+]\|\s\*\|\d\+[.)]\)\s')
   endif
 endfunction
+
+" ----- concealing
+
+" What Org hides shows hidden: link brackets and targets and emphasis
+" markers, which the tokens mark `hidden`, and the text that something
+" else stands in for (`org-lsp/display`): an entity, shown as its
+" character, a sub- or superscript in Unicode, the stars of org-bullets'
+" bullet, a shrunk table field. Vim conceals text in a window with matches
+" (`matchaddpos()` with `conceal`), whatever text properties it has; what
+" stands in shows as text of its own before the hidden text, in the look
+" of what it stands for, as Vim colors a concealed character only as
+" `Conceal`. On the cursor's line the text shows as it is, to edit it, as
+" in Neovim: Vim shows concealed text there ('concealcursor' empty), and
+" the text standing in goes.
+
+function! s:conceal_on() abort
+  return org_lsp#config().conceal && s:has_virtual_text()
+endfunction
+
+" What stands in for hidden text in a file: `items` of `[line, character,
+" end line, end character, shown, look?]`. Kept with the buffer by line,
+" `[column, length, shown, look]` in bytes from 1.
+function! s:display(params) abort
+  let nr = bufnr(org_lsp#uri_to_path(a:params.uri))
+  if nr < 0 || !bufloaded(nr)
+    return
+  endif
+  let lines = getbufline(nr, 1, '$')
+  let shown = {}
+  for item in get(a:params, 'items', [])
+    let [line, character, end_line, end_character, text] = item[0 : 4]
+    " Within one line, as all of them are, and of the text the buffer has:
+    " newer items are on their way.
+    if line != end_line || line >= len(lines)
+      continue
+    endif
+    let start = s:byte(lines[line], character)
+    let end = s:byte(lines[line], end_character)
+    if end <= start
+      continue
+    endif
+    call add(get(extend(shown, {line + 1: []}, 'keep'), line + 1), [start + 1, end - start, text, get(item, 5, '')])
+  endfor
+  call setbufvar(nr, 'org_lsp_shown', shown)
+  call s:conceal(nr)
+endfunction
+
+" The text property type of text standing in, in the look of the token
+" `look` (`stars.level1`, `bullet`), or its type's, or the text's own.
+function! s:shown_type(look) abort
+  let type = 'org_lsp_shown_' . substitute(a:look, '\W', '_', 'g')
+  if empty(prop_type_get(type))
+    let group = ''
+    for candidate in [a:look, matchstr(a:look, '^[^.]*')]
+      if !empty(candidate) && hlexists(s:group_name(candidate))
+        let group = s:group_name(candidate)
+        break
+      endif
+    endfor
+    call prop_type_add(type, empty(group) ? {} : {'highlight': group})
+    call add(s:shown_types, type)
+  endif
+  return type
+endfunction
+
+let s:shown_types = []
+
+" The stand-ins of buffer `nr` by line: those the server sent, and blanks
+" for the hidden leading stars of headlines.
+function! s:stand_ins(nr) abort
+  let all = deepcopy(getbufvar(a:nr, 'org_lsp_shown', {}))
+  for [line, items] in items(getbufvar(a:nr, 'org_lsp_stars', {}))
+    let all[line] = items + get(all, line, [])
+  endfor
+  return all
+endfunction
+
+" Hide what the buffer `nr` hides in each window that shows it, and show
+" what stands in for it but on the cursor's line.
+function! s:conceal(nr) abort
+  if !s:conceal_on()
+    return
+  endif
+  for win in win_findbuf(a:nr)
+    call s:conceal_window(win, a:nr)
+  endfor
+  call s:show_stand_ins(a:nr, bufnr() == a:nr ? s:revealed_line() : 0)
+endfunction
+
+function! s:conceal_window(win, nr) abort
+  for id in getwinvar(a:win, 'org_lsp_conceal', [])
+    silent! call matchdelete(id, a:win)
+  endfor
+  let positions = copy(getbufvar(a:nr, 'org_lsp_hidden', []))
+  for [line, items] in items(s:stand_ins(a:nr))
+    for [column, length; _] in items
+      call add(positions, [str2nr(line), column, length])
+    endfor
+  endfor
+  let ids = []
+  if !empty(positions)
+    call add(ids, matchaddpos('Conceal', positions, 10, -1, {'window': a:win, 'conceal': ''}))
+    if getwinvar(a:win, '&conceallevel') == 0
+      call setwinvar(a:win, '&conceallevel', 2)
+    endif
+  endif
+  call setwinvar(a:win, 'org_lsp_conceal', ids)
+  call setwinvar(a:win, 'org_lsp_conceal_buffer', a:nr)
+endfunction
+
+" The text standing in for hidden text on every line but `cursor`.
+function! s:show_stand_ins(nr, cursor) abort
+  if !empty(s:shown_types)
+    call prop_remove({'types': s:shown_types, 'bufnr': a:nr, 'all': 1})
+  endif
+  let last = getbufinfo(a:nr)[0].linecount
+  for [line, items] in items(s:stand_ins(a:nr))
+    if str2nr(line) != a:cursor && str2nr(line) <= last
+      call s:show_line(a:nr, str2nr(line), items)
+    endif
+  endfor
+  call setbufvar(a:nr, 'org_lsp_shown_cursor', a:cursor)
+endfunction
+
+function! s:show_line(nr, line, items) abort
+  for [column, length, text, look] in a:items
+    silent! call prop_add(a:line, column, {'type': s:shown_type(look), 'bufnr': a:nr, 'text': text})
+  endfor
+endfunction
+
+" The cursor moved to another line: the text standing in shows again on
+" the line it left, and goes from the one it is on.
+function! s:conceal_cursor() abort
+  let nr = bufnr()
+  let shown = s:stand_ins(nr)
+  let before = get(b:, 'org_lsp_shown_cursor', 0)
+  let now = s:revealed_line()
+  if empty(shown) || before == now
+    return
+  endif
+  if has_key(shown, before)
+    call s:show_line(nr, before, shown[before])
+  endif
+  if has_key(shown, now) && !empty(s:shown_types)
+    call prop_remove({'types': s:shown_types, 'bufnr': nr, 'all': 1}, now)
+  endif
+  let b:org_lsp_shown_cursor = now
+endfunction
+
+" The cursor's line when Vim shows its concealed text, in the mode at hand
+" ('concealcursor' does not name it), else 0: there the text standing in
+" goes, and elsewhere it stays, as in Neovim.
+function! s:revealed_line() abort
+  let mode = mode()
+  let letter = mode =~# '^[iR]' ? 'i' : mode =~# "^[vV\<C-v>]" ? 'v' : mode =~# '^c' ? 'c' : 'n'
+  return stridx(&l:concealcursor, letter) >= 0 ? 0 : line('.')
+endfunction
+
+" A window that showed an Org buffer and shows another now: its matches
+" were the other buffer's.
+function! s:conceal_enter() abort
+  let shown = get(w:, 'org_lsp_conceal_buffer', -1)
+  if shown >= 0 && shown != bufnr()
+    for id in get(w:, 'org_lsp_conceal', [])
+      silent! call matchdelete(id)
+    endfor
+    let w:org_lsp_conceal = []
+    let w:org_lsp_conceal_buffer = -1
+  endif
+  if exists('b:org_lsp_attached') && (!empty(get(b:, 'org_lsp_hidden', [])) || !empty(s:stand_ins(bufnr())))
+    call s:conceal(bufnr())
+  endif
+endfunction
+
+augroup org_lsp_conceal
+  autocmd!
+  autocmd BufWinEnter,WinEnter * call s:conceal_enter()
+  autocmd OptionSet concealcursor if exists('b:org_lsp_attached') | call s:conceal_cursor() | endif
+augroup END
 
 " ----- the clock
 
@@ -2378,21 +2585,35 @@ function! s:got_folds(nr, error, result) abort
   if !empty(a:error) || type(a:result) != v:t_list || !bufexists(a:nr)
     return
   endif
-  let lines_count = len(getbufline(a:nr, 1, '$'))
-  let depth = repeat([0], lines_count)
+  let lines_count = getbufinfo(a:nr)[0].linecount
+  " The same folds for as many lines as last time (text typed in a line).
+  let got = [a:result, lines_count]
+  if got == getbufvar(a:nr, 'org_lsp_folds_got', [])
+    return
+  endif
+  call setbufvar(a:nr, 'org_lsp_folds_got', got)
+  " How many folds begin on each line less how many ended on the line
+  " before: summed up, each line's depth.
+  let delta = repeat([0], lines_count + 1)
   let starts = {}
   let ranges = []
   for range in sort(copy(a:result), {a, b -> a.startLine - b.startLine})
-    if range.endLine <= range.startLine
+    " Folds of older text, which had more lines: newer ones are on their
+    " way.
+    if range.endLine <= range.startLine || range.startLine >= lines_count
       continue
     endif
     call add(ranges, [range.startLine + 1, range.endLine + 1])
-    for line in range(range.startLine, min([range.endLine, lines_count - 1]))
-      let depth[line] += 1
-    endfor
+    let delta[range.startLine] += 1
+    let delta[min([range.endLine, lines_count - 1]) + 1] -= 1
     let starts[range.startLine] = 1
   endfor
-  let levels = map(depth, {i, d -> has_key(starts, i) ? '>' . d : d})
+  let levels = []
+  let depth = 0
+  for line in range(lines_count)
+    let depth += delta[line]
+    call add(levels, has_key(starts, line) ? '>' . depth : depth)
+  endfor
   call setbufvar(a:nr, 'org_lsp_fold_ranges', ranges)
   if levels == getbufvar(a:nr, 'org_lsp_folds', [])
     return
@@ -2695,6 +2916,7 @@ let s:vim_groups = {
       \ '@punctuation.special': 'Delimiter',
       \ '@markup.strong': 'OrgLspBold', '@markup.italic': 'OrgLspItalic',
       \ '@markup.underline': 'OrgLspUnderline', '@markup.strikethrough': 'OrgLspStrikethrough',
+      \ '@markup.quote': 'OrgLspItalic',
       \ 'DiagnosticError': 'WarningMsg', 'DiagnosticWarn': 'Statement', 'DiagnosticOk': 'MoreMsg',
       \ }
 
@@ -2780,6 +3002,13 @@ function! s:show_preview(win, position, error, result) abort
   return id
 endfunction
 
+" The tokens of buffer `nr` painted again on all its lines, as something
+" else than its text changed how they show (the faces came).
+function! s:repaint_all(nr) abort
+  silent! call remove(s:painted, a:nr)
+  call s:update_tokens(a:nr)
+endfunction
+
 function! s:update_tokens(nr) abort
   let params = {'textDocument': {'uri': org_lsp#uri(a:nr)}}
   call org_lsp#request(a:nr, 'textDocument/semanticTokens/full', params, function('s:got_tokens', [a:nr, getbufvar(a:nr, 'changedtick')]))
@@ -2810,7 +3039,7 @@ function! s:got_faces(nr, error, result) abort
   let s:faces = a:result
   call s:define_faces()
   if !empty(filter(values(s:faces), '!empty(v:val)')) && bufloaded(a:nr)
-    call s:update_tokens(a:nr)
+    call s:repaint_all(a:nr)
   endif
 endfunction
 
@@ -2880,44 +3109,130 @@ function! s:paint(nr, lines, data) abort
   call s:paint_absolute(a:nr, a:lines, tokens)
 endfunction
 
+" The lines whose tokens are not those painted last, `[first, last]` from
+" 0, or `[]` for none: the tokens alike at the start, and at the end once
+" moved by the lines added since (as the text properties moved with the
+" text), stay as they are.
+function! s:changed_lines(nr, tokens, line_count) abort
+  let [old, old_count] = get(s:painted, a:nr, [v:null, -1])
+  if old is v:null
+    return [0, a:line_count - 1]
+  endif
+  let [n_old, n_new] = [len(old), len(a:tokens)]
+  " The longest alike start and end, each found by halves.
+  let [low, high] = [0, min([n_old, n_new])]
+  while low < high
+    let mid = (low + high + 1) / 2
+    if old[: mid - 1] == a:tokens[: mid - 1]
+      let low = mid
+    else
+      let high = mid - 1
+    endif
+  endwhile
+  let same_start = low
+  if same_start == n_old && n_old == n_new && old_count == a:line_count
+    return []
+  endif
+  let moved = a:line_count - old_count
+  let shifted = moved == 0 ? old : map(copy(old), {_, t -> [t[0] + moved] + t[1 :]})
+  let [low, high] = [0, min([n_old, n_new]) - same_start]
+  while low < high
+    let mid = (low + high + 1) / 2
+    if shifted[n_old - mid :] == a:tokens[n_new - mid :]
+      let low = mid
+    else
+      let high = mid - 1
+    endif
+  endwhile
+  let same_end = low
+  let first = same_start > 0 ? a:tokens[same_start - 1][0] : 0
+  let last = same_end > 0 ? a:tokens[n_new - same_end][0] : a:line_count - 1
+  return [first, max([first, last])]
+endfunction
+
 function! s:paint_absolute(nr, lines, tokens) abort
   if empty(s:selectors)
     call org_lsp#define_highlights()
   endif
-  let s:painted[a:nr] = a:tokens
+  " Not past the buffer's lines, which it may have fewer of by now (the
+  " agenda read again).
+  let line_count = len(getbufline(a:nr, 1, '$'))
+  let changed = s:changed_lines(a:nr, a:tokens, line_count)
+  let s:painted[a:nr] = [a:tokens, line_count]
   let manifest = org_lsp#manifest()
   let types = map(copy(manifest.tokenTypes), 'v:val.id')
   let modifiers = map(copy(manifest.tokenModifiers), 'v:val.id')
   let props = {}
   let lines = a:lines
   let is_org = getbufvar(a:nr, '&filetype') ==# 'org'
-  " Not past the buffer's lines, which it may have fewer of by now (the
-  " agenda read again).
-  let line_count = len(getbufline(a:nr, 1, '$'))
-  for [line, character, length, type_index, modifier_bits] in a:tokens
+  let hidden_bit = index(modifiers, 'hidden')
+  " The hidden text of the whole buffer, for concealing; the rest painted
+  " only on the lines that changed.
+  let hidden = []
+  if hidden_bit >= 0
+    for [line, character, length, type_index, modifier_bits] in filter(copy(a:tokens), 'and(v:val[4], ' . (1 << hidden_bit) . ') && v:val[0] < ' . line_count)
+      let text = get(lines, line, '')
+      let [start, end] = [s:byte(text, character), min([s:byte(text, character + length), len(text)])]
+      if end > start
+        call add(hidden, [line + 1, start + 1, end - start])
+      endif
+    endfor
+  endif
+  if empty(changed)
+    return
+  endif
+  " The tokens of those lines, in order of their lines.
+  let first_token = 0
+  while first_token < len(a:tokens) && a:tokens[first_token][0] < changed[0]
+    let first_token += 1
+  endwhile
+  let last_token = first_token
+  while last_token < len(a:tokens) && a:tokens[last_token][0] <= changed[1]
+    let last_token += 1
+  endwhile
+  " Columns as the server counts them, in bytes: the same in UTF-8, and on
+  " a line of ASCII alone.
+  let encoding = s:encoding()
+  let ascii = {}
+  " The selectors of each type with its modifiers, made once.
+  let looks = {}
+  for [line, character, length, type_index, modifier_bits] in a:tokens[first_token : last_token - 1]
     if line >= line_count
       continue
     endif
     let type = get(types, type_index, '')
     let text = get(lines, line, '')
-    let start = s:byte(text, character)
-    let end = s:byte(text, character + length)
+    if encoding ==# 'utf-8' || get(ascii, line, -1) == 1
+      let [start, end] = [character, character + length]
+    elseif has_key(ascii, line)
+      let [start, end] = [s:byte_in(encoding, text, character), s:byte_in(encoding, text, character + length)]
+    else
+      let ascii[line] = text !~# '[^\x00-\x7f]'
+      let [start, end] = ascii[line] ? [character, character + length]
+            \ : [s:byte_in(encoding, text, character), s:byte_in(encoding, text, character + length)]
+    endif
+    let end = min([end, len(text)])
     if end <= start
       continue
     endif
-    let selectors = [type]
-    let names = []
-    for bit in range(len(modifiers))
-      if and(modifier_bits, 1 << bit)
-        call add(selectors, '*.' . modifiers[bit])
-        call add(selectors, type . '.' . modifiers[bit])
-        call add(names, modifiers[bit])
+    let key = type_index . ':' . modifier_bits
+    if !has_key(looks, key)
+      let selectors = [type]
+      let names = []
+      for bit in range(len(modifiers))
+        if and(modifier_bits, 1 << bit)
+          call add(selectors, '*.' . modifiers[bit])
+          call add(selectors, type . '.' . modifiers[bit])
+          call add(names, modifiers[bit])
+        endif
+      endfor
+      " A look of the type with all of them (`agendaHabit.ready.future`).
+      if len(names) > 1
+        call add(selectors, type . '.' . join(names, '.'))
       endif
-    endfor
-    " A look of the type with all of them (`agendaHabit.ready.future`).
-    if len(names) > 1
-      call add(selectors, type . '.' . join(names, '.'))
+      let looks[key] = selectors
     endif
+    let selectors = copy(looks[key])
     " A keyword or a priority with a face of its own.
     if type ==# 'todoKeyword' || type ==# 'priority'
       let name = text[start : end - 1]
@@ -2949,10 +3264,16 @@ function! s:paint_absolute(nr, lines, tokens) abort
       endif
     endfor
   endfor
-  call prop_remove({'types': values(s:selectors), 'bufnr': a:nr, 'all': 1})
+  if changed[1] >= changed[0]
+    call prop_remove({'types': values(s:selectors), 'bufnr': a:nr, 'all': 1}, changed[0] + 1, min([changed[1] + 1, line_count]))
+  endif
   for [selector, positions] in items(props)
     call prop_add_list({'bufnr': a:nr, 'type': s:selectors[selector]}, positions)
   endfor
+  if hidden != getbufvar(a:nr, 'org_lsp_hidden', [])
+    call setbufvar(a:nr, 'org_lsp_hidden', hidden)
+    call s:conceal(a:nr)
+  endif
 endfunction
 
 " ----- attaching
@@ -2960,16 +3281,23 @@ endfunction
 let s:pending = {}
 
 " After a change, highlighting and folds are fetched again, once typing
-" pauses.
+" pauses; at once after a change made outside Insert mode (a command's
+" edit).
 function! s:changed(nr) abort
   if has_key(s:pending, a:nr)
     call timer_stop(s:pending[a:nr])
   endif
-  let s:pending[a:nr] = timer_start(200, {-> s:refresh(a:nr)})
+  " A line `o` opens is changed while its indentation is asked for, and
+  " typed on next.
+  let s:pending[a:nr] = timer_start(mode() =~# '^[iR]' || s:waiting ? 200 : 20, {-> s:refresh(a:nr)})
 endfunction
 
 function! s:refresh(nr) abort
   silent! call remove(s:pending, a:nr)
+  if s:waiting
+    call s:changed(a:nr)
+    return
+  endif
   if !bufloaded(a:nr)
     return
   endif
@@ -3001,12 +3329,14 @@ function! org_lsp#attach() abort
   endif
   let b:org_lsp_attached = 1
   let nr = bufnr()
+  " The agenda and the calendar are the server's to write: typing in them
+  " changes nothing, as in Emacs's read-only buffers.
   if &filetype ==# get(org_lsp#manifest().agenda, 'languageId', 'org-agenda')
-    setlocal autoread readonly noswapfile bufhidden=hide nowrap nonumber norelativenumber nofoldenable
+    setlocal autoread readonly nomodifiable noswapfile bufhidden=hide nowrap nonumber norelativenumber nofoldenable
     call org_lsp#set_keys('agenda')
   elseif &filetype ==# get(get(org_lsp#manifest(), 'datePrompt', {}), 'languageId', 'org-date')
     " A calendar to move about in, never to type into.
-    setlocal autoread readonly noswapfile bufhidden=wipe nowrap nonumber norelativenumber
+    setlocal autoread readonly nomodifiable noswapfile bufhidden=wipe nowrap nonumber norelativenumber
           \ nofoldenable nolist signcolumn=no scrolloff=0 sidescrolloff=0 winfixheight
     call org_lsp#set_keys('calendar')
   else
@@ -3023,28 +3353,101 @@ function! org_lsp#attach() abort
     execute 'autocmd! * <buffer=' . nr . '>'
     execute 'autocmd TextChanged,InsertLeave,BufReadPost <buffer=' . nr . '> call s:changed(' . nr . ')'
     execute 'autocmd BufWinEnter <buffer=' . nr . '> call s:changed(' . nr . ')'
-    if &filetype ==# get(get(org_lsp#manifest(), 'datePrompt', {}), 'languageId', 'org-date')
-      " coc.nvim shows documents itself, in the window it jumps from: the
-      " calendar moves to the bottom.
-      execute 'autocmd BufWinEnter <buffer=' . nr . '> call timer_start(0, {-> s:place_prompt(' . nr . ')})'
-    endif
-    if s:is_agenda(bufname(nr)) && org_lsp#adapter() ==# 'coc'
-      " coc.nvim shows the agenda itself, in the current window.
-      execute 'autocmd BufWinEnter <buffer=' . nr . '> call timer_start(0, {-> s:place_agenda(' . nr . ')})'
-    endif
+    execute 'autocmd CursorMoved,CursorMovedI,ModeChanged <buffer=' . nr . '> call s:conceal_cursor()'
     if s:is_view_type(&filetype)
       let b:org_lsp_given = getline(1, '$')
       execute 'autocmd FileChangedShellPost,BufReadPost <buffer=' . nr . '> call s:give_view(' . nr . ')'
     endif
   augroup END
+  " Every change, also those an LSP client makes for the server (the TODO
+  " keyword a command changed), which Vim's `TextChanged` sees only after
+  " the next key or 'updatetime'.
+  call listener_add(function('s:listened'), nr)
   " The client may still be starting the server: ask again until it
   " answers.
   call s:first_refresh(nr, 0)
 endfunction
 
+function! s:listened(nr, start, end, added, changes) abort
+  call s:changed(a:nr)
+endfunction
+
 " The editor's names of languages (the server's, `org-lsp/codeBlocks`)
 " where Vim's syntax file has another.
 let s:src_syntaxes = {'elisp': 'lisp', 'bash': 'sh'}
+
+" Whether each language has a syntax file, by name, for the runtime path
+" it was looked for in: looking goes through the whole runtime path, for
+" every block each time the code is shown. A missing one is looked for
+" again after a while, in case it was installed since.
+let s:syntax_files = {'runtimepath': '', 'found': {}}
+
+function! s:has_syntax(lang) abort
+  if s:syntax_files.runtimepath !=# &runtimepath
+    let s:syntax_files = {'runtimepath': &runtimepath, 'found': {}}
+  endif
+  let now = reltimefloat(reltime())
+  let known = get(s:syntax_files.found, a:lang, v:null)
+  if known is v:null || (!known.found && now - known.at > 10)
+    let known = {'found': !empty(globpath(&runtimepath, 'syntax/' . a:lang . '.vim')), 'at': now}
+    let s:syntax_files.found[a:lang] = known
+  endif
+  return known.found
+endfunction
+
+" The plugin's syntax for Org (syntax/org.vim) in buffer `nr` in place of
+" Vim's own, which 'runtimepath' finds first when the plugin comes after
+" $VIMRUNTIME; the code of its blocks in their languages again.
+let s:syntax_file = expand('<sfile>:p:h:h') . '/syntax/org.vim'
+function! org_lsp#own_syntax(nr) abort
+  if !getbufvar(a:nr, 'org_lsp_syntax', 0)
+    call org_lsp#reload_syntax(a:nr)
+  endif
+endfunction
+
+" The plugin's syntax for Org loaded in buffer `nr` again, with the code
+" of its blocks; in a window, as syntax is loaded, or when the buffer next
+" shows in one.
+function! org_lsp#reload_syntax(nr) abort
+  let win = bufwinid(a:nr)
+  if getbufvar(a:nr, '&syntax') !=# 'org'
+    return
+  endif
+  call setbufvar(a:nr, 'org_lsp_syntax_stale', win < 0)
+  if win < 0
+    return
+  endif
+  call win_execute(win, ['syntax clear', 'unlet! b:current_syntax', 'source ' . fnameescape(s:syntax_file)])
+  if bufnr() == a:nr
+    call s:src_syntax()
+  endif
+endfunction
+
+" The TODO keywords of a file and how its headlines look
+" (`org-lsp/syntax`), for its syntax to color them before the tokens come:
+" kept in `b:org_lsp_syntax_info`, and the last in `g:org_lsp_syntax_info`
+" for files opened next.
+function! s:syntax(params) abort
+  let info = filter(copy(a:params), 'v:key !=# "uri"')
+  let g:org_lsp_syntax_info = info
+  let nr = bufnr(org_lsp#uri_to_path(a:params.uri))
+  if nr < 0 || !bufloaded(nr) || getbufvar(nr, 'org_lsp_syntax_info', {}) == info
+    return
+  endif
+  call setbufvar(nr, 'org_lsp_syntax_info', info)
+  call org_lsp#reload_syntax(nr)
+endfunction
+
+" Buffers of the plugin's syntax for Org loaded again after a new color
+" scheme, whose colors the groups of keywords and tags with faces of their
+" own are made from.
+function! org_lsp#reload_syntaxes() abort
+  for buffer in getbufinfo({'bufloaded': 1})
+    if getbufvar(buffer.bufnr, 'org_lsp_syntax', 0)
+      call org_lsp#reload_syntax(buffer.bufnr)
+    endif
+  endfor
+endfunction
 
 " Where the code of a file's source, export and inline source blocks is
 " (`org-lsp/codeBlocks`): `blocks` of `{range, language, name, kind}`.
@@ -3056,7 +3459,9 @@ function! s:code_blocks(params) abort
     return
   endif
   call setbufvar(nr, 'org_lsp_code_blocks', get(a:params, 'blocks', []))
-  if bufnr() == nr
+  " Each change brings them: while the buffer is still being changed, the
+  " refresh to come shows them.
+  if bufnr() == nr && !s:waiting && !has_key(s:pending, nr)
     call s:src_syntax()
   endif
 endfunction
@@ -3070,6 +3475,12 @@ endfunction
 " buffer has, newer blocks are on their way.
 function! s:src_syntax() abort
   let blocks = get(b:, 'org_lsp_code_blocks', [])
+  " The same blocks as last made, in the syntax loaded then.
+  let made = [blocks, get(b:, 'org_lsp_syntax_loads', 0), org_lsp#config().src_highlight]
+  if made == get(b:, 'org_lsp_src_made', [])
+    return
+  endif
+  let b:org_lsp_src_made = made
   let groups = get(b:, 'org_lsp_src_groups', [])
   for group in groups
     execute 'silent! syntax clear ' . group
@@ -3080,9 +3491,12 @@ function! s:src_syntax() abort
   endif
   let last = line('$')
   let groups = {}
+  let encoding = s:encoding()
+  " The languages included, checked once each.
+  let included = {}
   for block in blocks
     let lang = get(s:src_syntaxes, block.language, block.language)
-    if type(lang) != v:t_string || lang !~# '^\w\+$' || empty(globpath(&runtimepath, 'syntax/' . lang . '.vim'))
+    if type(lang) != v:t_string || lang !~# '^\w\+$' || !s:has_syntax(lang)
       continue
     endif
     let start = block.range.start
@@ -3092,7 +3506,8 @@ function! s:src_syntax() abort
     endif
     let cluster = 'orgLspSrc_' . lang
     " Vim's syntax for the buffer forgets the file when it is set again.
-    if execute('silent! syntax list @' . cluster) !~# '\<' . cluster . ' cluster='
+    " `syntax list` pads a short name with blanks before `cluster=`.
+    if !has_key(included, cluster) && execute('silent! syntax list @' . cluster) !~# '\<' . cluster . '\s\+cluster='
       let current = get(b:, 'current_syntax', v:null)
       unlet! b:current_syntax
       execute 'silent! syntax include @' . cluster . ' syntax/' . lang . '.vim'
@@ -3102,15 +3517,22 @@ function! s:src_syntax() abort
         let b:current_syntax = current
       endif
     endif
+    let included[cluster] = 1
     let group = 'orgLspSrcCode_' . lang
     let groups[group] = 1
-    let col = s:byte(getline(start.line + 1), start.character)
-    let end_col = s:byte(getline(end.line + 1), end.character)
-    execute printf('syntax region %s start=/\%%%dl\%%%dc/ end=/\%%%dl\%%%dc/ keepend contains=@%s',
+    let col = s:byte_in(encoding, getline(start.line + 1), start.character)
+    let end_col = s:byte_in(encoding, getline(end.line + 1), end.character)
+    " Within the blocks of the plugin's syntax for Org (syntax/org.vim),
+    " whose regions take the whole block.
+    execute printf('syntax region %s start=/\%%%dl\%%%dc/ end=/\%%%dl\%%%dc/ keepend contains=@%s containedin=orgSyntaxRawBlock',
           \ group, start.line + 1, col + 1, end.line + 1, end_col + 1, cluster)
   endfor
-  " The files included sync as suits their language alone.
-  syntax sync fromstart
+  " The files included sync as suits their language alone: Org's sync from
+  " the headline before (syntax/org.vim) again, as a block ends before the
+  " next headline. From the start, a change far in the file takes longer
+  " than 'redrawtime'.
+  syntax sync clear
+  syntax sync match orgSyntaxSync grouphere NONE /^\*\+\s/
   let b:org_lsp_src_groups = keys(groups)
 endfunction
 

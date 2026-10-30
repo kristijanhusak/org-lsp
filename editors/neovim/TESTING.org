@@ -46,6 +46,8 @@ its sections says what it should look like.
 - [ ] Table rules and bars, footnotes (~[fn:1]~), ~<<targets>>~, macros (~{{{x}}}~) and entities (~\alpha~) are colored
 - [ ] A subtree tagged ~:ARCHIVE:~ is shaded
 - [ ] Another color scheme keeps the colors (they follow its groups)
+- [ ] What is typed is colored at once by the plugin's syntax (~syntax/org.vim~): ~** Two <2026-05-19 Tue> *bold*~ shows its stars and title in the colors of level 2, the timestamp and the bold text, the same colors the server's highlighting gives them when it comes
+- [ ] With ~#+TODO: NEXT | GONE~ at the top of the file and ~org_todo_keyword_faces~ giving ~NEXT~ a color, typing ~* NEXT Call~ and ~* GONE Done~ shows at once ~NEXT~ in its color with ~Call~ in the color of level 1, and ~GONE~ as done with ~Done~ in the look of done headlines, as the server colors them; ~* README~ stays in the color of level 1
 
 * Folding and visibility
 
@@ -73,6 +75,7 @@ its sections says what it should look like.
 - [ ] A new TODO heading: ~<Leader>oiT~
 - [ ] A new heading after the subtree, and a TODO one: ~<Leader>oih~, ~<Leader>oit~
 - [ ] Promoting and demoting a heading; its tags stay aligned: ~<<~, ~>>~
+- [ ] With ~org_support_shift_select~ unset, Shift and the arrows on a headline select text, and on a timestamp change it: ~<S-Right>~, ~:Org shift up~
 - [ ] Promoting and demoting a subtree: ~<s~, ~>s~
 - [ ] Moving a subtree up and down past its siblings: ~<Leader>oK~, ~<Leader>oJ~
 - [ ] Inserting an inline task gives 15 stars and an ~END~ line; demoting it changes both; the outline leaves it out, and folding it hides its text and its ~END~ line: ~<Leader>oiI~, ~>>~
@@ -101,7 +104,7 @@ its sections says what it should look like.
 - [ ] The next item from the end of an item's line: ~<S-CR>~
 - [ ] Indenting and outdenting an item; and with its children: ~>>~, ~<<~, ~>s~, ~<s~
 - [ ] Moving an item up and down: ~<Leader>oK~, ~<Leader>oJ~
-- [ ] Cycling the bullet ~-~ → ~+~ → ~1.~ → ~1)~ on an item: ~<S-Right>~, ~<S-Left>~
+- [ ] With ~org_support_shift_select~ set to ~false~: cycling the bullet ~-~ → ~+~ → ~1.~ → ~1)~ on an item: ~<S-Right>~, ~<S-Left>~
 - [ ] Toggling a checkbox: its parent box and the ~[1/3]~ cookie follow: ~<C-Space>~
 - [ ] On a list numbered 1, 3, 2, the same command renumbers and repairs it: ~<C-Space>~
 - [ ] Sorting a list's items alphabetically: ~<Leader>o^~
@@ -122,7 +125,7 @@ its sections says what it should look like.
 - [ ] The parent's ~[1/2]~ cookie is recounted: ~cit~
 - [ ] A ~#+TODO: A B | C~ line in the file is used instead of the settings: ~cit~
 - [ ] With ~#+TODO: TODO | DONE~ and ~#+TODO: REPORT BUG | FIXED~, changing the state without keys goes ~BUG~, ~FIXED~, none, then back to ~REPORT~: ~cit~
-- [ ] Switching to the next and previous keyword set says ~Keyword-Set 2/2: REPORT BUG FIXED~: ~:Org todo nextset~, ~:Org todo previousset~
+- [ ] With ~org_support_shift_select~ set to ~false~: switching to the next and previous keyword set says ~Keyword-Set 2/2: REPORT BUG FIXED~: ~:Org todo nextset~, ~:Org todo previousset~
 - [ ] With ~org_todo_keyword_faces = { WAIT = ":foreground orange :weight bold" }~, ~WAIT~ shows in bold orange, in the file and in the agenda
 
 * Priorities
@@ -148,7 +151,7 @@ its sections says what it should look like.
 - [ ] In column view, moving a column, making it narrower and wider, deleting it; moving an entry up and down
 - [ ] With ~org_custom_properties = ["ID"]~, the command hides the ~:ID:~ lines of the property drawers, and run again shows them: ~:Org custom properties toggle~
 - [ ] Setting a property: the name and the value are completed, ~NAME_ALL~'s values offered: ~<Leader>oxp~
-- [ ] On a property line with ~NAME_ALL~, cycling through its values: ~<S-Right>~, ~<S-Left>~
+- [ ] With ~org_support_shift_select~ set to ~false~: on a property line with ~NAME_ALL~, cycling through its values: ~<S-Right>~, ~<S-Left>~
 - [ ] Deleting a property from the entry, and from the whole file: ~:Org property delete~, ~:Org property delete globally~
 - [ ] ~C-c C-c~ in a property drawer asks what to do with the property: ~<C-Space>~
 - [ ] Setting the effort: ~<Leader>oxe~
@@ -327,7 +330,7 @@ its sections says what it should look like.
 - [ ] Inserting and deleting a column and a row: ~>s~, ~<s~, ~<Leader>oTO~, ~<Leader>oTd~
 - [ ] A rule below the row; a rule and a move to the row below: ~<Leader>o-~, ~<Leader>o<CR>~
 - [ ] Blanking the field: ~<Leader>o<Space>~
-- [ ] The shifted cursor keys move the field up, down, left and right (needs Emacs); on a timestamp in a field they change it: ~:Org shift up~, ~:Org shift down~, ~<S-Left>~, ~<S-Right>~
+- [ ] With ~org_support_shift_select~ set to ~false~: the shifted cursor keys move the field up, down, left and right (needs Emacs); on a timestamp in a field they change it: ~:Org shift up~, ~:Org shift down~, ~<S-Left>~, ~<S-Right>~
 - [ ] Copying the field down to the next row, a number incremented (needs Emacs); off a table the key keeps its own meaning: ~<Leader>oD~
 - [ ] The sum of the column and the field's references are shown as messages (needs Emacs): ~<Leader>o+~, ~<Leader>o?~
 - [ ] Creating a table asks for its size (~3x2~; empty for Org's default) (needs Emacs): ~<Leader>oi<Bar>~
@@ -399,6 +402,7 @@ its sections says what it should look like.
 
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
 - [ ] With ~#+STARTUP: hidestars~ only the last star shows
+- [ ] In a file without ~#+STARTUP: indent~, the command shows the text indented by level and says ~Org-Indent mode enabled in current buffer~; run again, it shows the file as it was: ~:Org indent mode~
 - [ ] In a file with ~#+STARTUP: indent~, in a narrow window that wraps lines, a long headline goes on under its title and a long item under its text
 - [ ] With ~org_adapt_indentation = true~, a new line below a headline is indented
 - [ ] Re-indenting a selection indents it as Org does: ~=~
@@ -422,6 +426,7 @@ its sections says what it should look like.
 - [ ] A block from the structure templates (~s~ for a source block) (needs Emacs): ~<Leader>oib~
 - [ ] Emphasis markers around the cursor, ~*~ for bold (needs Emacs): ~<Leader>oie~
 - [ ] A drawer, its name completed from the file's (needs Emacs): ~<Leader>oiD~
+- [ ] Showing the version of the server says ~org-lsp version 0.1.0-~ and the commit the server that runs was built from, as ~org-lsp --version~ says: ~:Org version~
 
 * Timers
 

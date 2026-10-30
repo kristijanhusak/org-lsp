@@ -148,11 +148,21 @@ pub fn agenda_configured(
         editor.insert("config_file".to_string(), serde_json::Value::Bool(false));
     }
     let loaded = crate::config::load(Some(serde_json::Value::Object(editor)), env);
-    rest.extend(["--options".to_string(), loaded.merged.to_string()]);
+    rest.extend(["--options".to_string(), loaded.readable.to_string()]);
     if !named_files {
         let files = crate::mcp::agenda_paths(&loaded.options, folder);
         if files.is_empty() {
-            return Err("no files given, and no org_agenda_files in the configuration file".to_string());
+            let missing = crate::mcp::missing_agenda_files(&loaded.options, folder);
+            return Err(match &missing[..] {
+                _ if loaded.options.agenda_files.is_empty() => {
+                    "no files given, and no org_agenda_files in the configuration file".to_string()
+                }
+                [] => "no files given, and org_agenda_files names no Org file".to_string(),
+                _ => {
+                    let missing: Vec<String> = missing.iter().map(|path| path.display().to_string()).collect();
+                    format!("no files given, and the agenda files are not there: {}", missing.join(", "))
+                }
+            });
         }
         rest.extend(files.iter().map(|path| path.display().to_string()));
     }
@@ -529,6 +539,53 @@ mod tests {
         assert!(run(&["--no-config", "--view", "todo"]).is_err());
         let named = run(&["--no-config", "--view", "todo", &file.display().to_string()]).unwrap();
         assert!(!named.contains("Call") && !named.contains("Write"), "{named}");
+        std::fs::remove_dir_all(&folder).unwrap();
+    }
+
+    #[test]
+    fn a_malformed_option_is_left_out_alone() {
+        let folder = std::env::temp_dir().join(format!("org-lsp-cli-malformed-{}", std::process::id()));
+        std::fs::create_dir_all(&folder).unwrap();
+        let file = folder.join("a.org");
+        std::fs::write(&file, "* TODO One\n* NEXT Two\n").unwrap();
+        let config = folder.join("config.toml");
+        for malformed in ["org_log_done = 5", "org_agenda_span = {}", "org_use_tag_inheritance = 5"] {
+            std::fs::write(
+                &config,
+                format!(
+                    "org_agenda_files = [\"{}\"]\norg_todo_keywords = [\"TODO\", \"NEXT\", \"|\", \"DONE\"]\n{malformed}\n",
+                    file.display()
+                ),
+            )
+            .unwrap();
+            let env = |name: &str| (name == "ORG_LSP_CONFIG").then(|| config.display().to_string());
+            let arguments = ["--view".to_string(), "todo".to_string()];
+            let (todo, problems) = agenda_configured(&arguments, &env, None).unwrap();
+            assert!(todo.contains("TODO One") && todo.contains("NEXT Two"), "{malformed}: {todo}");
+            assert!(problems.iter().any(|problem| problem.contains("malformed")), "{problems:?}");
+        }
+        std::fs::remove_dir_all(&folder).unwrap();
+    }
+
+    #[test]
+    fn says_why_there_are_no_agenda_files() {
+        let folder = std::env::temp_dir().join(format!("org-lsp-cli-missing-{}", std::process::id()));
+        std::fs::create_dir_all(&folder).unwrap();
+        // `ORG_LSP_CONFIG` names a file that is not there.
+        let missing = folder.join("nothere.toml");
+        let env = |name: &str| (name == "ORG_LSP_CONFIG").then(|| missing.display().to_string());
+        let org = folder.join("a.org");
+        std::fs::write(&org, "* TODO One\n").unwrap();
+        let arguments = ["--view".to_string(), "todo".to_string(), org.display().to_string()];
+        let (_, problems) = agenda_configured(&arguments, &env, None).unwrap();
+        assert!(problems.iter().any(|problem| problem.contains("nothere.toml")), "{problems:?}");
+        // The agenda files are set, and name nothing that is there.
+        let config = folder.join("config.toml");
+        std::fs::write(&config, "org_agenda_files = [\"gone.org\"]\n").unwrap();
+        let env = |name: &str| (name == "ORG_LSP_CONFIG").then(|| config.display().to_string());
+        let error = agenda_configured(&arguments[..2], &env, Some(&folder)).unwrap_err();
+        let gone = folder.join("gone.org");
+        assert_eq!(error, format!("no files given, and the agenda files are not there: {}", gone.display()));
         std::fs::remove_dir_all(&folder).unwrap();
     }
 

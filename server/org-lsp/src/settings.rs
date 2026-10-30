@@ -295,6 +295,18 @@ pub const SETTINGS: &[Setting] = &[
         )
     },
     setting(
+        "org_support_shift_select",
+        r#""always", true, false"#,
+        r#""always""#,
+        "org-support-shift-select",
+        "Where Shift and the arrows select text, as they do in the editor, instead of running Org's commands \
+         (`S-<left>` and its kin, `C-S-<left>` and `C-S-<right>`): `always` everywhere but on a timestamp and \
+         the `#+BEGIN:` line of a clock table; `true` everywhere but there, on headlines, list items' bullets, \
+         property lines and tables; `false` nowhere, Org's commands wherever they apply. With text selected, \
+         `always` and `true` extend it. Emacs's default is `false`; org-lsp's is `always`, as editors select \
+         with these keys.",
+    ),
+    setting(
         "org_treat_S_cursor_todo_selection_as_state_change",
         "boolean",
         "true",
@@ -2149,8 +2161,8 @@ pub const SETTINGS: &[Setting] = &[
         "false",
         "org-startup-indented",
         "Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up \
-         with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It \
-         turns `org_adapt_indentation` off in such files, unless that is `\"headline-data\"`. The lines a long line \
+         with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file, and \
+         `org.indent.mode` turns it on and off. It turns `org_adapt_indentation` off in such files, unless that is `\"headline-data\"`. The lines a long line \
          wraps into go on under its text, a headline's title or an item's text (`wrap-prefix`) in Neovim and Vim, \
          without the prefix; under the prefix in Zed and Helix.",
     ),
@@ -3800,6 +3812,32 @@ pub const SETTINGS: &[Setting] = &[
         )
     },
     Setting {
+        integration: true,
+        ..setting(
+            "show_document_notification",
+            "boolean",
+            "false",
+            "",
+            "Whether the server asks the client to show a document with the notification \
+             `org-lsp/showDocument`, `{ id, params }` with `window/showDocument`'s params, which the client \
+             answers with `org-lsp/showDocumentResult`, `{ id, result }`, rather than with \
+             `window/showDocument`: the Vim plugin sets it for coc.nvim, which shows those documents on its own \
+             and not as `win_split_mode` says.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
+            "refusal_results",
+            "boolean",
+            "false",
+            "",
+            "Whether a command that does not apply at the cursor answers `{ notApplicable: true, message }` \
+             rather than an error whose data says `notApplicable`, so that the key keeps its own meaning: the \
+             Vim plugin sets it for coc.nvim, which passes on only an error's message.",
+        )
+    },
+    Setting {
         default: None,
         unset: "from the client's capabilities",
         integration: true,
@@ -3898,6 +3936,18 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
+            "syntax",
+            "boolean",
+            "false",
+            "",
+            "Whether the client's own syntax colors headlines before the semantic tokens come, with the \
+             TODO keywords of each file and the looks of headlines the server sends (`org-lsp/syntax`), \
+             as a client announcing `experimental.orgSyntax` does: for the Vim plugin.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
             "run_command",
             "boolean",
             "false",
@@ -3906,6 +3956,18 @@ pub const SETTINGS: &[Setting] = &[
              `org-protocol` URL starts), as one it runs from a key, as a client announcing \
              `experimental.orgRunCommand` does: for the Vim plugin and the Sublime Text package. Without it, \
              the server runs the command itself, and asks what it asks with `window/showMessageRequest`.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
+            "display",
+            "boolean",
+            "false",
+            "",
+            "Whether the client shows what stands in for hidden text, which the server sends (`org-lsp/display`: \
+             entities, sub- and superscripts, the bullets of `org_bullets_mode`, shrunk table fields), as a client \
+             announcing `experimental.orgDisplay` does: for the Vim plugin. Without it, they are inlay hints.",
         )
     },
     Setting {
@@ -4053,6 +4115,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("org_special_ctrl_k", BOOLEAN),
     ("org_special_ctrl_o", BOOLEAN),
+    ("org_support_shift_select", r#"{ "enum": ["always", true, false] }"#),
     ("org_treat_S_cursor_todo_selection_as_state_change", BOOLEAN),
     ("org_treat_insert_todo_heading_as_state_change", BOOLEAN),
     ("org_edit_timestamp_down_means_later", BOOLEAN),
@@ -4674,6 +4737,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("virtual_documents", BOOLEAN),
     ("show_document", BOOLEAN),
+    ("show_document_notification", BOOLEAN),
+    ("refusal_results", BOOLEAN),
     ("create_files", BOOLEAN),
     ("org_client", BOOLEAN),
     ("message_prompts", BOOLEAN),
@@ -4681,8 +4746,10 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("message_notifications", BOOLEAN),
     ("line_highlights", BOOLEAN),
     ("code_blocks", BOOLEAN),
+    ("syntax", BOOLEAN),
     ("run_command", BOOLEAN),
     ("hidden_lines", BOOLEAN),
+    ("display", BOOLEAN),
     ("images", BOOLEAN),
     ("view_changed", BOOLEAN),
     ("date_prompt", BOOLEAN),

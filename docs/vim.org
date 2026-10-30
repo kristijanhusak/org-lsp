@@ -2,7 +2,7 @@
 #+options: ^:{} toc:nil
 
 The Vim plugin (~editors/vim~) runs Org through the server on top of an
-LSP client: [[https://github.com/yegappan/lsp][yegappan/lsp]], [[https://github.com/prabirshrestha/vim-lsp][vim-lsp]], [[https://github.com/neoclide/coc.nvim][coc.nvim]] or [[https://github.com/dense-analysis/ale][ALE]]. It needs Vim
+LSP client: [[https://github.com/yegappan/lsp][yegappan/lsp]], [[https://github.com/neoclide/coc.nvim][coc.nvim]], [[https://github.com/prabirshrestha/vim-lsp][vim-lsp]] or [[https://github.com/dense-analysis/ale][ALE]]. It needs Vim
 9.0.1485 or newer.
 
 The client starts the server and keeps it up to date with the buffers; the
@@ -11,12 +11,31 @@ commands with the cursor position and asks what they ask for, shows the
 agenda and capture buffers, highlights with the server's tokens (as text
 properties), folds with its folding ranges, and shows the clock.
 
+* Which client
+
+From the one that works best with org-lsp to the one that works least
+well (~client = 'auto'~ takes them in this order):
+
+- [[https://github.com/yegappan/lsp][yegappan/lsp]] :: Everything works, with the least glue: the plugin
+  talks to the server on the client's own channel.
+- [[https://github.com/neoclide/coc.nvim][coc.nvim]] :: Everything works, as with yegappan/lsp: the server tells
+  the plugin of the documents to show, rather than coc.nvim, so they open
+  as ~win_split_mode~ says. One difference is left: a file an edit is for
+  that is not loaded opens as ~workspace.openResourceCommand~ says (see
+  [[*What differs from Neovim][What differs from Neovim]]). It needs Node.js.
+- [[https://github.com/prabirshrestha/vim-lsp][vim-lsp]] :: Everything works too, but inlay hints (the time clocked,
+  the ~…~ of shrunk columns) come again only when the cursor moves.
+- [[https://github.com/dense-analysis/ale][ALE]] :: Works, but it has no inlay hints (the time clocked, the ~…~
+  of shrunk columns), does not apply the server's edits itself (the plugin
+  does), and one server serves the whole session, started for the
+  directory of the first Org file.
+
 * Installing
 
 With [[https://github.com/junegunn/vim-plug][vim-plug]]:
 
 #+begin_src vim
-Plug 'yegappan/lsp'   " or vim-lsp, coc.nvim, ALE
+Plug 'yegappan/lsp'   " or coc.nvim, vim-lsp, ALE: see Which client
 Plug 'kristijanhusak/org-lsp', { 'rtp': 'editors/vim', 'do': ':OrgLspDownload' }
 #+end_src
 
@@ -36,11 +55,24 @@ CLI (~gh~) when it is installed and logged in.
 To build the server instead (with [[https://rustup.rs][cargo]]), set
 ~'do': 'cargo build --release -p org-lsp'~. The plugin takes the server
 ~cmd~ names, else a build in its checkout (~target/release~), ~org-lsp~ on
-PATH, or the downloaded one.
+PATH, or the downloaded one. ~:Org version~ says which server runs, with
+the commit it was built from (~org-lsp version 0.1.0-f7e7b68~; ~-dev~ after
+it for a server built by hand, not by the release workflow).
 
 The plugin finds the client that is installed and registers the server
 with it. Leave the client's own semantic highlighting and folding off for
 Org files (they are off by default in all four): the plugin does both.
+
+The plugin's syntax for Org (=syntax/org.vim=) colors what a pattern can
+tell, as the server does and in the same colors: headline stars and titles
+by level, timestamps, planning and clock lines, links, emphasis, code,
+lists, tables, drawers, blocks, keywords and comments. TODO keywords and
+the headlines they start, keywords and tags with faces of their own
+(~org_todo_keyword_faces~, ~org_tag_faces~) and the options of how
+headlines look it colors as the server tells it for each file; before it
+has, from the file's ~#+TODO:~ lines. It shows what you type before the
+server has answered. What only the server can tell (priorities, entities,
+LaTeX, what other options change) waits for it. It needs ~:syntax on~.
 
 To try it without touching your own configuration,
 [[file:../editors/vim/minimal.vim][editors/vim/minimal.vim]] is a vimrc that puts vim-plug and yegappan/lsp in
@@ -96,21 +128,21 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
   when it says they changed.
 - Column view covers each headline with a popup, and puts its header in
   the window's status line rather than above the text.
-- Nothing is concealed: Vim cannot hide text that text properties mark, so
-  link brackets and emphasis markers show.
-- With coc.nvim, the documents the server asks to show open where coc.nvim
-  opens them (~coc.preferences.jumpCommand~), not as ~win_split_mode~ and
-  ~win_split_size~ say, but for the agenda and the date prompt, which the
-  plugin then moves to a window of their own. A file an edit is for that
-  is not loaded opens as ~workspace.openResourceCommand~ says, in a tab of
-  its own unless that is set (~""~ loads it without showing it, as the
-  other clients do). Since coc.nvim passes on only an error's message, a
-  key that keeps its own meaning (~<C-a>~ off a timestamp) falls back to it
-  whenever the server refuses. A capture buffer coc.nvim shows starts in
-  Normal mode (the plugin cannot start Insert mode there): ~A~ or ~i~ to
-  type.
+- What stands in for hidden text (a bullet, an entity's character, a
+  custom time) is text of its own before the hidden text, and a line with
+  a long link wraps as if the hidden target took room: Vim counts
+  concealed text when it wraps.
+- With coc.nvim, a file an edit is for that is not loaded (the target of
+  a refile or a capture) opens as ~workspace.openResourceCommand~ says, in
+  a tab of its own unless that is set (~""~ loads it without showing it,
+  as the other clients do). coc.nvim then says
+  ~Use ':wa' to save changes …~; with the command's message, that is more
+  than a narrow command line holds, and Vim waits for Enter
+  (~"coc.preferences.messageLevel": "warning"~ keeps coc.nvim's to itself).
 - With ALE, one server serves the session, started for the directory of
-  the first Org file.
+  the first Org file. ALE shows the hover where the cursor rests in the
+  command line (~g:ale_hover_cursor~): in the agenda, the entry's headline,
+  which takes the place of the command's message after ~'updatetime'~.
 
 * What works
 
@@ -118,14 +150,14 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
 
 | Feature | Parity | Vim | What does not work, and why |
 |---+---+---+---|
-| [[file:parity.org::#highlighting][Highlighting]] | 100% | ❓ | Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties. A headline's line colored to the edge (~org_fontify_whole_heading_line~) is a sign without text, which shows the sign column. |
+| [[file:parity.org::#highlighting][Highlighting]] | 100% | ❓ | A headline's line colored to the edge (~org_fontify_whole_heading_line~) is a sign without text, which shows the sign column. A line with a long link wraps as if the link's hidden target took room: Vim counts concealed text when it wraps. |
 | [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 91% | ❓ | Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline's own text that Vim's fold levels do not make. A closed fold's line is not highlighted: Vim draws it in one color. ~<Tab>~ changes the level of a new entry in Normal mode; in Insert mode it is a tab. |
 | [[file:parity.org::#headings-and-structure][Headings and structure]] | 96% | ✅ |  |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 93% | ✅ |  |
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ |  |
 | [[file:parity.org::#priorities][Priorities]] | 100% | ✅ |  |
 | [[file:parity.org::#tags][Tags]] | 88% | ✅ |  |
-| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% | ❓ | Column view's header is in the window's status line, shown when the window has one (~laststatus~). Custom properties are not hidden (~org.custom.properties.toggle~): Vim cannot hide a line, a closed fold still shows a line of its own, and text with text properties is not concealed. |
+| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% | ❓ | Column view's header is in the window's status line, shown when the window has one (~laststatus~). Custom properties are not hidden (~org.custom.properties.toggle~): Vim cannot hide a line, a closed fold still shows a line of its own, and concealing a line's text leaves the line, empty. |
 | [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ✅ |  |
 | [[file:parity.org::#agenda][Agenda]] | 97% | ✅ |  |
 | [[file:parity.org::#clocking][Clocking]] | 100% | ✅ |  |
@@ -136,7 +168,7 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
 | [[file:parity.org::#links][Links]] | 96% | ✅ |  |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |
-| [[file:parity.org::#tables][Tables]] | 100% | ❓ | A shrunk column shows its whole text and ~…~: Vim cannot hide text that has text properties. |
+| [[file:parity.org::#tables][Tables]] | 100% | ✅ |  |
 | [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
 | [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ |  |
 | [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ |  |

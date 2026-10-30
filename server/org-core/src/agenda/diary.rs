@@ -373,18 +373,24 @@ impl Eq for Outside {}
 /// `org-diary-sexp-entry`: what the diary sexp `sexp` (with its `(` and
 /// `)`) with the text `entry` gives on `day`: none when it does not apply,
 /// else the lines it shows. One this evaluator cannot read goes to
-/// `outside`, when there is one, with its `place`; without it, it does not
-/// apply.
-pub fn entries_with(sexp: &str, entry: &str, day: Day, outside: &Outside, place: &Place) -> Option<Vec<String>> {
+/// `outside`, when there is one, with its `place`, worked out only then;
+/// without it, it does not apply.
+pub fn entries_with(
+    sexp: &str,
+    entry: &str,
+    day: Day,
+    outside: &Outside,
+    place: impl FnOnce() -> Place,
+) -> Option<Vec<String>> {
     match evaluated(sexp, entry, day) {
         Some(result) => result,
-        None => outside.0.as_ref().and_then(|outside| outside(sexp, entry, day, place)),
+        None => outside.0.as_ref().and_then(|outside| outside(sexp, entry, day, &place())),
     }
 }
 
 /// [`entries_with`], with nothing outside.
 pub fn entries(sexp: &str, entry: &str, day: Day) -> Option<Vec<String>> {
-    entries_with(sexp, entry, day, &Outside::default(), &Place::default())
+    entries_with(sexp, entry, day, &Outside::default(), Place::default)
 }
 
 /// What this evaluator makes of the sexp: none when it cannot read it.

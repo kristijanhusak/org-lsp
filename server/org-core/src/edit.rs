@@ -168,13 +168,65 @@ pub fn document_priorities(parse: &Parse) -> Option<Priorities> {
     Priorities::from_keyword(keyword_values(&parse.syntax(), "PRIORITIES").first()?)
 }
 
-/// Whether `offset` is on a headline (`org-at-heading-p`).
+/// `org-support-shift-select`: where the shifted cursor keys select text,
+/// as the editor's own keys do, instead of acting on Org's text.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum ShiftSelect {
+    /// `nil`: Org's commands wherever they apply.
+    #[default]
+    Never,
+    /// `t`: selection outside headlines, items' bullets, property lines,
+    /// clock tables and tables, and of a selection already there.
+    Outside,
+    /// `always`: selection but on timestamps and clock tables.
+    Always,
+}
+
+/// Whether the shifted cursor key `direction` at `offset` is Org's with
+/// `select`, as `org-shiftup` and its kin go through the places it acts
+/// on: a timestamp always; a headline (its priority only with
+/// `priority_commands`) and a property line unless `always`; a list item
+/// anywhere on it without shift selection, with `t` on its bullet (and
+/// only to cycle the bullets). Clock tables and tables are the caller's,
+/// as is the selection, which comes first.
+pub fn shift_acts(
+    text: &str,
+    offset: usize,
+    direction: Direction,
+    select: ShiftSelect,
+    priority_commands: bool,
+) -> bool {
+    let sideways = matches!(direction, Direction::Left | Direction::Right);
+    if Stamp::around(text, offset).is_some() {
+        return true;
+    }
+    if select == ShiftSelect::Always {
+        return false;
+    }
+    if on_headline(text, offset) {
+        return sideways || priority_commands;
+    }
+    let item = match select {
+        ShiftSelect::Never => crate::list::at_item(text, offset),
+        _ => sideways && crate::list::at_item_bullet(text, offset),
+    };
+    item || (sideways && properties::property_at(text, offset).is_some())
+}
+
+/// Whether `org-shiftcontrolright` and `org-shiftcontrolleft` (the next
+/// or previous set of TODO keywords) are Org's at `offset` with `select`:
+/// on a headline, unless `always`. The selection is the caller's.
+pub fn shift_control_acts(text: &str, offset: usize, select: ShiftSelect) -> bool {
+    select != ShiftSelect::Always && on_headline(text, offset)
+}
+
 /// Whether Org's shifted cursor keys act on a list item at `offset`: on
 /// the line of one, with no timestamp or headline before it.
 pub fn shifts_item(text: &str, offset: usize) -> bool {
     Stamp::around(text, offset).is_none() && !on_headline(text, offset) && crate::list::at_item(text, offset)
 }
 
+/// Whether `offset` is on a headline (`org-at-heading-p`).
 fn on_headline(text: &str, offset: usize) -> bool {
     let start = text[..offset].rfind('\n').map_or(0, |index| index + 1);
     headline_level(text[start..].split('\n').next().unwrap_or("")).is_some()
@@ -222,7 +274,14 @@ pub fn run(
     while !text.is_char_boundary(offset) {
         offset -= 1;
     }
-    let steps = |forward: bool| call.count.unwrap_or(1) * if forward { 1 } else { -1 };
+    let steps = |forward: bool| {
+        let count = call.count.unwrap_or(1);
+        if forward {
+            count
+        } else {
+            count.saturating_neg()
+        }
+    };
     let unplaced = |text: String| Outcome { text, cursor: None, note: None, message: None, before_repeat: None };
     let placed = |changed: stamp::Changed| Outcome {
         text: changed.text,
@@ -495,7 +554,7 @@ pub fn run(
             let range = stamp::date_range_at(text, offset);
             let mut days = steps(*forward);
             if *unit == Unit::Minute {
-                days *= rounding.max(1);
+                days = days.saturating_mul(rounding.max(1));
             }
             if settings.move_date_from_past_to_today && days == 1 && range.is_none() && *unit == Unit::Day {
                 // `org-agenda-move-date-from-past-immediately-to-today`: one
@@ -591,5 +650,88 @@ pub fn run(
             };
             run(&next, text, parse, offset, call, settings)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::date::Date;
+
+    /// A count at either end of what a client can send moves a timestamp
+    /// no further than `encode-time` can, and says so as Emacs does; a
+    /// large count it can represent moves it as far.
+    #[test]
+    fn counts_past_any_date_are_refused() {
+        let text = "* Task\n<2026-10-23 Fri 10:00 +1d -2d>--<2026-10-24 Sat 10:00-11:00>\n";
+        let parse = org_syntax::parse(text, &Default::default());
+        let now = DateTime::new(Date::new(2026, 10, 23), 10, 0);
+        let settings = Settings::default();
+        let run = |command: &Command, at: &str, count: i64| {
+            let call = Call { count: Some(count), repeated: false, now, note: None, skip_note: true, time_only: false };
+            run(command, text, &parse, text.find(at).unwrap() + 1, &call, &settings)
+        };
+        let not_representable = Err(Refusal::Failed("Specified time is not representable".to_string()));
+        for count in [i64::MAX, i64::MIN, i64::MIN + 1, 1 << 40, -(1 << 40)] {
+            for forward in [true, false] {
+                for at in ["2026-10-23", "10-23", "23 ", "10:00", ":00", "Sat"] {
+                    let moved = run(&Command::Timestamp { forward }, at, count).map(|outcome| outcome.text);
+                    assert_eq!(moved, not_representable, "{count} {forward} {at}");
+                    let moved = run(&Command::Date { forward }, at, count).map(|outcome| outcome.text);
+                    assert_eq!(moved, not_representable, "{count} {forward} {at}");
+                }
+                for unit in [Unit::Year, Unit::Month, Unit::Day, Unit::Hour, Unit::Minute] {
+                    let moved = run(&Command::AgendaDate { forward, unit }, "2026-10-23", count);
+                    assert!(moved.is_err(), "{count} {forward} {unit:?}");
+                }
+                // The repeater, the warning and the end of the range.
+                for at in ["+1d", "1d -", "-2d", "d>", "-11:00", "1:00>"] {
+                    let _ = run(&Command::Timestamp { forward }, at, count);
+                }
+            }
+        }
+        // As Emacs moves `<2026-10-23 Fri 10:00>` by 10⁹ of each.
+        let moved = |at: &str| run(&Command::Timestamp { forward: true }, at, 1_000_000_000).unwrap().text;
+        assert!(moved("2026-10-23").contains("<1000002026-10-23 Fri 10:00"), "{}", moved("2026-10-23"));
+        assert!(moved("23 ").contains("<2739933-10-26 Thu 10:00"), "{}", moved("23 "));
+        assert!(moved(":00").contains("<3928-02-19 Sun 20:40"), "{}", moved(":00"));
+    }
+
+    /// `org-shiftright` and its kin with each `org-support-shift-select`:
+    /// where Org's command runs and where the editor selects.
+    #[test]
+    fn shift_select_leaves_the_keys_to_the_editor() {
+        use Direction::{Down, Left, Right, Up};
+        use ShiftSelect::{Always, Never, Outside};
+        let text = "* TODO Task\n:PROPERTIES:\n:Effort: 1:00\n:END:\n- item <2026-10-30 Fri>\nplain text\n";
+        let at = |needle: &str| text.find(needle).unwrap();
+        let acts =
+            |needle: &str, direction, select, priority| shift_acts(text, at(needle), direction, select, priority);
+        for select in [Never, Outside, Always] {
+            assert!(acts("2026", Left, select, true), "{select:?}");
+            assert!(acts("Fri", Up, select, true), "{select:?}");
+            assert!(!acts("plain", Right, select, true), "{select:?}");
+        }
+        assert!(acts("TODO", Right, Never, true));
+        assert!(acts("TODO", Right, Outside, true));
+        assert!(!acts("TODO", Right, Always, true));
+        assert!(acts("Task", Up, Outside, true));
+        assert!(!acts("Task", Up, Outside, false));
+        assert!(acts("Effort", Left, Outside, true));
+        assert!(!acts("Effort", Up, Outside, true));
+        assert!(!acts("Effort", Left, Always, true));
+        // An item: anywhere on it without shift selection, with `t` on
+        // its bullet and only sideways.
+        assert!(acts("item", Down, Never, true));
+        assert!(acts("item", Right, Never, true));
+        assert!(!acts("item", Right, Outside, true));
+        assert!(acts("- item", Right, Outside, true));
+        assert!(!acts("- item", Up, Outside, true));
+        assert!(!acts("- item", Right, Always, true));
+        assert!(shift_control_acts(text, at("Task"), Never));
+        assert!(shift_control_acts(text, at("Task"), Outside));
+        assert!(!shift_control_acts(text, at("Task"), Always));
+        assert!(!shift_control_acts(text, at("plain"), Outside));
+        assert!(!shift_control_acts(text, at("plain"), Never));
     }
 }

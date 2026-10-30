@@ -39,7 +39,6 @@ its sections says what it should look like.
 
 *Partly:* Zed folds with its own folding: Org's cycling and sparse trees need folds an extension can set, which Zed does not offer.
 
-- [ ] On a headline, cycling goes folded → children → subtree
 - [ ] Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it: ~ctrl-x n s~
 - [ ] Widening in the narrowed file writes it back and closes it (~C-c '~ there does the same): ~ctrl-x n w~
 - [ ] Zed's own folds open and close on headlines, drawers and blocks
@@ -97,7 +96,10 @@ Not in Zed:
 - [ ] The parent's ~[1/2]~ cookie is recounted: ~ctrl-c ctrl-t~
 - [ ] A ~#+TODO: A B | C~ line in the file is used instead of the settings: ~ctrl-c ctrl-t~
 - [ ] With ~#+TODO: TODO | DONE~ and ~#+TODO: REPORT BUG | FIXED~, changing the state without keys goes ~BUG~, ~FIXED~, none, then back to ~REPORT~: ~ctrl-c ctrl-t~
-- [ ] Switching to the next and previous keyword set says ~Keyword-Set 2/2: REPORT BUG FIXED~: ~ctrl-shift-right~, ~ctrl-shift-left~
+
+Not in Zed:
+
+- With ~org_support_shift_select~ set to ~false~: switching to the next and previous keyword set says ~Keyword-Set 2/2: REPORT BUG FIXED~: /Switch to the next TODO keyword set/, /Switch to the previous TODO keyword set/ are not among its keys or code actions
 
 * Priorities
 
@@ -124,7 +126,7 @@ Not in Zed:
 
 Not in Zed:
 
-- On a property line with ~NAME_ALL~, cycling through its values: /Move the date a day later, or cycle the TODO state or the list's bullets forward/, /Move the date a day earlier, or cycle the TODO state or the list's bullets backward/ are not among its keys or code actions
+- With ~org_support_shift_select~ set to ~false~: on a property line with ~NAME_ALL~, cycling through its values: /Move the date a day later, or cycle the TODO state or the list's bullets forward/, /Move the date a day earlier, or cycle the TODO state or the list's bullets backward/ are not among its keys or code actions
 - Deleting a property from the entry, and from the whole file: /Delete a property of the entry/, /Delete a property from every entry of the file/ are not among its keys or code actions
 
 * Dates and times
@@ -160,6 +162,7 @@ Not in Zed:
 - [ ] Entry text, log mode, the clock report, archives mode: ~shift-e~ or ~v shift-e~, ~v l~, ~shift-r~ or ~v shift-r~, ~v a~
 - [ ] In the week view, inactive timestamps show after ~[~ with /Display now includes inactive timestamps as well/, marked ~[~, and are gone again when the agenda is rebuilt: ~[~, ~v [~, ~r~
 - [ ] Hovering a line shows its entry: the mouse
+- [ ] Rebuilding the agenda; ~s~ saves the changed files with Zed's own /Save All/: ~r~
 - [ ] An entry changed in its file shows in the agenda when it is rebuilt
 - [ ] Pressing ~f~ many times in a row moves the agenda a week each time, in the editor too
 - [ ] With no Org file open and no server running, the /Org: Agenda for the current week or day/ task opens the Org file last opened and the agenda
@@ -168,7 +171,6 @@ Not in Zed:
 
 Not in Zed:
 
-- Rebuilding the agenda, saving the changed files, quitting: /Save all Org files/ is not among its keys or code actions
 - Adding today's appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs): /Add today's appointments from the agenda files/ is not among its keys or code actions
 
 * Clocking
@@ -385,6 +387,7 @@ Not in Zed:
 *Partly:* Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on, the lines a long line wraps into line up with the prefix and its own indentation, not with a headline's title or an item's text: Zed wraps under a line's leading blanks, inlay hints among them. Numbering the headlines by command (~org-num-mode~) is left out: it has no key in keymap.json and is not among the code actions; ~#+STARTUP: num~ numbers them.
 
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
+- [ ] In a file without ~#+STARTUP: indent~, the command shows the text indented by level and says ~Org-Indent mode enabled in current buffer~; run again, it shows the file as it was: the code action /Indent the text by the level of its headline, or stop indenting it/
 - [ ] In a file with ~#+STARTUP: indent~, with soft wrap on, a long line of text goes on under its text
 - [ ] Re-indenting a selection indents it as Org does: format selections
 - [ ] Formatting the file aligns tables and puts tags in their column
@@ -415,6 +418,10 @@ Not in Zed:
 - [ ] Emphasis markers around the cursor, ~*~ for bold (needs Emacs): ~ctrl-c ctrl-x ctrl-f~
 - [ ] A drawer, its name completed from the file's (needs Emacs): ~ctrl-c ctrl-x d~
 
+Not in Zed:
+
+- Showing the version of the server says ~org-lsp version 0.1.0-~ and the commit the server that runs was built from, as ~org-lsp --version~ says: /Show the version of the server/ is not among its keys or code actions
+
 * Timers
 
 *Partly:* For a countdown's length, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. No timer in the status line: Zed has no place there for an extension's text.
@@ -436,7 +443,6 @@ Not in Zed:
 
 *Partly:* Encrypting and decrypting by command are left out: they have no key in keymap.json and are not among the code actions. Encrypting before saving needs an editor that sends LSP's ~willSaveWaitUntil~.
 
-- [ ] With ~(org-crypt-use-before-save-magic)~ in the Emacs configuration, saving a file encrypts its entries tagged ~crypt~ (needs Emacs and GnuPG)
 
 Not in Zed:
 

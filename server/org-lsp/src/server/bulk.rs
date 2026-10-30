@@ -459,12 +459,14 @@ impl Server {
                 if !matches!(query, Some(views::Query::Agenda { .. } | views::Query::Todo)) {
                     return Err("Can't scatter tasks in this agenda view".into());
                 }
+                // `read-number` with 7 for its default: in the prompt, the
+                // answer empty.
                 let prompt = if context.count.is_some_and(|count| count > 0) {
-                    "Scatter tasks across how many weekdays"
+                    "Scatter tasks across how many weekdays (default 7)"
                 } else {
-                    "Scatter tasks across how many days"
+                    "Scatter tasks across how many days (default 7)"
                 };
-                Ok(ask("text", prompt, "7", Vec::new()))
+                Ok(ask("text", prompt, "", Vec::new()))
             }
             other => Err(Refusal::Failed(format!("Invalid bulk action: {other}"))),
         }
@@ -515,6 +517,7 @@ impl Server {
                 _ => None,
             };
         let days: Option<i64> = match key {
+            "S" if answer.trim().is_empty() => Some(7),
             "S" => Some(answer.trim().parse().map_err(|_| Refusal::Failed("Please enter a number".to_string()))?),
             _ => None,
         };

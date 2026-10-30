@@ -133,9 +133,9 @@ The requests the server answers:
 - ~textDocument/documentHighlight~ :: Never anything: the request tells
   the server where the cursor is, which the agenda's keys want.
 
-~executeCommandProvider~ lists the manifest's commands, and ~org.cycle~ and
-~org.date.preview~, two that are for the editors' code (see their entries in
-[[#commands][Commands]]).
+~executeCommandProvider~ lists the manifest's commands, and ~org.cycle~,
+~org.date.preview~ and ~org.emacs.answer~, three that are for the editors'
+code (see their entries in [[#commands][Commands]]).
 
 The server sends ~textDocument/publishDiagnostics~ for the citation keys of
 a document that no file of its bibliography has (~oc-basic~ shows them with
@@ -162,6 +162,11 @@ The server sends these requests to the client:
   else a new one. The org-roam buffer (a file whose name starts with the
   manifest's ~roamBuffer.prefix~) comes with ~takeFocus: false~: the
   editors show it beside the file it is for, the cursor staying there.
+  With the option ~show_document_notification~ it comes as the
+  notification ~org-lsp/showDocument~ instead, ~{ id, params }~ with
+  these params, which the client answers with the notification
+  ~org-lsp/showDocumentResult~, ~{ id, result }~: for an LSP plugin that
+  shows the documents on its own (coc.nvim).
 - ~workspace/textDocumentContent/refresh~ :: The agenda has new text.
 
 And these notifications:
@@ -187,17 +192,18 @@ And these notifications:
   applied the change. The editor saves those with changes.
 - ~org-lsp/virtualIndent~ :: For a client that announces
   ~experimental.orgVirtualIndent: true~: how the lines of a file with
-  ~org-indent-mode~ (~org_startup_indented~, ~#+STARTUP: indent~) or hidden
-  leading stars (~org_hide_leading_stars~, ~#+STARTUP: hidestars~) show.
+  ~org-indent-mode~ (~org_startup_indented~, ~#+STARTUP: indent~, or
+  ~org.indent.mode~) or hidden leading stars (~org_hide_leading_stars~,
+  ~#+STARTUP: hidestars~) show.
   ~{ "uri", "version", "lines" }~, each line
   ~[line, prefix, wrap, hiddenStars]~: the columns shown before the line
   (~line-prefix~), before the lines it wraps into (~wrap-prefix~), and how
   many of a headline's leading stars show as blanks. Lines with nothing to
   show are left out. Sent after the file opens and after every change while
-  it shows so, and once with no lines when it stops. Only for the version
-  given.
+  it shows so, and once with no lines when it stops: after ~org.indent.mode~
+  too. Only for the version given.
 - ~org-lsp/display~ :: For a client that announces
-  ~experimental.orgDisplay: true~: what shows in place of hidden text, the
+  ~experimental.orgDisplay: true~ (or sets the option ~display~): what shows in place of hidden text, the
   entities and sub- and superscripts of ~org_pretty_entities~ (~α~, ~x²~)
   the bullets of ~org_bullets_mode~, and the shrunk table columns
   (~org-table-shrink~). ~{ "uri", "version", "items" }~, each item ~[line,
@@ -256,6 +262,20 @@ And these notifications:
   not), and once with no blocks when the last goes. Only for the version
   given: for older text than the client has, newer blocks are on their
   way. The server's semantic tokens leave that code out.
+- ~org-lsp/syntax~ :: For a client that announces
+  ~experimental.orgSyntax: true~ (or sets the option ~syntax~): what a
+  syntax of the client's own needs to color headlines as the tokens do,
+  before they come. ~{ "uri", "todo", "done", "todoHeadline",
+  "doneHeadline", "oddLevels", "levelFaces", "cycleLevelFaces",
+  "inlinetask", "faces" }~: the TODO keywords of the file not done and
+  done (its ~#+TODO:~ lines, or ~org_todo_keywords~),
+  ~org_fontify_todo_headline~, ~org_fontify_done_headline~, whether its
+  levels are odd only (~org_odd_levels_only~, ~#+STARTUP: odd~),
+  ~org_n_level_faces~, ~org_cycle_level_faces~, the stars of the shortest
+  inline task or ~null~, and the faces of keywords and tags ~{ "todo": {
+  KEYWORD: face }, "tag": { TAG: face } }~ as ~org-lsp/faces~ gives them.
+  Sent after a file opens and after a change that changes it. The Neovim
+  and Vim plugins keep it with the buffer and load their syntax again.
 - ~org-lsp/folds~ :: ~{ "uri", "open": [FoldingRange…], "close": [FoldingRange…] }~:
   after a journal command has shown a file (~window/showDocument~), the
   headlines' folds to open, then those to close (innermost first), as
@@ -380,6 +400,7 @@ Each option with its type, its default and what it means:
 - ~org_inlinetask_min_level~ :: number, false, ~15~. A headline of at least this many stars (twice as many less one with ~org_odd_levels_only~) is an inline task: a task inside the text of its entry, closed by a line of as many stars and ~END~. It is no part of the outline: it has no subtree, the outline and the motion between headings pass it, and it folds its text up to its ~END~ line. ~false~: there are no inline tasks, as in Emacs before ~org-inlinetask~ is loaded. (~org-inlinetask-min-level~)
 - ~org_inlinetask_show_first_star~ :: boolean, ~false~. The stars of an inline task but the last two are hidden, as ~org_hide_leading_stars~ hides those of a headline; with ~true~ none are. (~org-inlinetask-show-first-star~)
 - ~org_inlinetask_default_state~ :: string, no keyword. The TODO keyword of a new inline task (~org.inlinetask.insert~). (~org-inlinetask-default-state~)
+- ~org_support_shift_select~ :: "always", true, false, ~"always"~. Where Shift and the arrows select text, as they do in the editor, instead of running Org's commands (~S-<left>~ and its kin, ~C-S-<left>~ and ~C-S-<right>~): ~always~ everywhere but on a timestamp and the ~#+BEGIN:~ line of a clock table; ~true~ everywhere but there, on headlines, list items' bullets, property lines and tables; ~false~ nowhere, Org's commands wherever they apply. With text selected, ~always~ and ~true~ extend it. Emacs's default is ~false~; org-lsp's is ~always~, as editors select with these keys. (~org-support-shift-select~)
 - ~org_treat_S_cursor_todo_selection_as_state_change~ :: boolean, ~true~. ~S-<left>~ and ~S-<right>~ on a headline change its TODO state as any change does: logged, and blocked by its dependencies. Off, they change it with nothing logged and nothing in the way. (~org-treat-S-cursor-todo-selection-as-state-change~)
 - ~org_treat_insert_todo_heading_as_state_change~ :: boolean, ~false~. The keyword of a heading ~org.insert.todo.heading~ (M-S-RET) makes is set as a TODO change: logged as the keyword says (a note wanted is a time only), with its tag triggers. (~org-treat-insert-todo-heading-as-state-change~)
 - ~org_edit_timestamp_down_means_later~ :: boolean, ~false~. ~S-<down>~ makes a timestamp later and ~S-<up>~ earlier, the other way round from Org's default. (~org-edit-timestamp-down-means-later~)
@@ -591,7 +612,7 @@ Each option with its type, its default and what it means:
 - ~org_safe_remote_resources~ :: string[], ~[]~. The remote resources considered safe: Emacs regexps matched against a resource's URL and against the ~file://~ URL of the file asking for it. The answers ~!~, ~d~ and ~f~ to the download question add one for the rest of the session. Emacs has them too, for what it downloads. (~org-safe-remote-resources~)
 - ~org_startup_with_link_previews~ :: boolean, ~false~. Show the images of links to image files in place when a file opens, as ~C-c C-x C-v~ (~org.link.preview~) shows them. ~#+STARTUP: inlineimages~ (or ~linkpreviews~) and ~noinlineimages~ decide for a file. Editors that can show images: Neovim from 0.13 (~vim.ui.img~), in a terminal with the Kitty graphics protocol. (~org-startup-with-link-previews~)
 - ~org_startup_with_latex_preview~ :: boolean, ~false~. Show the LaTeX fragments as images when a file opens, as ~C-c C-x C-l~ (~org.latex.preview~) shows them, made by Emacs. ~#+STARTUP: latexpreview~ and ~nolatexpreview~ decide for a file. (~org-startup-with-latex-preview~)
-- ~org_startup_indented~ :: boolean, ~false~. Show files indented by level without changing them (~org-indent-mode~): the text under a headline lines up with its title, and leading stars are hidden. ~#+STARTUP: indent~ and ~noindent~ decide for a file. It turns ~org_adapt_indentation~ off in such files, unless that is ~"headline-data"~. The lines a long line wraps into go on under its text, a headline's title or an item's text (~wrap-prefix~) in Neovim and Vim, without the prefix; under the prefix in Zed and Helix. (~org-startup-indented~)
+- ~org_startup_indented~ :: boolean, ~false~. Show files indented by level without changing them (~org-indent-mode~): the text under a headline lines up with its title, and leading stars are hidden. ~#+STARTUP: indent~ and ~noindent~ decide for a file, and ~org.indent.mode~ turns it on and off. It turns ~org_adapt_indentation~ off in such files, unless that is ~"headline-data"~. The lines a long line wraps into go on under its text, a headline's title or an item's text (~wrap-prefix~) in Neovim and Vim, without the prefix; under the prefix in Zed and Helix. (~org-startup-indented~)
 - ~org_startup_numerated~ :: boolean, ~false~. Number the headlines of files (~org-num-mode~): ~1~, ~1.1~, ~1.2~​… after the stars, shown as inlay hints without changing the file. ~#+STARTUP: num~ and ~nonum~ decide for a file, and ~org.num.mode~ turns it on and off. (~org-startup-numerated~)
 - ~org_num_max_level~ :: integer, every level. The deepest level ~org-num-mode~ numbers. (~org-num-max-level~)
 - ~org_num_skip_commented~ :: boolean, ~false~. ~org-num-mode~ leaves ~COMMENT~ subtrees unnumbered. (~org-num-skip-commented~)
@@ -796,6 +817,8 @@ Each option with its type, its default and what it means:
 - ~org_agenda_custom_commands~ :: object[], ~[]~. Commands of the agenda menu. Each has a ~key~ and a ~description~, and either a ~type~ (~agenda~, ~alltodo~, ~todo~, ~tags~ or ~tags-todo~) with a ~match~ (keywords such as ~NEXT|WAIT~ for ~todo~, a match string such as ~work-home~ or ~PRIORITY="A"~ for ~tags~), or ~blocks~, a list of such views shown one after the other. ~header~ replaces a view's header (empty: none), and ~settings~ holds agenda options for the command or a block (~org_agenda_span~, ~org_agenda_start_day~ …). A command with only a key and a description groups the commands whose keys start with its key. (~org-agenda-custom-commands~)
 - ~virtual_documents~ :: boolean, from the client's capabilities. Whether the client fetches the agenda with ~workspace/textDocumentContent~. A client that announces that capability need not set this.
 - ~show_document~ :: boolean, from the client's capabilities. Whether the client shows the documents the server asks it to show (~window/showDocument~): the agenda, capture buffers, an entry's file. A client that announces that capability need not set this; the Vim plugin does, for the LSP clients that leave the request to it.
+- ~show_document_notification~ :: boolean, ~false~. Whether the server asks the client to show a document with the notification ~org-lsp/showDocument~, ~{ id, params }~ with ~window/showDocument~'s params, which the client answers with ~org-lsp/showDocumentResult~, ~{ id, result }~, rather than with ~window/showDocument~: the Vim plugin sets it for coc.nvim, which shows those documents on its own and not as ~win_split_mode~ says.
+- ~refusal_results~ :: boolean, ~false~. Whether a command that does not apply at the cursor answers ~{ notApplicable: true, message }~ rather than an error whose data says ~notApplicable~, so that the key keeps its own meaning: the Vim plugin sets it for coc.nvim, which passes on only an error's message.
 - ~create_files~ :: boolean, from the client's capabilities. Whether an edit may make the files it is for (a ~create~ resource operation), as a new archive file from the agenda; else the server writes them itself. The Vim plugin turns it off: coc.nvim has the empty file it makes as one empty line, which the edit's text would then end with.
 - ~org_client~ :: boolean, ~false~. The client has org-lsp's editor code: it knows the server's own token types and does what a command's result asks. A client that can announce it does so with ~experimental.orgClient~; the Vim, Sublime Text and Zed plugins set this. Without it, the server sends the standard token types of LSP, which editors color without being told, ~message_prompts~ is on, and so are more code actions when the client shows message requests (~window.showMessage~) or ~message_prompts~ is set.
 - ~message_prompts~ :: boolean, true for a client without org-lsp's editor code (~org_client~). Ask what commands ask for with ~window/showMessageRequest~ (a key, one of a list) or, for text and dates, through a rename at the cursor (~textDocument/rename~, whose new name is the answer), and say what they have to say with ~window/showMessage~, for a client that does nothing with a command's result.
@@ -803,7 +826,9 @@ Each option with its type, its default and what it means:
 - ~message_notifications~ :: boolean, ~false~. Whether the client shows the server's messages (Emacs's, as its echo area shows them) sent as ~org-lsp/message~, ~{ type, message }~ as ~window/showMessage~'s, rather than with ~window/showMessage~, as a client announcing ~experimental.orgMessages~ does: for the Vim plugin, as some of Vim's LSP clients show no messages, or show them after their own name.
 - ~line_highlights~ :: boolean, ~false~. Whether the client highlights lines from edge to edge as the server sends them (~org-lsp/lineHighlights~): the agenda's entry the clock runs on, and headlines with ~org_fontify_whole_heading_line~. As a client announcing ~experimental.orgLineHighlights~ does: for the Vim plugin and the Sublime Text package.
 - ~code_blocks~ :: boolean, ~false~. Whether the client colors the code of source, export and inline source blocks in its language where the server says (~org-lsp/codeBlocks~), as a client announcing ~experimental.orgCodeBlocks~ does: for the Vim plugin.
+- ~syntax~ :: boolean, ~false~. Whether the client's own syntax colors headlines before the semantic tokens come, with the TODO keywords of each file and the looks of headlines the server sends (~org-lsp/syntax~), as a client announcing ~experimental.orgSyntax~ does: for the Vim plugin.
 - ~run_command~ :: boolean, ~false~. Whether the client runs a command when the server asks (~org-lsp/runCommand~: a capture an ~org-protocol~ URL starts), as one it runs from a key, as a client announcing ~experimental.orgRunCommand~ does: for the Vim plugin and the Sublime Text package. Without it, the server runs the command itself, and asks what it asks with ~window/showMessageRequest~.
+- ~display~ :: boolean, ~false~. Whether the client shows what stands in for hidden text, which the server sends (~org-lsp/display~: entities, sub- and superscripts, the bullets of ~org_bullets_mode~, shrunk table fields), as a client announcing ~experimental.orgDisplay~ does: for the Vim plugin. Without it, they are inlay hints.
 - ~hidden_lines~ :: boolean, ~false~. Whether the client hides the lines a command's answer names (~hiddenLines~: the custom properties of ~org.custom.properties.toggle~), as a client announcing ~experimental.orgHiddenLines~ does: for the Sublime Text package.
 - ~images~ :: boolean, ~false~. Whether the client shows images in place of links to image files and of LaTeX fragments (~org.link.preview~, ~org.latex.preview~, ~org-lsp/images~). As a client announcing ~experimental.orgImages~ does: for the Sublime Text package.
 - ~view_changed~ :: boolean, ~false~. Whether the server says when it has written the agenda's or the date prompt's file anew (~org-lsp/viewChanged~ ~{ uri }~), for a client that does not see the file change on disk and reads it again when told: the Vim plugin.
@@ -906,7 +931,9 @@ headline command before the first headline), the error's ~data~ is
 ~{ "notApplicable": true }~. An editor that bound the command to a key with
 a meaning of its own (see ~native~ in [[#the-manifest][the manifest]]) then lets the key do
 that instead: Vim's ~<C-a>~ on a timestamp changes the date and elsewhere
-increments a number.
+increments a number. With the option ~refusal_results~, for an LSP
+plugin that passes on only an error's message (coc.nvim), such a command
+answers with the result ~{ "notApplicable": true, "message" }~ instead.
 
 ** The commands
 
@@ -1903,6 +1930,12 @@ increments a number.
   overlays removed~).
 - ~org.date.preview~ :: Not for users: what an answer to a date prompt
   means; see below. Not in the manifest.
+- ~org.emacs.answer~ :: Not for users: the answer to a question of Emacs's
+  (a yes-or-no question of a command run in Emacs), for a client that
+  does not show it with ~window/showMessageRequest~ (~message_requests~
+  off). Run with no argument, it gives the question as a command's
+  ~input~, a key of ~y~ or ~n~; run with ~{ "input": "y" }~ (or ~"n"~),
+  it answers it. Not in the manifest.
 - ~org.cycle~ :: Not for users: what an editor's own TAB in an Org file does
   before it folds (~org-cycle~). Not in the manifest. On a new, empty
   headline (the cursor at its end, with stars and perhaps a TODO keyword)
@@ -2019,6 +2052,12 @@ An input may say more:
   (/Property [Owner]/); with ~"select": true~ there is none, and a
   completion picked with nothing typed is the answer, as completion
   frameworks take it.
+- ~"complete": "file"~ or ~"directory"~ with kind ~text~: the answer is a
+  file's or a directory's name, which the editor completes as it is typed
+  (Emacs's ~read-file-name~, ~read-directory-name~); ~"value"~ then starts
+  with the directory of the Org file, as the minibuffer starts with
+  ~default-directory~. An editor without file name completion asks as for
+  any text.
 - ~"context": { … }~: fields to send back with the answer. A TODO state
   change that records a note (~@~, or ~org-log-done~ set to ~note~) is not
   made until the note's text comes: it asks with kind ~note~ (/Note for state

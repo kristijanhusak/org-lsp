@@ -235,7 +235,9 @@ function neovimKeys(scopes = SCOPES.map(([scope]) => scope)) {
   sections.push(
     '¹ Where the command does not apply, the key does what it does in any\n' +
       'buffer: ~<C-a>~ off a timestamp still increments the number under the\n' +
-      'cursor, and ~<CR>~ in a source block\'s code is Vim\'s own.',
+      'cursor, ~<S-Right>~ off a timestamp goes a word right (and on a\n' +
+      'headline or an item too, as ~org_support_shift_select~ says), and\n' +
+      '~<CR>~ in a source block\'s code is Vim\'s own.',
   );
   return sections.join('\n\n');
 }
@@ -267,6 +269,34 @@ function vscodeKey(key) {
     .join(' ');
 }
 
+/** What `emacs_full` adds to the default `emacs`: `bindings` as
+ * `[preset, scope, key, command]`, the keys only `emacs_full` binds as rows
+ * of a table, under a heading for `setting`. */
+function emacsFull(bindings, titles, setting) {
+  const kept = new Set(
+    bindings.filter(([preset]) => preset === 'emacs').map(([, scope, key, command]) => [scope, key, command].join('\n')),
+  );
+  const byCommand = new Map();
+  for (const [preset, scope, key, command] of bindings) {
+    if (preset !== 'emacs_full' || kept.has([scope, key, command].join('\n'))) continue;
+    if (!byCommand.has(command)) byCommand.set(command, new Set());
+    byCommand.get(command).add(code(key));
+  }
+  const rows = [...byCommand].map(([command, keys]) => [[...keys].join(', '), code(command), org(titles[command] ?? '')]);
+  return (
+    heading(2, `Emacs, every key (~${setting}~)`) +
+    '\n\n' +
+    "All of Emacs's keys: the keys above, and those the default leaves to\n" +
+    'the editor, listed here. In Org files and capture buffers Shift,\n' +
+    'Alt+Shift and Ctrl+Shift with the arrows are then Org\'s (where\n' +
+    '~org_support_shift_select~ lets them), and so are Ctrl+A, Ctrl+E,\n' +
+    "Ctrl+K, Ctrl+O, Ctrl+X, Ctrl+Y and Ctrl+Enter; Org's ~Ctrl+C~ keys start\n" +
+    'with text selected too, so that ~Ctrl+C~ no longer copies (~Ctrl+Insert~\n' +
+    'still does).\n\n' +
+    table(['Keys', 'Command', 'What it does'], rows)
+  );
+}
+
 /** The VS Code extension's keys, as its package.json binds them, by preset. */
 function vscodeKeys() {
   const where = (when) =>
@@ -296,12 +326,20 @@ function vscodeKeys() {
       const rows = [...byCommand].map(([command, keys]) => [keys.join(', '), code(command), org(titles[command] ?? '')]);
       sections.push(heading(3, title) + '\n\n' + table(['Keys', 'Command', 'What it does'], rows));
     }
+    if (preset === 'emacs') {
+      const bindings = vscode.contributes.keybindings.flatMap((binding) => {
+        const name = /keys == '(\w+)'/.exec(binding.when)?.[1];
+        return name ? [[name, where(binding.when), vscodeKey(binding.key), binding.command]] : [];
+      });
+      sections.push(emacsFull(bindings, titles, '"org-lsp.keys": "emacs_full"'));
+    }
   }
   sections.push(
     '¹ Where the command does not apply, the key does what it does without\n' +
-      'the extension: ~Shift+Up~ off a timestamp or headline selects, ~Tab~ off\n' +
-      'a headline, block or drawer indents, ~Enter~ in a source block\'s code\n' +
-      'is VS Code\'s own.',
+      'the extension: ~Tab~ off a headline, block or drawer indents, ~Enter~\n' +
+      'in a source block\'s code is VS Code\'s own, and with ~emacs_full~\n' +
+      '~Shift+Up~ off a timestamp selects (and on a headline too, as\n' +
+      '~org_support_shift_select~ says).',
   );
   // VSCodeVim's own key bindings, for the keys VS Code cannot bind: those
   // with the leader. They apply in every file.
@@ -392,12 +430,17 @@ function sublimeKeys() {
       const rows = [...byCommand].map(([command, keys]) => [keys.join(', '), code(command), org(titles[command] ?? '')]);
       sections.push(heading(3, title) + '\n\n' + table(['Keys', 'Command', 'What it does'], rows));
     }
+    if (preset === 'emacs') {
+      const bindings = keymap.map((binding) => [context(binding, 'org_lsp.keys'), where(binding), sublimeKey(binding.keys), name(binding)]);
+      sections.push(emacsFull(bindings, titles, '"org_keys": "emacs_full"'));
+    }
   }
   sections.push(
     '¹ Where the command does not apply, the key does what it does without\n' +
-      'the package: ~Shift+Up~ off a timestamp or headline selects, ~Tab~ off\n' +
-      'a headline, block or drawer indents or completes, ~Enter~ makes a new\n' +
-      'line.',
+      'the package: ~Tab~ off a headline, block or drawer indents or\n' +
+      'completes, ~Enter~ makes a new line, and with ~emacs_full~ ~Shift+Up~\n' +
+      'off a timestamp selects (and on a headline too, as\n' +
+      '~org_support_shift_select~ says).',
   );
   const bound = new Set(keymap.map(name));
   const keyless = manifest.commands
@@ -823,7 +866,7 @@ const ACTIONS_IN_FILES = new Set([
   'org.babel.tangle', 'org.table.toggle.column.width', 'org.babel.execute', 'org.edit.special', 'org.archive.subtree',
   'org.archive.sibling', 'org.archive.tag', 'org.todo', 'org.priority', 'org.refile', 'org.schedule', 'org.deadline',
   'org.tags.set', 'org.property.set', 'org.effort.set', 'org.sort', 'org.clock.goto', 'org.clock.in.last',
-  'org.clock.report', 'org.dblock.update', 'org.agenda.list', 'org.agenda.todos', 'org.agenda.dispatch', 'org.capture',
+  'org.clock.report', 'org.indent.mode', 'org.dblock.update', 'org.agenda.list', 'org.agenda.todos', 'org.agenda.dispatch', 'org.capture',
   'org.meta.return', 'org.insert.todo.heading', 'org.insert.heading.after', 'org.insert.todo.heading.after',
   'org.cut.subtree', 'org.copy.subtree', 'org.paste.subtree',
 ]);
@@ -854,7 +897,9 @@ const ACTIONS_IN_AGENDA = new Set([
 /** Whether the command `id` is a code action in `editor` where `scope`
  * says. */
 function isAction(id, scope, editor) {
-  if (scope === 'agenda') return editor !== 'zed' && ACTIONS_IN_AGENDA.has(id);
+  // Nor saving the agenda's files for Helix, which does nothing with the
+  // files a result names (`saves` in `code_actions_at`).
+  if (scope === 'agenda') return editor !== 'zed' && ACTIONS_IN_AGENDA.has(id) && !(editor === 'helix' && id === 'org.agenda.save');
   if (scope === 'capture') return ACTIONS_IN_CAPTURE.has(id);
   return ACTIONS_IN_FILES.has(id);
 }

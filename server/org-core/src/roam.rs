@@ -9,7 +9,7 @@
 //! rows together as SQLite does, which refuses a node whose `ID` is
 //! taken and the rows of a node that is not there.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 
 use org_syntax::{Parse, SyntaxKind, SyntaxNode};
@@ -1054,21 +1054,37 @@ impl Db {
         nodes.sort_by_key(|(_, node)| printed(&node.id));
         let mut lines: Vec<(u64, Candidate)> = Vec::new();
         let processed = process_display_format(template);
+        // The aliases and tags of each node and the title of each file,
+        // gathered once: looked for among all of them for each node, the
+        // completions of many nodes took seconds.
+        fn by_id(rows: &[(String, String)]) -> HashMap<&str, Vec<&str>> {
+            let mut found: HashMap<&str, Vec<&str>> = HashMap::new();
+            for (id, value) in rows {
+                found.entry(id.as_str()).or_default().push(value.as_str());
+            }
+            found
+        }
+        let (all_aliases, all_tags) = (by_id(&self.aliases), by_id(&self.tags));
+        let mut file_titles: HashMap<&str, &str> = HashMap::new();
+        for (name, title) in &self.files {
+            file_titles.entry(name.as_str()).or_insert(title.as_str());
+        }
+        // A file's time, asked once.
+        let mut mtimes: HashMap<&str, u64> = HashMap::new();
         for (file, node) in nodes {
-            let mut aliases: Vec<&str> =
-                self.aliases.iter().filter(|(id, _)| *id == node.id).map(|(_, alias)| alias.as_str()).collect();
+            let mut aliases: Vec<&str> = all_aliases.get(node.id.as_str()).cloned().unwrap_or_default();
             aliases.sort_by_key(|alias| printed(alias));
             aliases.dedup();
-            let mut tags: Vec<&str> =
-                self.tags.iter().filter(|(id, _)| *id == node.id).map(|(_, tag)| tag.as_str()).collect();
+            let mut tags: Vec<&str> = all_tags.get(node.id.as_str()).cloned().unwrap_or_default();
             tags.sort_by_key(|tag| printed(tag));
             tags.dedup();
-            let file_title = self.files.iter().find(|(name, _)| name == file).map_or("", |(_, title)| title.as_str());
+            let file_title = file_titles.get(file.as_str()).copied().unwrap_or("");
             let relative = self.relative(file);
             for title in std::iter::once(node.title.as_str()).chain(aliases.iter().copied()) {
                 let fields = Fields { node, file: relative, file_title, title, aliases: &aliases, tags: &tags };
                 let display = format_entry(&processed, &fields, width)?;
-                lines.push((mtime(file), Candidate { display, id: node.id.clone(), title: title.to_string() }));
+                let time = *mtimes.entry(file.as_str()).or_insert_with(|| mtime(file));
+                lines.push((time, Candidate { display, id: node.id.clone(), title: title.to_string() }));
             }
         }
         // `org-roam-node-read-sort-by-file-mtime`, a stable sort.

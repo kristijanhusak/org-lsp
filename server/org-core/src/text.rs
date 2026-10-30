@@ -15,6 +15,21 @@ pub fn width(text: &str) -> usize {
     text.chars().map(char_width).sum()
 }
 
+/// The widest field a width written in a format pads to, in columns.
+/// Emacs pads to any width it can allocate, and fails past it (`Memory
+/// exhausted`); a width written larger pads to this one here, rather
+/// than ending the server.
+pub const WIDEST: usize = 1 << 16;
+
+/// The field width written as the ASCII digits `digits`: none is 0, and
+/// it is at most [`WIDEST`].
+pub fn field_width(digits: &str) -> usize {
+    digits
+        .bytes()
+        .fold(0usize, |width, digit| width.saturating_mul(10).saturating_add(usize::from(digit - b'0')))
+        .min(WIDEST)
+}
+
 /// `format` with strings only: each `%s`, with a `-` flag, a width and
 /// a precision (`%-10s`, `%.3s`), takes the next of `args`; `%%` is `%`.
 /// Anything else stays as it is.
@@ -51,7 +66,7 @@ pub fn format_strings(format: &str, args: &[&str]) -> String {
         if let Some(precision) = precision {
             value = value.chars().take(precision).collect();
         }
-        let min = after_flag[..width_len].parse::<usize>().unwrap_or(0);
+        let min = field_width(&after_flag[..width_len]);
         out.push_str(&if left { pad_right(&value, min) } else { pad_left(&value, min) });
         rest = after;
     }
@@ -218,22 +233,22 @@ mod line_end_tests {
 /// does not parse (source, example, export, comment and verse blocks).
 pub fn startup_words(text: &str) -> Vec<&str> {
     let mut words = Vec::new();
+    // The line that ends the block the line is in (`#+end_src`), written
+    // once for the block, not for each of its lines.
     let mut inside: Option<String> = None;
     for line in text.lines() {
         let line = line.trim_start_matches([' ', '\t']);
-        let lower = line.get(..8).map(str::to_ascii_lowercase);
         match &inside {
-            Some(name) => {
-                let end = format!("#+end_{name}");
-                if line.get(..end.len()).is_some_and(|start| start.eq_ignore_ascii_case(&end)) {
+            Some(end) => {
+                if line.get(..end.len()).is_some_and(|start| start.eq_ignore_ascii_case(end)) {
                     inside = None;
                 }
             }
-            None if lower.as_deref() == Some("#+begin_") => {
+            None if line.get(..8).is_some_and(|start| start.eq_ignore_ascii_case("#+begin_")) => {
                 let name: String =
                     line[8..].chars().take_while(|c| !c.is_whitespace()).collect::<String>().to_ascii_lowercase();
                 if matches!(name.as_str(), "src" | "example" | "export" | "comment" | "verse") {
-                    inside = Some(name);
+                    inside = Some(format!("#+end_{name}"));
                 }
             }
             None => {
@@ -284,7 +299,7 @@ pub fn replace_escapes(template: &str, value: impl Fn(char) -> Option<String>) -
         if let Some(precision) = precision {
             text = text.chars().take(precision).collect();
         }
-        let width = width.parse::<usize>().unwrap_or(0);
+        let width = field_width(width);
         out.push_str(&if left { pad_right(&text, width) } else { pad_left(&text, width) });
         rest = &spec[digits + c.len_utf8()..];
     }

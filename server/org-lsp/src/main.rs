@@ -126,7 +126,7 @@ fn main() -> ExitCode {
         for problem in &run.problems {
             eprintln!("org-lsp notify: {problem}");
         }
-        let mut failed = false;
+        let mut failed = run.unread;
         for notification in &run.notifications {
             if run.dry_run {
                 print(&format!("{}\n{}\n\n", notification.title, notification.body));
@@ -148,7 +148,7 @@ fn main() -> ExitCode {
             // Accepted for compatibility with clients that always pass it.
             "--stdio" => {}
             "--version" | "-V" => {
-                print(&format!("org-lsp {}\n", env!("CARGO_PKG_VERSION")));
+                print(&format!("org-lsp {}\n", env!("ORG_LSP_VERSION")));
                 return ExitCode::SUCCESS;
             }
             "--help" | "-h" => {

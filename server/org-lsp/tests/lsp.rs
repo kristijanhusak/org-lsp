@@ -49,6 +49,9 @@ impl Client {
         let mut options = if options.is_null() { json!({}) } else { options };
         if let Some(fields) = options.as_object_mut() {
             fields.entry("config_file").or_insert(json!(false));
+            // Shift and the arrows are Org's wherever they apply, as in
+            // Emacs, unless a test says otherwise.
+            fields.entry("org_support_shift_select").or_insert(json!(false));
             // The IDs an Emacs of the machine left in its
             // `org-id-locations-file` are not read.
             fields.entry("org_id_locations_file").or_insert(json!(NO_ID_LOCATIONS));
@@ -435,6 +438,17 @@ fn positions_use_the_negotiated_encoding() {
     }
 }
 
+/// `org-version`: the server says its version, with the commit it was
+/// built from, as the message of the command's result.
+#[test]
+fn says_its_version() {
+    let mut client = Client::start(json!({}), Value::Null);
+    let params = json!({ "command": "org.version", "arguments": [] });
+    let result = client.raw_request("workspace/executeCommand", params).response_result.unwrap();
+    assert_eq!(result["message"], format!("org-lsp version {}", env!("ORG_LSP_VERSION")));
+    client.shutdown();
+}
+
 #[test]
 fn unknown_requests_and_documents() {
     let mut client = Client::start(json!({}), Value::Null);
@@ -523,7 +537,15 @@ fn binary_prints_its_version_and_rejects_unknown_arguments() {
     let binary = env!("CARGO_BIN_EXE_org-lsp");
     let version = Command::new(binary).arg("--version").output().unwrap();
     assert!(version.status.success());
-    assert_eq!(String::from_utf8(version.stdout).unwrap().trim(), format!("org-lsp {}", env!("CARGO_PKG_VERSION")));
+    assert_eq!(String::from_utf8(version.stdout).unwrap().trim(), format!("org-lsp {}", env!("ORG_LSP_VERSION")));
+    // With the commit it was built from, in a checkout: the checkout's, as
+    // a build of its own (`-dev`), but in the release workflow.
+    let head =
+        Command::new("git").args(["rev-parse", "--short=7", "HEAD"]).output().ok().filter(|out| out.status.success());
+    if let (Some(head), None) = (head, option_env!("ORG_LSP_COMMIT")) {
+        let head = String::from_utf8(head.stdout).unwrap();
+        assert_eq!(env!("ORG_LSP_VERSION"), format!("{}-{}-dev", env!("CARGO_PKG_VERSION"), head.trim()));
+    }
 
     let unknown = Command::new(binary).arg("--bogus").output().unwrap();
     assert_eq!(unknown.status.code(), Some(2));
@@ -696,6 +718,101 @@ fn sends_virtual_indentation_of_other_widths() {
     let sent = client.notification("org-lsp/virtualIndent");
     // As `org-indent-mode` shows it in Emacs with 4 per level.
     assert_eq!(sent["lines"], json!([[1, 0, 2, 0], [2, 2, 2, 0], [3, 3, 6, 0], [4, 6, 8, 0]]));
+    client.shutdown();
+}
+
+/// `org.indent.mode` turns `org-indent-mode` on and off in a file, whatever
+/// its `#+STARTUP:` says, saying so as Emacs does: the prefixes and hidden
+/// stars are sent again, none once it is off, where `hidestars` no longer
+/// hides them either (Emacs kills the buffer's `org-hide-leading-stars`).
+/// While it is on, the file is not indented for real.
+#[test]
+fn indent_mode_turns_virtual_indentation() {
+    let capabilities = json!({ "experimental": { "orgVirtualIndent": true } });
+    let mut client = Client::start(capabilities, json!({ "org_adapt_indentation": true }));
+    // The command's message, and the prefixes sent before its answer.
+    let toggle = |client: &mut Client| -> (Value, Value) {
+        let argument = json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 } });
+        let params = json!({ "command": "org.indent.mode", "arguments": [argument] });
+        client.next_id += 1;
+        let id = RequestId::from(client.next_id);
+        let request = Request { id: id.clone(), method: "workspace/executeCommand".to_string(), params };
+        client.connection.sender.send(Message::Request(request)).unwrap();
+        let mut lines = Value::Null;
+        loop {
+            match client.connection.receiver.recv_timeout(std::time::Duration::from_secs(5)).expect("an answer") {
+                Message::Notification(sent) if sent.method == "org-lsp/virtualIndent" => {
+                    lines = sent.params["lines"].clone();
+                }
+                Message::Response(response) if response.id == id => {
+                    return (response.response_result.unwrap()["message"].clone(), lines);
+                }
+                _ => {}
+            }
+        }
+    };
+    // The edits that indent a new line at the start of the third line.
+    let new_line = |client: &mut Client| -> usize {
+        client
+            .request::<lsp_types::request::OnTypeFormatting>(lsp_types::DocumentOnTypeFormattingParams {
+                text_document_position: lsp_types::TextDocumentPositionParams {
+                    text_document: identifier(),
+                    position: Position::new(2, 0),
+                },
+                ch: "\n".to_string(),
+                options: lsp_types::FormattingOptions { tab_size: 8, insert_spaces: true, ..Default::default() },
+            })
+            .unwrap_or_default()
+            .len()
+    };
+    client.open(&uri(), "* A\n** B\ntext\n");
+    assert_eq!(new_line(&mut client), 1);
+    let (message, lines) = toggle(&mut client);
+    assert_eq!(message, "Org-Indent mode enabled in current buffer");
+    assert_eq!(lines, json!([[0, 0, 2, 0], [1, 1, 4, 1], [2, 4, 4, 0]]));
+    assert_eq!(new_line(&mut client), 0);
+    let (message, lines) = toggle(&mut client);
+    assert_eq!(message, "Org-Indent mode disabled in current buffer");
+    assert_eq!(lines, json!([]));
+    assert_eq!(new_line(&mut client), 1);
+    // Closed, the file is as its `#+STARTUP:` says again; turned off over
+    // it, the stars `hidestars` hid show again.
+    client.notify::<DidCloseTextDocument>(DidCloseTextDocumentParams { text_document: identifier() });
+    client.open(&uri(), "#+STARTUP: indent hidestars\n* A\n** B\n");
+    assert_eq!(client.notification("org-lsp/virtualIndent")["lines"], json!([[1, 0, 2, 0], [2, 1, 4, 1]]));
+    assert_eq!(toggle(&mut client), (json!("Org-Indent mode disabled in current buffer"), json!([])));
+    client.shutdown();
+}
+
+/// For a client that gets `org-indent-mode`'s prefixes as inlay hints,
+/// `org.indent.mode` has it ask for them again.
+#[test]
+fn indent_mode_refreshes_inlay_hints() {
+    let capabilities = json!({ "workspace": { "inlayHint": { "refreshSupport": true } } });
+    let mut client = Client::start(capabilities, Value::Null);
+    client.open(&uri(), "* A\ntext\n");
+    let hints = |client: &mut Client| -> usize {
+        client
+            .request::<lsp_types::request::InlayHintRequest>(lsp_types::InlayHintParams {
+                text_document: identifier(),
+                range: Range::new(Position::new(0, 0), Position::new(2, 0)),
+                work_done_progress_params: Default::default(),
+            })
+            .unwrap()
+            .len()
+    };
+    let argument = json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 } });
+    let params = json!({ "command": "org.indent.mode", "arguments": [argument] });
+    assert_eq!(hints(&mut client), 0);
+    for (message, shown) in
+        [("Org-Indent mode enabled in current buffer", 1), ("Org-Indent mode disabled in current buffer", 0)]
+    {
+        client.asked.clear();
+        let result = client.raw_request("workspace/executeCommand", params.clone()).response_result.unwrap();
+        assert_eq!(result["message"], message);
+        assert!(client.asked.iter().any(|asked| asked.method == "workspace/inlayHint/refresh"));
+        assert_eq!(hints(&mut client), shown);
+    }
     client.shutdown();
 }
 
@@ -1214,6 +1331,68 @@ fn returns_as_org_does() {
     client.shutdown();
 }
 
+/// For an LSP plugin that shows documents on its own and passes on only an
+/// error's message (coc.nvim): the documents to show come as
+/// `org-lsp/showDocument`, answered with `org-lsp/showDocumentResult`, and
+/// a command that does not apply says so in its result.
+#[test]
+fn shows_documents_and_refuses_with_notifications() {
+    let directory = std::env::temp_dir().join(format!("org-lsp-show-notification-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let (from, to) = (directory.join("from.org"), directory.join("to.org"));
+    let text = "* See [[file:to.org]]\n#+begin_src sh\necho\n#+end_src\n";
+    std::fs::write(&from, text).unwrap();
+    std::fs::write(&to, "* There\n").unwrap();
+    let uri: Uri = format!("file://{}", from.display()).parse().unwrap();
+    let options = json!({ "show_document": true, "show_document_notification": true, "refusal_results": true });
+    let mut client = Client::start(json!({}), options);
+    client.open(&uri, text);
+    let run = |client: &mut Client, command: &str, line: u32, character: u32| {
+        let context =
+            json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": line, "character": character } });
+        client.raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+    };
+    // The answer and the notification, as they come.
+    let context = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 0, "character": 10 } });
+    let open = Request {
+        id: RequestId::from(1000),
+        method: "workspace/executeCommand".to_string(),
+        params: json!({ "command": "org.open", "arguments": [context] }),
+    };
+    client.connection.sender.send(Message::Request(open)).unwrap();
+    let (mut answered, mut show) = (false, None);
+    while !answered || show.is_none() {
+        match client.connection.receiver.recv_timeout(std::time::Duration::from_secs(30)).expect("the server says") {
+            Message::Response(response) if response.id == RequestId::from(1000) => {
+                response.response_result.expect("a result");
+                answered = true;
+            }
+            Message::Notification(notification) if notification.method == "org-lsp/showDocument" => {
+                show = Some(notification)
+            }
+            Message::Request(request) => {
+                assert_ne!(request.method, "window/showDocument", "shown with window/showDocument")
+            }
+            _ => {}
+        }
+    }
+    let show = show.unwrap();
+    assert_eq!(show.params["params"]["uri"], json!(format!("file://{}", to.display())), "{:?}", show.params);
+    let answer = json!({ "id": show.params["id"], "result": { "success": true } });
+    client
+        .connection
+        .sender
+        .send(Message::Notification(Notification::new("org-lsp/showDocumentResult".to_string(), answer)))
+        .unwrap();
+    // RET in a source block's code: the editor's own RET.
+    let refused = run(&mut client, "org.return", 2, 2).response_result.expect("a result");
+    assert_eq!(refused["notApplicable"], json!(true), "{refused}");
+    assert!(refused["message"].is_string(), "{refused}");
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
 /// `org-open-line` (C-o): a new line after the cursor, which stays; in a
 /// table a row above (`org-special-ctrl-o`), unless that is off.
 #[test]
@@ -1570,6 +1749,49 @@ fn edits_the_structure() {
         .collect();
     assert_eq!(kinds, ["org.meta.left", "org.meta.right", "org.shiftmeta.left", "org.shiftmeta.right", "org.meta.up"]);
     client.shutdown();
+}
+
+/// `org-support-shift-select`: where Shift and the arrows are the editor's,
+/// the server says the command does not apply (`notApplicable`), and the
+/// editor selects; on a timestamp they are always Org's.
+#[test]
+fn leaves_shift_and_the_arrows_to_the_editor() {
+    let text = "* TODO Task\n- item <2026-05-18 Mon>\nplain\n";
+    let applies = |select: Value, command: &str, line: u32, character: u32, range: Option<Value>| {
+        let mut client = Client::start(json!({}), json!({ "org_support_shift_select": select }));
+        client.open(&uri(), text);
+        let mut context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
+        if let Some(range) = range {
+            context["range"] = range;
+        }
+        match client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+            .response_result
+        {
+            Ok(_) => true,
+            Err(error) => error.data.is_none_or(|data| data["notApplicable"] != json!(true)),
+        }
+    };
+    // `always`, the default: Org's on the timestamp alone.
+    assert!(!applies(json!("always"), "org.shift.right", 0, 3, None));
+    assert!(!applies(json!("always"), "org.todo.nextset", 0, 3, None));
+    assert!(!applies(json!("always"), "org.shift.right", 1, 0, None));
+    assert!(applies(json!("always"), "org.shift.right", 1, 10, None));
+    assert!(applies(Value::Null, "org.shift.up", 1, 10, None));
+    assert!(!applies(Value::Null, "org.shift.up", 0, 3, None));
+    // `t`: the headline and the bullet too, not the rest of the item.
+    assert!(applies(json!(true), "org.shift.right", 0, 3, None));
+    assert!(applies(json!(true), "org.todo.nextset", 0, 3, None));
+    assert!(applies(json!(true), "org.shift.right", 1, 0, None));
+    assert!(!applies(json!(true), "org.shift.right", 1, 3, None));
+    assert!(!applies(json!(true), "org.shift.down", 1, 0, None));
+    assert!(!applies(json!(true), "org.shift.left", 2, 1, None));
+    // A selection is the editor's to extend, but with `nil`.
+    let range = json!({ "start": { "line": 0, "character": 2 }, "end": { "line": 0, "character": 4 } });
+    assert!(!applies(json!(true), "org.shift.right", 0, 3, Some(range.clone())));
+    assert!(applies(json!(false), "org.shift.right", 0, 3, Some(range)));
+    assert!(applies(json!(false), "org.shift.right", 1, 3, None));
 }
 
 /// Org's meta and shifted keys on a list item: indent, outdent and move
@@ -2021,6 +2243,21 @@ fn lints_documents() {
             ),
         ]
     );
+    // `[[man:ls]]` is a link with `ol-man` on, a fuzzy one without.
+    let man = |modules: Value| {
+        let client = Client::start(json!({}), json!({ "org_modules": modules }));
+        client.open(&uri(), "[[man:ls]]\n[[*Missing]]\n");
+        let published = client.notification("textDocument/publishDiagnostics");
+        client.shutdown();
+        published["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|found| found["range"]["start"]["line"].clone())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(man(json!([])), [json!(0), json!(1)]);
+    assert_eq!(man(json!(["ol-man"])), [json!(1)]);
     let found = diagnostics(json!({ "org_lint_ignore": ["invalid-fuzzy-link", "deprecated-category-setup"] }));
     assert_eq!(
         found.iter().map(|found| found.2.as_str()).collect::<Vec<_>>(),
@@ -2239,8 +2476,14 @@ fn exports_links_the_server_follows() {
     let _ = std::fs::remove_dir_all(&directory);
     std::fs::create_dir_all(&directory).unwrap();
     std::fs::write(directory.join("node.org"), "* Node\n:PROPERTIES:\n:ID: node-1\n:END:\n").unwrap();
+    // One open too, saved: Emacs reads it to link to it.
+    let opened = directory.join("opened.org");
+    let opened_text = "* Opened\n:PROPERTIES:\n:ID: opened-1\n:END:\n";
+    std::fs::write(&opened, opened_text).unwrap();
     let file = directory.join("notes.org");
-    let text = "* Notes\nSee [[id:node-1][the node]] and [[roam:Beta]].\n";
+    let text =
+        "* Notes\nSee [[id:node-1][the node]] and [[roam:Beta]], [[id:opened-1][opened]], [[id:node-1][again]].\n\
+                * Own\n:PROPERTIES:\n:ID: own-1\n:END:\nAnd [[id:own-1][this one]].\n";
     std::fs::write(&file, text).unwrap();
     let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
     let config =
@@ -2251,6 +2494,7 @@ fn exports_links_the_server_follows() {
         "org_roam_directory": directory.display().to_string(),
     });
     let mut client = Client::start(json!({}), options);
+    client.open(&format!("file://{}", opened.display()).parse().unwrap(), opened_text);
     client.open(&uri, text);
     let argument = json!({
         "textDocument": { "uri": uri.as_str() },
@@ -2272,6 +2516,9 @@ fn exports_links_the_server_follows() {
     let written = std::fs::read_to_string(&html_file).unwrap();
     assert!(written.contains(r#"<a href="node.html#ID-node-1">the node</a>"#), "{written}");
     assert!(written.contains(r#"<a href="roam:Beta">roam:Beta</a>"#), "{written}");
+    assert!(written.contains(r#"<a href="opened.html#ID-opened-1">opened</a>"#), "{written}");
+    // Its own entry, by the anchor of its headline.
+    assert!(written.contains(r##"And <a href="#org"##), "{written}");
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
 }
@@ -2770,6 +3017,40 @@ fn shows_what_babel_shows_of_a_block_that_fails() {
     std::fs::remove_dir_all(directory).unwrap();
 }
 
+/// What Emacs refuses, said as a warning as the server's own refusals
+/// are: S-RET (`org-table-copy-down`) on the bar that starts a row.
+#[test]
+fn says_emacs_refusals_as_warnings() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("says_emacs_refusals_as_warnings: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-emacs-refusal-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("t.org");
+    let text = "| 1 | 2 |\n|   |   |\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let config =
+        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let mut client = Client::start(json!({}), json!({ "emacs_config": config }));
+    client.open(&uri, text);
+    let context = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 1, "character": 0 } });
+    client.raw_request("workspace/executeCommand", json!({ "command": "org.table.copy.down", "arguments": [context] }));
+    let Message::Notification(said) = next_from_server(
+        &client,
+        |message| matches!(message, Message::Notification(notification) if notification.method == "window/showMessage"),
+    ) else {
+        unreachable!()
+    };
+    assert_eq!(said.params, json!({ "type": 2, "message": "Not in table data field" }));
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
 /// Emacs's yes-or-no question for a client that shows no
 /// `window/showMessageRequest` (`message_requests` off): the Vim plugin
 /// (org-lsp's editor code, `run_command`) is told to run
@@ -3077,6 +3358,13 @@ fn shrinks_table_columns() {
             .collect()
     };
     // Shrunk when the file opens: `abc…`, as Emacs shows it.
+    assert_eq!(hints(&mut client), [(1, 1, " ".into()), (1, 5, "…".into()), (2, 1, " ".into()), (2, 5, "…".into())]);
+    // The same text sent again, as yegappan/lsp and vim-lsp do once the
+    // file is open: the columns stay shrunk.
+    client.notify::<DidChangeTextDocument>(DidChangeTextDocumentParams {
+        text_document: VersionedTextDocumentIdentifier { uri: uri(), version: 2 },
+        content_changes: vec![TextDocumentContentChangeEvent { range: None, range_length: None, text: text.into() }],
+    });
     assert_eq!(hints(&mut client), [(1, 1, " ".into()), (1, 5, "…".into()), (2, 1, " ".into()), (2, 5, "…".into())]);
     let toggle = |client: &mut Client, line: u32, character: u32, extra: Value| {
         let mut context =
@@ -3819,6 +4107,9 @@ fn edits_through_emacs() {
     replace(&mut client, &mut text, &mut version, "* Task\n".to_string());
     let (asked, _) = run(&mut client, &mut text, &mut version, "org.attach", (0, 0), json!({ "input": "c" }));
     assert_eq!(asked["input"]["prompt"], "File to keep as an attachment", "{asked}");
+    // A file's name, from the Org file's directory, as `read-file-name` asks.
+    assert_eq!(asked["input"]["complete"], "file", "{asked}");
+    assert_eq!(asked["input"]["value"], format!("{}/", directory.display()), "{asked}");
     run(&mut client, &mut text, &mut version, "org.attach", (0, 0), json!({ "input": "doc.txt", "step": "c" }));
     assert!(text.starts_with("* Task") && text.contains(":ATTACH:") && text.contains(":ID:"), "{text}");
     let id = text.lines().find_map(|line| line.trim().strip_prefix(":ID:")).unwrap().trim().to_string();
@@ -3947,6 +4238,30 @@ fn clears_the_diagnostics_of_a_closed_file() {
     let published = client.notification("textDocument/publishDiagnostics");
     assert_eq!(published["uri"], uri().as_str());
     assert_eq!(published["diagnostics"], json!([]));
+}
+
+/// A client that sends something more often than the diagnostics wait
+/// for (a cursor that moves, tokens of the range scrolled to) still gets
+/// them, a second after the change at most.
+#[test]
+fn diagnostics_come_while_other_messages_do() {
+    let client = Client::start(json!({}), json!({}));
+    let started = std::time::Instant::now();
+    client.open(&uri(), "* Note\nSee [[*Missing]].\n");
+    let mut published = None;
+    while published.is_none() && started.elapsed() < std::time::Duration::from_secs(5) {
+        let notification = Notification { method: "$/cursorMoved".to_string(), params: json!({}) };
+        client.connection.sender.send(Message::Notification(notification)).unwrap();
+        if let Ok(Message::Notification(notification)) =
+            client.connection.receiver.recv_timeout(std::time::Duration::from_millis(50))
+        {
+            if notification.method == "textDocument/publishDiagnostics" {
+                published = Some(started.elapsed());
+            }
+        }
+    }
+    let published = published.expect("diagnostics within 5 s");
+    assert!(published < std::time::Duration::from_secs(3), "{published:?}");
 }
 
 /// After `shutdown`, a request is refused (`InvalidRequest`) and a
