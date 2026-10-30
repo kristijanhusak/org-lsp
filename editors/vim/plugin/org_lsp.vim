@@ -13,7 +13,7 @@ augroup org_lsp
   autocmd FileType org,org-agenda,org-date call org_lsp#attach()
   " Vim's own syntax for Org, found first when this plugin comes after
   " $VIMRUNTIME in 'runtimepath', gives way to the plugin's.
-  autocmd Syntax org let s:nr = str2nr(expand('<abuf>')) | call timer_start(0, {-> org_lsp#own_syntax(s:nr)})
+  autocmd Syntax org call timer_start(0, function('org_lsp#own_syntax', [str2nr(expand('<abuf>'))]))
   " An Org buffer read again from its file (`:e!`, 'autoread').
   autocmd BufReadPost * if getbufvar(str2nr(expand('<abuf>')), 'org_lsp_attached', 0) | call org_lsp#reread(str2nr(expand('<abuf>'))) | endif
   autocmd ColorScheme * call org_lsp#define_highlights() | call org_lsp#reload_syntaxes()
