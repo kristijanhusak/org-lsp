@@ -830,7 +830,7 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 362 that change what org-lsp does itself, 100% can be set.
+it. Of the 376 that change what org-lsp does itself, 96% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
@@ -838,12 +838,12 @@ when Org has an option it does not list.
 | Status | Options | Meaning |
 |---+---+---|
 | setting | 350 | A setting of the same name |
-| missing | 1 | org-lsp does what the option is about, but the option cannot be set yet |
+| missing | 15 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 11 | Done another way, as its note says |
 | emacs | 479 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_options~ (or ~emacs_config~); [[file:emacs-options.org][emacs-options.org]] lists them |
 | lisp | 48 | Its value is Lisp (a function, a hook), which the server does not run |
-| absent | 35 | Part of something org-lsp does not do |
-| emacs-only | 101 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
+| absent | 49 | Part of something org-lsp does not do |
+| emacs-only | 73 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
 
 ** Done another way
 
@@ -863,4 +863,55 @@ when Org has an option it does not list.
 
 Options of what org-lsp does that cannot be set yet, by the file of Org they are in.
 
+- org-agenda.el (3) ::
+  - ~org-agenda-menu-show-matcher~ :: Whether the agenda dispatcher shows the match of each custom command.
+  - ~org-agenda-menu-two-columns~ :: The agenda dispatcher's custom commands in two columns.
+  - ~org-agenda-bulk-mark-char~ :: The character that marks an agenda line for a bulk action.
+- org-clock.el (3) ::
+  - ~org-clock-string-limit~ :: How long the running clock's text (~clock_status()~ in Neovim and Vim) may be.
+  - ~org-clock-mode-line-total~ :: Which time the running clock's text shows: today's, this session's, all of it, or since the last reset.
+  - ~org-clock-task-overrun-text~ :: The text before the running clock's when it is past the entry's effort.
+- org-compat.el (1) ::
+  - ~org-imenu-depth~ :: How deep the outline goes: the document symbols have every level.
+- org-cycle.el (2) ::
+  - ~org-cycle-skip-children-state-if-no-children~ :: Whether ~TAB~ on a headline without children skips the CHILDREN state when it cycles.
+  - ~org-cycle-emulate-tab~ :: What ~TAB~ does off a headline (indent, or cycle the whole file at the start of the buffer); the editors run their own ~Tab~ there.
 - org-fold.el (1) :: ~org-fold-show-context-detail~
+- org.el (5) ::
+  - ~org-highlight-links~ :: Which kinds of links (bracket, angle, plain, radio, tag, date, footnote) are colored: the server colors all of them.
+  - ~org-fast-tag-selection-maximum-tags~ :: How many tags the fast tag selection shows, its keys a to z and more.
+  - ~org-level-color-stars-only~ :: Headlines colored by level in their stars alone, not their text.
+  - ~org-fontify-whole-block-delimiter-line~ :: The ~#+begin_~ and ~#+end_~ lines of blocks colored to the edge of the window.
+  - ~org-highlight-latex-and-related~ :: Which of LaTeX fragments, sub- and superscripts and entities are colored: the server colors LaTeX always.
+
+** Not done
+
+Options of what org-lsp does not do, by the file of Org they are in.
+
+- oc-basic.el (2) :: ~org-cite-basic-sorting-field~, ~org-cite-basic-author-year-separator~
+- ol-bbdb.el (5) :: ~org-bbdb-default-anniversary-format~, ~org-bbdb-general-anniversary-description-after~, ~org-bbdb-anniversary-format-alist~, ~org-bbdb-anniversary-field~, ~org-bbdb-extract-date-fun~
+- ol-gnus.el (2) :: ~org-gnus-prefer-web-links~, ~org-gnus-no-server~
+- ol-mhe.el (1) :: ~org-mhe-search-all-folders~
+- ol.el (3) :: ~org-link-elisp-skip-confirm-regexp~, ~org-link-email-description-format~, ~org-link-from-user-regexp~
+- org-agenda.el (7) ::
+  - ~org-agenda-confirm-kill~ :: Asking before ~C-k~ in the agenda deletes an entry with its subtree: the agenda has no ~C-k~.
+  - ~org-agenda-diary-file~ :: The file ~i~ in the agenda adds diary entries to.
+  - ~org-agenda-include-diary~ :: Entries of Emacs's diary (~diary-file~) in the agenda; diary sexps in Org files are.
+  - ~org-agenda-clock-consistency-checks~ :: The agenda's clock check (~v c~): gaps, overlaps and too long or short clocks in the log.
+  - ~org-agenda-insert-diary-strategy~ :: Where ~i~ in the agenda adds an entry to an Org diary file.
+  - ~org-agenda-insert-diary-extract-time~ :: Whether ~i~ in the agenda reads a time from the entry's text.
+  - ~org-agenda-loop-over-headlines-in-active-region~ :: An agenda command run on a selection of agenda lines acts on each of them, as bulk actions do.
+- org-feed.el (5) :: ~org-feed-alist~, ~org-feed-drawer~, ~org-feed-default-template~, ~org-feed-save-after-adding~, ~org-feed-retrieve-method~
+- org-fold.el (2) ::
+  - ~org-fold-catch-invisible-edits~ :: An edit in folded text is refused, shown or allowed, as the option says: the editors edit what is folded as they do.
+  - ~org-fold-catch-invisible-edits-commands~ :: The commands ~org-fold-catch-invisible-edits~ checks.
+- org-keys.el (2) ::
+  - ~org-use-speed-commands~ :: Speed keys: single letters at the start of a headline (~n~, ~p~, ~t~, ~c~ …) run commands, as ~org-speed-commands~ lists.
+  - ~org-speed-commands~ :: The keys and commands of speed keys (~org-use-speed-commands~).
+- org-mobile.el (13) :: ~org-mobile-files~, ~org-mobile-files-exclude-regexp~, ~org-mobile-directory~, ~org-mobile-allpriorities~, ~org-mobile-use-encryption~, ~org-mobile-encryption-tempfile~, ~org-mobile-encryption-password~, ~org-mobile-inbox-for-pull~, ~org-mobile-index-file~, ~org-mobile-agendas~, ~org-mobile-force-id-on-agenda-items~, ~org-mobile-force-mobile-change~, ~org-mobile-checksum-binary~
+- org-table.el (5) :: ~orgtbl-optimized~, ~orgtbl-radio-table-templates~, ~org-table-auto-blank-field~, ~org-table-exit-follow-field-mode-when-leaving-table~
+  - ~org-table-header-line-p~ :: A table's header row kept in view when the table scrolls past it.
+- org-tempo.el (1) ::
+  - ~org-tempo-keywords-alist~ :: org-tempo's keyword templates: ~<A~ + ~TAB~ and its kin insert ~#+ascii:~ and other keywords; ~<s~ + ~TAB~ for blocks is not done either.
+- org.el (1) ::
+  - ~org-loop-over-headlines-in-active-region~ :: A command run on a selection (a TODO state, a schedule, a deadline, a priority, archiving) acts on each headline in it.
