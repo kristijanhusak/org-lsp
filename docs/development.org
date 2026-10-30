@@ -262,8 +262,8 @@ VS Code's adapter is ~editors/vscode/test/scenarios.test.cjs~, run by
 ~npm test~ after the extension's tests (~npm test -- scenarios~ for the
 scenarios only, ~npm test -- scenarios vim~ for one preset;
 ~ORG_LSP_E2E=NAME~ as above). Each scenario runs in a VS Code of its own,
-with each preset of ~org-lsp.keys~: ~emacs~ (~editors.vscode~ in the
-exceptions) and ~vim~ (~editors.vscode-vim~, which leaves the keys of Vim's
+with two presets of ~org-lsp.keys~: ~emacs_full~, all of Emacs's keys
+(~editors.vscode~ in the exceptions), and ~vim~ (~editors.vscode-vim~, which leaves the keys of Vim's
 normal mode in Org files to VSCodeVim). The adapter finds the key
 ~package.json~ binds to the step's command where the cursor is, by its
 ~when~ clause, and presses it in VS Code's window with ~xdotool~, so that

@@ -269,30 +269,30 @@ function vscodeKey(key) {
     .join(' ');
 }
 
-/** What the `custom_emacs` preset leaves out of Emacs's keys: `bindings`
- * as `[preset, scope, key, command]`, the left-out ones as rows of a table,
- * and what is said of `Ctrl+C`. */
-function customEmacs(bindings, titles, setting) {
+/** What `emacs_full` adds to the default `emacs`: `bindings` as
+ * `[preset, scope, key, command]`, the keys only `emacs_full` binds as rows
+ * of a table, under a heading for `setting`. */
+function emacsFull(bindings, titles, setting) {
   const kept = new Set(
-    bindings.filter(([preset]) => preset === 'custom_emacs').map(([, scope, key, command]) => [scope, key, command].join('\n')),
+    bindings.filter(([preset]) => preset === 'emacs').map(([, scope, key, command]) => [scope, key, command].join('\n')),
   );
   const byCommand = new Map();
   for (const [preset, scope, key, command] of bindings) {
-    if (preset !== 'emacs' || kept.has([scope, key, command].join('\n'))) continue;
+    if (preset !== 'emacs_full' || kept.has([scope, key, command].join('\n'))) continue;
     if (!byCommand.has(command)) byCommand.set(command, new Set());
     byCommand.get(command).add(code(key));
   }
   const rows = [...byCommand].map(([command, keys]) => [[...keys].join(', '), code(command), org(titles[command] ?? '')]);
   return (
-    heading(2, `Emacs without the editor's keys (~${setting}~)`) +
+    heading(2, `Emacs, every key (~${setting}~)`) +
     '\n\n' +
-    "Emacs's keys, but those the editor uses for its text: in Org files and\n" +
-    'capture buffers Shift, Alt+Shift and Ctrl+Shift with the arrows select,\n' +
-    'and Ctrl+A, Ctrl+E, Ctrl+K, Ctrl+O, Ctrl+X, Ctrl+Y, Ctrl+Enter and\n' +
-    "Ctrl+Shift+Enter do what they do in any file. Org's ~Ctrl+C~ keys start\n" +
-    'only where nothing is selected, so that ~Ctrl+C~ copies a selection. The\n' +
-    'agenda, the date prompt and column view keep all their keys. These are\n' +
-    'the keys left out, whose commands stay in the Command Palette:\n\n' +
+    "All of Emacs's keys: the keys above, and those the default leaves to\n" +
+    'the editor, listed here. In Org files and capture buffers Shift,\n' +
+    'Alt+Shift and Ctrl+Shift with the arrows are then Org\'s (where\n' +
+    '~org_support_shift_select~ lets them), and so are Ctrl+A, Ctrl+E,\n' +
+    "Ctrl+K, Ctrl+O, Ctrl+X, Ctrl+Y and Ctrl+Enter; Org's ~Ctrl+C~ keys start\n" +
+    'with text selected too, so that ~Ctrl+C~ no longer copies (~Ctrl+Insert~\n' +
+    'still does).\n\n' +
     table(['Keys', 'Command', 'What it does'], rows)
   );
 }
@@ -331,15 +331,15 @@ function vscodeKeys() {
         const name = /keys == '(\w+)'/.exec(binding.when)?.[1];
         return name ? [[name, where(binding.when), vscodeKey(binding.key), binding.command]] : [];
       });
-      sections.push(customEmacs(bindings, titles, '"org-lsp.keys": "custom_emacs"'));
+      sections.push(emacsFull(bindings, titles, '"org-lsp.keys": "emacs_full"'));
     }
   }
   sections.push(
     '¹ Where the command does not apply, the key does what it does without\n' +
-      'the extension: ~Shift+Up~ off a timestamp selects (and on a headline\n' +
-      'too, as ~org_support_shift_select~ says), ~Tab~ off\n' +
-      'a headline, block or drawer indents, ~Enter~ in a source block\'s code\n' +
-      'is VS Code\'s own.',
+      'the extension: ~Tab~ off a headline, block or drawer indents, ~Enter~\n' +
+      'in a source block\'s code is VS Code\'s own, and with ~emacs_full~\n' +
+      '~Shift+Up~ off a timestamp selects (and on a headline too, as\n' +
+      '~org_support_shift_select~ says).',
   );
   // VSCodeVim's own key bindings, for the keys VS Code cannot bind: those
   // with the leader. They apply in every file.
@@ -432,15 +432,15 @@ function sublimeKeys() {
     }
     if (preset === 'emacs') {
       const bindings = keymap.map((binding) => [context(binding, 'org_lsp.keys'), where(binding), sublimeKey(binding.keys), name(binding)]);
-      sections.push(customEmacs(bindings, titles, '"org_keys": "custom_emacs"'));
+      sections.push(emacsFull(bindings, titles, '"org_keys": "emacs_full"'));
     }
   }
   sections.push(
     '¹ Where the command does not apply, the key does what it does without\n' +
-      'the package: ~Shift+Up~ off a timestamp selects (and on a headline\n' +
-      'too, as ~org_support_shift_select~ says), ~Tab~ off\n' +
-      'a headline, block or drawer indents or completes, ~Enter~ makes a new\n' +
-      'line.',
+      'the package: ~Tab~ off a headline, block or drawer indents or\n' +
+      'completes, ~Enter~ makes a new line, and with ~emacs_full~ ~Shift+Up~\n' +
+      'off a timestamp selects (and on a headline too, as\n' +
+      '~org_support_shift_select~ says).',
   );
   const bound = new Set(keymap.map(name));
   const keyless = manifest.commands

@@ -8,7 +8,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { leftOut, needsNoSelection } from '../../../scripts/custom-emacs.mjs';
+import { leftOut, needsNoSelection } from '../../../scripts/emacs-keys.mjs';
 import { schemaProperties } from '../../../scripts/settings-schema.mjs';
 
 const args = process.argv.slice(2);
@@ -92,9 +92,9 @@ function fromVim(vim) {
   return strokes.join(' ');
 }
 
-// The setting `org-lsp.keys` picks the keys: Emacs's (the default), Emacs's
-// but those VS Code uses for its text (`custom_emacs`), the Neovim plugin's
-// for VSCodeVim, or none.
+// The setting `org-lsp.keys` picks the keys: Emacs's but those VS Code uses
+// for its text (`emacs`, the default), all of Emacs's (`emacs_full`), the
+// Neovim plugin's for VSCodeVim, or none.
 const PRESET = 'org-lsp.keys';
 const preset = (name) => `config.${PRESET} == '${name}'`;
 const scopeWhen = {
@@ -235,14 +235,14 @@ const keybindings = [...manifest.commands, ...ownCommands]
       conditions.push(enterFree);
     }
     const scopes = binding.in === 'global' ? globalScopes : [binding.in];
-    // An Emacs key goes in `custom_emacs` too, unless the editor's.
-    const presets = binding.preset === 'emacs' ? ['emacs', 'custom_emacs'] : [binding.preset];
+    // An Emacs key goes in `emacs_full`, and in `emacs` unless the editor's.
+    const presets = binding.preset === 'emacs' ? ['emacs_full', 'emacs'] : [binding.preset];
     return scopes.flatMap((scope) =>
       presets.flatMap((name) => {
-        if (name === 'custom_emacs' && leftOut(binding.key, scope)) {
+        if (name === 'emacs' && leftOut(binding.key, scope)) {
           return [];
         }
-        const own = name === 'custom_emacs' && needsNoSelection(binding.key, scope) ? ['!editorHasSelection'] : [];
+        const own = name === 'emacs' && needsNoSelection(binding.key, scope) ? ['!editorHasSelection'] : [];
         const entry = {
           command: binding.command,
           key: vsKey,

@@ -1470,7 +1470,7 @@ def echo_outline_path(result) -> None:
 class OrgLspListener(sublime_plugin.EventListener):
     def on_query_context(self, view, key, operator, operand, match_all):
         """`org_lsp.keys`: the preset of keys the settings pick (emacs,
-        custom_emacs, vim or custom); `org_lsp.capture`: whether the view
+        emacs_full, vim or custom); `org_lsp.capture`: whether the view
         is a capture buffer."""
         if key == 'org_lsp.keys':
             value = settings().get('org_keys', 'emacs')

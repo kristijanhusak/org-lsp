@@ -49,8 +49,8 @@ export const EDITORS = [
     setup: [
       'Installed with `install.sh vscode` (or a `.vsix` from the release): the server starts on an Org file',
       'The `Org:` commands are in the Command Palette',
-      '`"org-lsp.keys": "vim"` (with VSCodeVim) switches to the Vim keys',
-      '`"org-lsp.keys": "custom_emacs"`: in an Org file `Shift+Right` selects, `Ctrl+A` is VS Code\'s, `Ctrl+C` copies the selection, and with nothing selected `Ctrl+C Ctrl+T` changes the TODO state',
+      '`"org-lsp.keys": "vim"` (with VSCodeVim) switches to the Vim keys; `"emacs_full"` to all of Emacs\'s, `Shift+Right` on a headline changing its TODO state',
+      'With the default keys, in an Org file `Shift+Right` selects, `Ctrl+A` is VS Code\'s, `Ctrl+C` copies the selection, and with nothing selected `Ctrl+C Ctrl+T` changes the TODO state',
       '`org-lsp.` settings and `~/.config/org-lsp/config.toml` reach the server',
     ],
   },
@@ -63,7 +63,8 @@ export const EDITORS = [
       'LSP\'s `semantic_highlighting` is on',
       'LSP\'s `show_inlay_hints` is on: the time clocked and the `…` of shrunk columns come as inlay hints',
       'The `Org:` commands are in the Command Palette; *Org: Download the latest server* replaces the downloaded server',
-      '`"org_keys": "custom_emacs"`: in an Org file `Shift+Right` selects, `Ctrl+A` is Sublime Text\'s, `Ctrl+C` copies the selection, and with nothing selected `Ctrl+C Ctrl+T` changes the TODO state',
+      '`"org_keys": "emacs_full"` switches to all of Emacs\'s keys: `Shift+Right` on a headline changes its TODO state',
+      'With the default keys, in an Org file `Shift+Right` selects, `Ctrl+A` is Sublime Text\'s, `Ctrl+C` copies the selection, and with nothing selected `Ctrl+C Ctrl+T` changes the TODO state',
     ],
   },
   {
