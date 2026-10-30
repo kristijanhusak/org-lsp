@@ -8,15 +8,8 @@ keys go through Zed's tasks.
 
 * Installing
 
-Install /Org (org-lsp)/ from Zed's extensions (*zed: extensions*), once
-it is in Zed's registry. A Zed extension cannot bring keys or tasks of its
-own, so add those afterwards: the [[file:keys/zed.org::#keys-through-tasks][keys through tasks]] are the release's
-~org-lsp-zed-keymap.json~ and ~org-lsp-zed-tasks.json~, whose entries go at
-the start of the arrays in your ~keymap.json~ and ~tasks.json~ (in
-=~/.config/zed=, or ~%APPDATA%\Zed~ on Windows). ~install.sh zed~, below,
-adds them for you.
-
-The script installs everything at once:
+The extension is not in Zed's registry: a script installs it, with the
+[[file:keys/zed.org::#keys-through-tasks][keys through tasks]] that a Zed extension cannot bring of its own:
 
 #+begin_src sh
 curl -fsSL https://github.com/kristijanhusak/org-lsp/releases/download/nightly/install.sh | bash -s -- zed
@@ -24,8 +17,7 @@ curl -fsSL https://github.com/kristijanhusak/org-lsp/releases/download/nightly/i
 
 or, in a checkout of this repository, ~scripts/install.sh zed~
 (~--release v0.2.0~ for a release, ~--source~ for the server built from
-the checkout). It puts in place what Zed's extension registry would, from
-the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]]:
+the checkout). It puts in place, from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]]:
 
 - the extension, built, in Zed's ~extensions/installed/org-lsp~;
 - the server beside it, in ~extensions/work/org-lsp~, where the extension
