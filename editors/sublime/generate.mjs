@@ -1,5 +1,5 @@
 // Write the parts of the Sublime Text package that mirror the server: the
-// key bindings of both presets, the commands for the Command Palette, and
+// key bindings of its presets, the commands for the Command Palette, and
 // the scopes of the server's semantic tokens. They come from the server's
 // manifest, so nothing about Org is listed by hand in the package.
 //
@@ -9,6 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { leftOut, needsNoSelection } from '../../scripts/emacs-keys.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..', '..');
@@ -156,11 +157,17 @@ const bindings = [...manifest.commands, ...own, ...keysOnly]
     // In Vim's command mode a plain first key belongs to Vim (`c` of `cit`).
     if (binding.preset === 'vim' && inText && binding.mode !== 'insert' && keys[0].length === 1) return [];
     const scopes = binding.in === 'global' ? globalScopes : [binding.in];
-    return scopes.map((scope) => {
+    // An Emacs key goes in `emacs_full`, and in `emacs` unless the editor's.
+    const presets = binding.preset === 'emacs' ? ['emacs_full', 'emacs'] : [binding.preset];
+    const kept = (scope) => presets.filter((name) => name !== 'emacs' || !leftOut(binding.key, scope));
+    return scopes.flatMap((scope) => kept(scope).map((name) => {
       const context = [
-        { key: 'org_lsp.keys', operator: 'equal', operand: binding.preset },
+        { key: 'org_lsp.keys', operator: 'equal', operand: name },
         { key: 'selector', operator: 'equal', operand: selector[scope] },
       ];
+      if (name === 'emacs' && needsNoSelection(binding.key, scope)) {
+        context.push({ key: 'selection_empty', operator: 'equal', operand: true, match_all: true });
+      }
       if (scope === 'capture') context.push({ key: 'org_lsp.capture', operator: 'equal', operand: true });
       if (binding.preset === 'vim' && inText) {
         context.push({ key: 'setting.command_mode', operator: 'equal', operand: binding.mode !== 'insert' });
@@ -184,7 +191,7 @@ const bindings = [...manifest.commands, ...own, ...keysOnly]
       if (Object.keys(entry.args).length === 0) delete entry.args;
       entry.context = context;
       return entry;
-    });
+    }));
   });
 
 // The Command Palette: every command of the server's and the package's.

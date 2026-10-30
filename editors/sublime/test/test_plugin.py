@@ -1232,6 +1232,16 @@ class Help(unittest.TestCase):
         self.assertNotIn('Capture: finish', [title for _, title in shown])
         agenda = [title for _, title, _, _ in self.plugin.help_items(View('', '/tmp/Agenda.org-agenda'))]
         self.assertIn('Agenda: rebuild', agenda)
+        # `emacs`, the default, leaves Sublime Text the keys it uses for
+        # text; `emacs_full` has them too.
+        left = ['Shift+Right', 'Ctrl+A', 'Ctrl+X n s', 'Alt+Shift+Left', 'Ctrl+Enter']
+        for key in left:
+            self.assertNotIn(key, [keys for keys, _ in shown])
+        self.sublime.settings['org_keys'] = 'emacs_full'
+        full = [keys for keys, _, _, _ in self.plugin.help_items(View('* TODO x'))]
+        self.assertIn('Ctrl+C Ctrl+T', full)
+        for key in left:
+            self.assertIn(key, full)
         self.sublime.settings['org_keys'] = 'custom'
         self.assertEqual(self.plugin.help_items(View('* x')), [])
 

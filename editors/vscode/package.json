@@ -1757,11 +1757,13 @@
           "type": "string",
           "enum": [
             "emacs",
+            "emacs_full",
             "vim",
             "custom"
           ],
           "enumDescriptions": [
-            "Emacs's keys: `Ctrl+C Ctrl+T`, `Tab`, `Shift+arrows`, … in Org files, and Org's single letters in the agenda. `Ctrl+C` then waits for a second key in Org files instead of copying (`Ctrl+Insert` still copies).",
+            "Emacs's keys but those VS Code uses for text: `Ctrl+C Ctrl+T`, `Tab`, `Alt+arrows`, … in Org files, and Org's single letters in the agenda. Shift, Alt+Shift and Ctrl+Shift with the arrows select, Ctrl+A, Ctrl+E, Ctrl+K, Ctrl+O, Ctrl+X, Ctrl+Y and Ctrl+Enter are VS Code's, and `Ctrl+C` copies a selection (Org's `Ctrl+C` keys start where nothing is selected).",
+            "All of Emacs's keys, `Shift+arrows`, `Ctrl+A`, `Ctrl+X` … too. `Ctrl+C` then waits for a second key in Org files instead of copying (`Ctrl+Insert` still copies).",
             "The Neovim plugin's keys, for VSCodeVim: those VS Code can bind without taking keys from Vim (`Tab`, `Ctrl+Space`, `Ctrl+A`, …) in Normal mode, and the agenda's. docs/keys/vscode.org shows how to add the leader keys to VSCodeVim.",
             "No keys: bind the commands yourself in keybindings.json."
           ],
@@ -11129,67 +11131,127 @@
       {
         "command": "org.clock.in",
         "key": "ctrl+c ctrl+x ctrl+i",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.clock.in",
+        "key": "ctrl+c ctrl+x ctrl+i",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.clock.in.last",
         "key": "ctrl+c ctrl+x ctrl+x",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.clock.in.last",
+        "key": "ctrl+c ctrl+x ctrl+x",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.clock.resolve",
         "key": "ctrl+c ctrl+x ctrl+z",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.clock.resolve",
+        "key": "ctrl+c ctrl+x ctrl+z",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.clock.out",
         "key": "ctrl+c ctrl+x ctrl+o",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.clock.out",
+        "key": "ctrl+c ctrl+x ctrl+o",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.clock.cancel",
         "key": "ctrl+c ctrl+x ctrl+q",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.clock.cancel",
+        "key": "ctrl+c ctrl+x ctrl+q",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.clock.goto",
         "key": "ctrl+c ctrl+x ctrl+j",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.clock.goto",
+        "key": "ctrl+c ctrl+x ctrl+j",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.clock.display",
         "key": "ctrl+c ctrl+x ctrl+d",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.clock.display",
+        "key": "ctrl+c ctrl+x ctrl+d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.clock.report",
         "key": "ctrl+c ctrl+x ctrl+r",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.clock.report",
+        "key": "ctrl+c ctrl+x ctrl+r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.dblock.update",
         "key": "ctrl+c ctrl+x ctrl+u",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.dblock.update",
+        "key": "ctrl+c ctrl+x ctrl+u",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.dblock.insert",
         "key": "ctrl+c ctrl+x x",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.dblock.insert",
+        "key": "ctrl+c ctrl+x x",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.attach",
         "key": "ctrl+c ctrl+a",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.attach",
+        "key": "ctrl+c ctrl+a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.todo",
         "key": "ctrl+c ctrl+t",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.todo",
+        "key": "ctrl+c ctrl+t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.todo.nextset",
         "key": "ctrl+shift+right",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
         "args": {
           "fallback": [
             "cursorWordEndRightSelect"
@@ -11199,7 +11261,7 @@
       {
         "command": "org.todo.previousset",
         "key": "ctrl+shift+left",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
         "args": {
           "fallback": [
             "cursorWordLeftSelect"
@@ -11209,47 +11271,102 @@
       {
         "command": "org.priority",
         "key": "ctrl+c ,",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.priority",
+        "key": "ctrl+c ,",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.property.set",
         "key": "ctrl+c ctrl+x p",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.property.set",
+        "key": "ctrl+c ctrl+x p",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.effort.set",
         "key": "ctrl+c ctrl+x e",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.effort.set",
+        "key": "ctrl+c ctrl+x e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.effort.increase",
         "key": "ctrl+c ctrl+x shift+e",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.effort.increase",
+        "key": "ctrl+c ctrl+x shift+e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.ordered.toggle",
         "key": "ctrl+c ctrl+x o",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.ordered.toggle",
+        "key": "ctrl+c ctrl+x o",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.cite.insert",
         "key": "ctrl+c ctrl+x shift+2",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.cite.insert",
+        "key": "ctrl+c ctrl+x shift+2",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.tags.set",
         "key": "ctrl+c ctrl+q",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.tags.set",
+        "key": "ctrl+c ctrl+q",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.checkbox.toggle",
         "key": "ctrl+c ctrl+c",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.checkbox.toggle",
+        "key": "ctrl+c ctrl+c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.checkbox.toggle",
         "key": "ctrl+space",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org' && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.return",
+        "key": "enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org' && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorHasMultipleSelections && !editorReadonly",
+        "args": {
+          "fallback": [
+            {
+              "command": "type",
+              "args": {
+                "text": "\n"
+              }
+            }
+          ]
+        }
       },
       {
         "command": "org.return",
@@ -11299,7 +11416,17 @@
       {
         "command": "org.meta.return",
         "key": "alt+enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.meta.return",
+        "key": "alt+enter",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.insert.todo.heading",
+        "key": "alt+shift+enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
       },
       {
         "command": "org.insert.todo.heading",
@@ -11309,17 +11436,36 @@
       {
         "command": "org.insert.heading.after",
         "key": "ctrl+enter",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
       },
       {
         "command": "org.insert.todo.heading.after",
         "key": "ctrl+shift+enter",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
       },
       {
         "command": "org.inlinetask.insert",
         "key": "ctrl+c ctrl+x t",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.inlinetask.insert",
+        "key": "ctrl+c ctrl+x t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
+      },
+      {
+        "command": "org.meta.left",
+        "key": "alt+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            {
+              "command": "cursorWordLeft",
+              "platform": "darwin"
+            },
+            "workbench.action.navigateBack"
+          ]
+        }
       },
       {
         "command": "org.meta.left",
@@ -11332,6 +11478,20 @@
               "platform": "darwin"
             },
             "workbench.action.navigateBack"
+          ]
+        }
+      },
+      {
+        "command": "org.meta.right",
+        "key": "alt+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            {
+              "command": "cursorWordRight",
+              "platform": "darwin"
+            },
+            "workbench.action.navigateForward"
           ]
         }
       },
@@ -11352,7 +11512,7 @@
       {
         "command": "org.shiftmeta.left",
         "key": "alt+shift+left",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
         "args": {
           "fallback": [
             {
@@ -11366,7 +11526,7 @@
       {
         "command": "org.shiftmeta.right",
         "key": "alt+shift+right",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
         "args": {
           "fallback": [
             {
@@ -11374,6 +11534,16 @@
               "platform": "darwin"
             },
             "editor.action.smartSelect.expand"
+          ]
+        }
+      },
+      {
+        "command": "org.meta.up",
+        "key": "alt+up",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            "editor.action.moveLinesUpAction"
           ]
         }
       },
@@ -11390,6 +11560,16 @@
       {
         "command": "org.meta.down",
         "key": "alt+down",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            "editor.action.moveLinesDownAction"
+          ]
+        }
+      },
+      {
+        "command": "org.meta.down",
+        "key": "alt+down",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
         "args": {
           "fallback": [
@@ -11400,7 +11580,7 @@
       {
         "command": "org.shiftmeta.up",
         "key": "alt+shift+up",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
         "args": {
           "fallback": [
             "editor.action.copyLinesUpAction"
@@ -11410,7 +11590,7 @@
       {
         "command": "org.shiftmeta.down",
         "key": "alt+shift+down",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
         "args": {
           "fallback": [
             "editor.action.copyLinesDownAction"
@@ -11420,52 +11600,92 @@
       {
         "command": "org.open.line",
         "key": "ctrl+o",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
       },
       {
         "command": "org.table.hline",
         "key": "ctrl+c -",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.hline",
+        "key": "ctrl+c -",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.table.hline.move",
         "key": "ctrl+c enter",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.hline.move",
+        "key": "ctrl+c enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.sort",
         "key": "ctrl+c shift+6",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.sort",
+        "key": "ctrl+c shift+6",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.sparse.tree",
         "key": "ctrl+c /",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.sparse.tree",
+        "key": "ctrl+c /",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.reveal",
         "key": "ctrl+c ctrl+r",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.reveal",
+        "key": "ctrl+c ctrl+r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.cut.subtree",
         "key": "ctrl+c ctrl+x ctrl+w",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.cut.subtree",
+        "key": "ctrl+c ctrl+x ctrl+w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.copy.subtree",
         "key": "ctrl+c ctrl+x alt+w",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.copy.subtree",
+        "key": "ctrl+c ctrl+x alt+w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.paste.subtree",
         "key": "ctrl+c ctrl+x ctrl+y",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.paste.subtree",
+        "key": "ctrl+c ctrl+x ctrl+y",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.yank",
         "key": "ctrl+y",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
         "args": {
           "fallback": [
             "editor.action.clipboardPasteAction"
@@ -11475,102 +11695,197 @@
       {
         "command": "org.refile",
         "key": "ctrl+c ctrl+w",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.refile",
+        "key": "ctrl+c ctrl+w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.refile.copy",
         "key": "ctrl+c alt+w",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.refile.copy",
+        "key": "ctrl+c alt+w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.add.note",
         "key": "ctrl+c ctrl+z",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.add.note",
+        "key": "ctrl+c ctrl+z",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.babel.tangle",
         "key": "ctrl+c ctrl+v t",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.tangle",
+        "key": "ctrl+c ctrl+v t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.babel.tangle",
         "key": "ctrl+c ctrl+v ctrl+t",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.tangle",
+        "key": "ctrl+c ctrl+v ctrl+t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.babel.execute",
         "key": "ctrl+c ctrl+v e",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.execute",
+        "key": "ctrl+c ctrl+v e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.babel.execute",
         "key": "ctrl+c ctrl+v ctrl+e",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.execute",
+        "key": "ctrl+c ctrl+v ctrl+e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.babel.execute.buffer",
         "key": "ctrl+c ctrl+v b",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.execute.buffer",
+        "key": "ctrl+c ctrl+v b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.babel.execute.buffer",
         "key": "ctrl+c ctrl+v ctrl+b",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.execute.buffer",
+        "key": "ctrl+c ctrl+v ctrl+b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.babel.execute.subtree",
         "key": "ctrl+c ctrl+v s",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.execute.subtree",
+        "key": "ctrl+c ctrl+v s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.babel.execute.subtree",
         "key": "ctrl+c ctrl+v ctrl+s",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.execute.subtree",
+        "key": "ctrl+c ctrl+v ctrl+s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.babel.remove_result",
         "key": "ctrl+c ctrl+v k",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.remove_result",
+        "key": "ctrl+c ctrl+v k",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.heading.next",
         "key": "ctrl+c ctrl+n",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.heading.next",
+        "key": "ctrl+c ctrl+n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.heading.previous",
         "key": "ctrl+c ctrl+p",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.heading.previous",
+        "key": "ctrl+c ctrl+p",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.heading.forward",
         "key": "ctrl+c ctrl+f",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.heading.forward",
+        "key": "ctrl+c ctrl+f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.heading.backward",
         "key": "ctrl+c ctrl+b",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.heading.backward",
+        "key": "ctrl+c ctrl+b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.heading.up",
         "key": "ctrl+c ctrl+u",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.heading.up",
+        "key": "ctrl+c ctrl+u",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.link.next",
         "key": "ctrl+c ctrl+x ctrl+n",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.link.next",
+        "key": "ctrl+c ctrl+x ctrl+n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.link.previous",
         "key": "ctrl+c ctrl+x ctrl+p",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.link.previous",
+        "key": "ctrl+c ctrl+x ctrl+p",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.beginning.of.line",
         "key": "ctrl+a",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
         "args": {
           "fallback": [
             "extension.vim_ctrl+a",
@@ -11585,7 +11900,7 @@
       {
         "command": "org.end.of.line",
         "key": "ctrl+e",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
         "args": {
           "fallback": [
             {
@@ -11599,7 +11914,7 @@
       {
         "command": "org.kill.line",
         "key": "ctrl+k",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
         "args": {
           "fallback": [
             "deleteAllRight"
@@ -11609,37 +11924,87 @@
       {
         "command": "org.goto",
         "key": "ctrl+c ctrl+j",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.goto",
+        "key": "ctrl+c ctrl+j",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.footnote.action",
         "key": "ctrl+c ctrl+x f",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.footnote.action",
+        "key": "ctrl+c ctrl+x f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.toggle.comment",
         "key": "ctrl+c ;",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.toggle.comment",
+        "key": "ctrl+c ;",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.emphasize",
         "key": "ctrl+c ctrl+x ctrl+f",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.emphasize",
+        "key": "ctrl+c ctrl+x ctrl+f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.structure.template",
         "key": "ctrl+c ctrl+,",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.structure.template",
+        "key": "ctrl+c ctrl+,",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.drawer.insert",
         "key": "ctrl+c ctrl+x d",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.drawer.insert",
+        "key": "ctrl+c ctrl+x d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.subtree.clone",
         "key": "ctrl+c ctrl+x c",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.subtree.clone",
+        "key": "ctrl+c ctrl+x c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
+      },
+      {
+        "command": "org.table.copy.down",
+        "key": "shift+enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org' && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorHasMultipleSelections && !editorReadonly",
+        "args": {
+          "fallback": [
+            {
+              "command": "type",
+              "args": {
+                "text": "\n"
+              }
+            }
+          ]
+        }
       },
       {
         "command": "org.table.copy.down",
@@ -11659,242 +12024,467 @@
       {
         "command": "org.table.sum",
         "key": "ctrl+c shift+=",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.sum",
+        "key": "ctrl+c shift+=",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.table.field.info",
         "key": "ctrl+c shift+/",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.field.info",
+        "key": "ctrl+c shift+/",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.table.create",
         "key": "ctrl+c shift+\\",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.create",
+        "key": "ctrl+c shift+\\",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.plot.gnuplot",
         "key": "ctrl+c shift+' g",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.plot.gnuplot",
+        "key": "ctrl+c shift+' g",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.table.ascii.plot",
         "key": "ctrl+c shift+' a",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.ascii.plot",
+        "key": "ctrl+c shift+' a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.babel.next",
         "key": "ctrl+c ctrl+v n",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.next",
+        "key": "ctrl+c ctrl+v n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.babel.next",
         "key": "ctrl+c ctrl+v ctrl+n",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.next",
+        "key": "ctrl+c ctrl+v ctrl+n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.babel.previous",
         "key": "ctrl+c ctrl+v p",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.previous",
+        "key": "ctrl+c ctrl+v p",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.babel.previous",
         "key": "ctrl+c ctrl+v ctrl+p",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.previous",
+        "key": "ctrl+c ctrl+v ctrl+p",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.babel.goto",
         "key": "ctrl+c ctrl+v g",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.goto",
+        "key": "ctrl+c ctrl+v g",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.babel.lob.ingest",
         "key": "ctrl+c ctrl+v i",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.babel.lob.ingest",
+        "key": "ctrl+c ctrl+v i",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.block.next",
         "key": "ctrl+c alt+f",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.block.next",
+        "key": "ctrl+c alt+f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.block.previous",
         "key": "ctrl+c alt+b",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.block.previous",
+        "key": "ctrl+c alt+b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.edit.special",
         "key": "ctrl+c '",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.edit.special",
+        "key": "ctrl+c '",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.narrow.subtree",
         "key": "ctrl+x n s",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
       },
       {
         "command": "org.narrow.block",
         "key": "ctrl+x n b",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
       },
       {
         "command": "org.narrow.widen",
         "key": "ctrl+x n w",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
       },
       {
         "command": "org.tree.indirect",
         "key": "ctrl+c ctrl+x b",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.tree.indirect",
+        "key": "ctrl+c ctrl+x b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.table.edit.field",
         "key": "ctrl+c `",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.edit.field",
+        "key": "ctrl+c `",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.columns",
         "key": "ctrl+c ctrl+x ctrl+c",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.columns",
+        "key": "ctrl+c ctrl+x ctrl+c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.link.preview",
         "key": "ctrl+c ctrl+x ctrl+v",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.link.preview",
+        "key": "ctrl+c ctrl+x ctrl+v",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.latex.preview",
         "key": "ctrl+c ctrl+x ctrl+l",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.latex.preview",
+        "key": "ctrl+c ctrl+x ctrl+l",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.timer.start",
         "key": "ctrl+c ctrl+x 0",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.timer.start",
+        "key": "ctrl+c ctrl+x 0",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.timer.insert",
         "key": "ctrl+c ctrl+x .",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.timer.insert",
+        "key": "ctrl+c ctrl+x .",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.timer.item",
         "key": "ctrl+c ctrl+x -",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.timer.item",
+        "key": "ctrl+c ctrl+x -",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.timer.pause",
         "key": "ctrl+c ctrl+x ,",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.timer.pause",
+        "key": "ctrl+c ctrl+x ,",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.timer.stop",
         "key": "ctrl+c ctrl+x shift+-",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.timer.stop",
+        "key": "ctrl+c ctrl+x shift+-",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.timer.set",
         "key": "ctrl+c ctrl+x ;",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.timer.set",
+        "key": "ctrl+c ctrl+x ;",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.export.dispatch",
         "key": "ctrl+c ctrl+e",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.export.dispatch",
+        "key": "ctrl+c ctrl+e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.table.toggle.column.width",
         "key": "ctrl+c tab",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.toggle.column.width",
+        "key": "ctrl+c tab",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.table.recalculate.line",
         "key": "ctrl+c shift+8",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.recalculate.line",
+        "key": "ctrl+c shift+8",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.table.formula.debugger",
         "key": "ctrl+c shift+[",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.formula.debugger",
+        "key": "ctrl+c shift+[",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.open",
         "key": "ctrl+c ctrl+o",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.open",
+        "key": "ctrl+c ctrl+o",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.link.store",
         "key": "ctrl+c l",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.link.store",
+        "key": "ctrl+c l",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.link.insert",
         "key": "ctrl+c ctrl+l",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.link.insert",
+        "key": "ctrl+c ctrl+l",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.link.insert.last",
         "key": "ctrl+c alt+l",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.link.insert.last",
+        "key": "ctrl+c alt+l",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.link.insert.all",
         "key": "ctrl+c ctrl+alt+l",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.link.insert.all",
+        "key": "ctrl+c ctrl+alt+l",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.archive.subtree",
         "key": "ctrl+c ctrl+x ctrl+s",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.archive.subtree",
+        "key": "ctrl+c ctrl+x ctrl+s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.archive.subtree",
         "key": "ctrl+c shift+4",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.archive.subtree",
+        "key": "ctrl+c shift+4",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.archive.sibling",
         "key": "ctrl+c ctrl+x shift+a",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.archive.sibling",
+        "key": "ctrl+c ctrl+x shift+a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.archive.tag",
         "key": "ctrl+c ctrl+x a",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.archive.tag",
+        "key": "ctrl+c ctrl+x a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.archive.default",
         "key": "ctrl+c ctrl+x ctrl+a",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.archive.default",
+        "key": "ctrl+c ctrl+x ctrl+a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.roam.node.insert",
         "key": "ctrl+c n i",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.node.insert",
+        "key": "ctrl+c n i",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.roam.dailies.goto.next",
         "key": "ctrl+c n d f",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.goto.next",
+        "key": "ctrl+c n d f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.roam.dailies.goto.previous",
         "key": "ctrl+c n d b",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.goto.previous",
+        "key": "ctrl+c n d b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.journal.next.entry",
         "key": "ctrl+c j f",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.journal.next.entry",
+        "key": "ctrl+c j f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.journal.previous.entry",
         "key": "ctrl+c j b",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.journal.previous.entry",
+        "key": "ctrl+c j b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.journal.search",
         "key": "ctrl+c j s",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.journal.search",
+        "key": "ctrl+c j s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.timestamp.up",
@@ -11945,7 +12535,7 @@
       {
         "command": "org.shift.up",
         "key": "shift+up",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
         "args": {
           "fallback": [
             "cursorUpSelect"
@@ -11955,7 +12545,7 @@
       {
         "command": "org.shift.down",
         "key": "shift+down",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
         "args": {
           "fallback": [
             "cursorDownSelect"
@@ -11965,7 +12555,7 @@
       {
         "command": "org.shift.left",
         "key": "shift+left",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
         "args": {
           "fallback": [
             "cursorLeftSelect"
@@ -11985,7 +12575,7 @@
       {
         "command": "org.shift.right",
         "key": "shift+right",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'",
         "args": {
           "fallback": [
             "cursorRightSelect"
@@ -12005,32 +12595,72 @@
       {
         "command": "org.schedule",
         "key": "ctrl+c ctrl+s",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.schedule",
+        "key": "ctrl+c ctrl+s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.deadline",
         "key": "ctrl+c ctrl+d",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.deadline",
+        "key": "ctrl+c ctrl+d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.timestamp.insert",
         "key": "ctrl+c .",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.timestamp.insert",
+        "key": "ctrl+c .",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.timestamp.insert.inactive",
         "key": "ctrl+c shift+1",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.timestamp.insert.inactive",
+        "key": "ctrl+c shift+1",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.timestamp.overlays.toggle",
         "key": "ctrl+c ctrl+x ctrl+t",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.timestamp.overlays.toggle",
+        "key": "ctrl+c ctrl+x ctrl+t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
       },
       {
         "command": "org.goto.calendar",
         "key": "ctrl+c shift+.",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.goto.calendar",
+        "key": "ctrl+c shift+.",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
+      },
+      {
+        "command": "org-lsp.cycle",
+        "key": "tab",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org' && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorTabMovesFocus",
+        "args": {
+          "fallback": [
+            "tab"
+          ]
+        }
       },
       {
         "command": "org-lsp.cycle",
@@ -12050,6 +12680,11 @@
       {
         "command": "org-lsp.cycleGlobal",
         "key": "shift+tab",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org' && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorTabMovesFocus"
+      },
+      {
+        "command": "org-lsp.cycleGlobal",
+        "key": "shift+tab",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorTabMovesFocus"
       },
       {
@@ -12060,7 +12695,17 @@
       {
         "command": "org.agenda.dispatch",
         "key": "ctrl+c a",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.agenda.dispatch",
+        "key": "ctrl+c a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
+      },
+      {
+        "command": "org.agenda.dispatch",
+        "key": "ctrl+c a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.agenda.dispatch",
@@ -12070,7 +12715,17 @@
       {
         "command": "org.capture",
         "key": "ctrl+c c",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.capture",
+        "key": "ctrl+c c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
+      },
+      {
+        "command": "org.capture",
+        "key": "ctrl+c c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.capture",
@@ -12080,7 +12735,17 @@
       {
         "command": "org.roam.node.find",
         "key": "ctrl+c n f",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.node.find",
+        "key": "ctrl+c n f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
+      },
+      {
+        "command": "org.roam.node.find",
+        "key": "ctrl+c n f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.roam.node.find",
@@ -12090,7 +12755,17 @@
       {
         "command": "org.roam.capture",
         "key": "ctrl+c n c",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.capture",
+        "key": "ctrl+c n c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
+      },
+      {
+        "command": "org.roam.capture",
+        "key": "ctrl+c n c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.roam.capture",
@@ -12100,7 +12775,17 @@
       {
         "command": "org.roam.dailies.capture.today",
         "key": "ctrl+c n d n",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.capture.today",
+        "key": "ctrl+c n d n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
+      },
+      {
+        "command": "org.roam.dailies.capture.today",
+        "key": "ctrl+c n d n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.roam.dailies.capture.today",
@@ -12110,7 +12795,17 @@
       {
         "command": "org.roam.dailies.goto.today",
         "key": "ctrl+c n d d",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.goto.today",
+        "key": "ctrl+c n d d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
+      },
+      {
+        "command": "org.roam.dailies.goto.today",
+        "key": "ctrl+c n d d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.roam.dailies.goto.today",
@@ -12120,7 +12815,17 @@
       {
         "command": "org.roam.dailies.goto.tomorrow",
         "key": "ctrl+c n d t",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.goto.tomorrow",
+        "key": "ctrl+c n d t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
+      },
+      {
+        "command": "org.roam.dailies.goto.tomorrow",
+        "key": "ctrl+c n d t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.roam.dailies.goto.tomorrow",
@@ -12130,7 +12835,17 @@
       {
         "command": "org.roam.dailies.goto.yesterday",
         "key": "ctrl+c n d y",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.goto.yesterday",
+        "key": "ctrl+c n d y",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
+      },
+      {
+        "command": "org.roam.dailies.goto.yesterday",
+        "key": "ctrl+c n d y",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.roam.dailies.goto.yesterday",
@@ -12140,7 +12855,17 @@
       {
         "command": "org.roam.dailies.capture.date",
         "key": "ctrl+c n d v",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.capture.date",
+        "key": "ctrl+c n d v",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
+      },
+      {
+        "command": "org.roam.dailies.capture.date",
+        "key": "ctrl+c n d v",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.roam.dailies.capture.date",
@@ -12150,7 +12875,17 @@
       {
         "command": "org.roam.dailies.goto.date",
         "key": "ctrl+c n d c",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.goto.date",
+        "key": "ctrl+c n d c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
+      },
+      {
+        "command": "org.roam.dailies.goto.date",
+        "key": "ctrl+c n d c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.roam.dailies.goto.date",
@@ -12160,7 +12895,17 @@
       {
         "command": "org.roam.dailies.find.directory",
         "key": "ctrl+c n d .",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.find.directory",
+        "key": "ctrl+c n d .",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
+      },
+      {
+        "command": "org.roam.dailies.find.directory",
+        "key": "ctrl+c n d .",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.roam.dailies.find.directory",
@@ -12170,7 +12915,17 @@
       {
         "command": "org.roam.buffer.toggle",
         "key": "ctrl+c n l",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.buffer.toggle",
+        "key": "ctrl+c n l",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
+      },
+      {
+        "command": "org.roam.buffer.toggle",
+        "key": "ctrl+c n l",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.roam.buffer.toggle",
@@ -12180,7 +12935,17 @@
       {
         "command": "org.journal.new.entry",
         "key": "ctrl+c j j",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.journal.new.entry",
+        "key": "ctrl+c j j",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !editorHasSelection"
+      },
+      {
+        "command": "org.journal.new.entry",
+        "key": "ctrl+c j j",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.journal.new.entry",
@@ -12190,7 +12955,12 @@
       {
         "command": "org.capture.finish",
         "key": "ctrl+c ctrl+c",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
+      },
+      {
+        "command": "org.capture.finish",
+        "key": "ctrl+c ctrl+c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/ && !editorHasSelection"
       },
       {
         "command": "org.capture.finish",
@@ -12200,12 +12970,27 @@
       {
         "command": "org.capture.abort",
         "key": "ctrl+c ctrl+k",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
+      },
+      {
+        "command": "org.capture.abort",
+        "key": "ctrl+c ctrl+k",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/ && !editorHasSelection"
       },
       {
         "command": "org.capture.refile",
         "key": "ctrl+c ctrl+w",
-        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/"
+      },
+      {
+        "command": "org.capture.refile",
+        "key": "ctrl+c ctrl+w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && resourceFilename =~ /^CAPTURE-/ && !editorHasSelection"
+      },
+      {
+        "command": "org.agenda.later",
+        "key": "f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.agenda.later",
@@ -12220,6 +13005,11 @@
       {
         "command": "org.agenda.earlier",
         "key": "b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.earlier",
+        "key": "b",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12230,6 +13020,11 @@
       {
         "command": "org.agenda.today",
         "key": ".",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.today",
+        "key": ".",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12240,6 +13035,11 @@
       {
         "command": "org.agenda.query.add",
         "key": "[",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.query.add",
+        "key": "[",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12250,6 +13050,11 @@
       {
         "command": "org.agenda.query.subtract",
         "key": "]",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.query.subtract",
+        "key": "]",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12260,6 +13065,11 @@
       {
         "command": "org.agenda.query.add.regexp",
         "key": "shift+[",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.query.add.regexp",
+        "key": "shift+[",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12270,6 +13080,11 @@
       {
         "command": "org.agenda.query.subtract.regexp",
         "key": "shift+]",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.query.subtract.regexp",
+        "key": "shift+]",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12280,6 +13095,11 @@
       {
         "command": "org.agenda.goto.date",
         "key": "shift+j",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.goto.date",
+        "key": "shift+j",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12290,6 +13110,11 @@
       {
         "command": "org.agenda.day",
         "key": "v d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.day",
+        "key": "v d",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12300,6 +13125,11 @@
       {
         "command": "org.agenda.week",
         "key": "v w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.week",
+        "key": "v w",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12310,6 +13140,11 @@
       {
         "command": "org.agenda.fortnight",
         "key": "v t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.fortnight",
+        "key": "v t",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12320,6 +13155,11 @@
       {
         "command": "org.agenda.month",
         "key": "v m",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.month",
+        "key": "v m",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12330,6 +13170,11 @@
       {
         "command": "org.agenda.year",
         "key": "v y",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.year",
+        "key": "v y",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12340,6 +13185,11 @@
       {
         "command": "org.agenda.redo",
         "key": "r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.redo",
+        "key": "r",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12350,12 +13200,22 @@
       {
         "command": "org.agenda.goto",
         "key": "enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.goto",
+        "key": "enter",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.agenda.goto",
         "key": "enter",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.goto.other",
+        "key": "tab",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda' && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorTabMovesFocus"
       },
       {
         "command": "org.agenda.goto.other",
@@ -12370,7 +13230,17 @@
       {
         "command": "org.agenda.save",
         "key": "s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.save",
+        "key": "s",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.save",
+        "key": "ctrl+x ctrl+s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.agenda.save",
@@ -12390,6 +13260,11 @@
       {
         "command": "org.agenda.log",
         "key": "v l",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.log",
+        "key": "v l",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12400,6 +13275,11 @@
       {
         "command": "org.agenda.habits",
         "key": "shift+k",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.habits",
+        "key": "shift+k",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12410,6 +13290,11 @@
       {
         "command": "org.agenda.write",
         "key": "ctrl+x ctrl+w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.write",
+        "key": "ctrl+x ctrl+w",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12420,6 +13305,11 @@
       {
         "command": "org.agenda.columns",
         "key": "ctrl+c ctrl+x ctrl+c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.columns",
+        "key": "ctrl+c ctrl+x ctrl+c",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12430,7 +13320,17 @@
       {
         "command": "org.agenda.clockreport",
         "key": "shift+r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.clockreport",
+        "key": "shift+r",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.clockreport",
+        "key": "v shift+r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.agenda.clockreport",
@@ -12450,7 +13350,17 @@
       {
         "command": "org.agenda.entry.text",
         "key": "shift+e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.entry.text",
+        "key": "shift+e",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.entry.text",
+        "key": "v shift+e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.agenda.entry.text",
@@ -12470,6 +13380,11 @@
       {
         "command": "org.agenda.follow",
         "key": "shift+f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.follow",
+        "key": "shift+f",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12480,6 +13395,11 @@
       {
         "command": "org.agenda.bulk.mark",
         "key": "m",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.mark",
+        "key": "m",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12490,6 +13410,11 @@
       {
         "command": "org.agenda.bulk.unmark",
         "key": "u",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.unmark",
+        "key": "u",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12500,6 +13425,11 @@
       {
         "command": "org.agenda.bulk.unmark.all",
         "key": "shift+u",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.unmark.all",
+        "key": "shift+u",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12510,6 +13440,11 @@
       {
         "command": "org.agenda.bulk.toggle",
         "key": "alt+m",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.toggle",
+        "key": "alt+m",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12520,6 +13455,11 @@
       {
         "command": "org.agenda.bulk.mark.all",
         "key": "shift+8",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.mark.all",
+        "key": "shift+8",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12530,6 +13470,11 @@
       {
         "command": "org.agenda.bulk.toggle.all",
         "key": "alt+shift+8",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.toggle.all",
+        "key": "alt+shift+8",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12540,6 +13485,11 @@
       {
         "command": "org.agenda.bulk.mark.regexp",
         "key": "shift+5",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.mark.regexp",
+        "key": "shift+5",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12550,6 +13500,11 @@
       {
         "command": "org.agenda.bulk.action",
         "key": "shift+b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.bulk.action",
+        "key": "shift+b",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12560,6 +13515,11 @@
       {
         "command": "org.agenda.filter",
         "key": "/",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.filter",
+        "key": "/",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12570,6 +13530,11 @@
       {
         "command": "org.agenda.filter.tag",
         "key": "\\",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.filter.tag",
+        "key": "\\",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12580,6 +13545,11 @@
       {
         "command": "org.agenda.filter.category",
         "key": "shift+,",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.filter.category",
+        "key": "shift+,",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12590,6 +13560,11 @@
       {
         "command": "org.agenda.filter.regexp",
         "key": "=",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.filter.regexp",
+        "key": "=",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12600,6 +13575,11 @@
       {
         "command": "org.agenda.filter.effort",
         "key": "shift+-",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.filter.effort",
+        "key": "shift+-",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12610,6 +13590,11 @@
       {
         "command": "org.agenda.filter.top.headline",
         "key": "shift+6",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.filter.top.headline",
+        "key": "shift+6",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12620,6 +13605,11 @@
       {
         "command": "org.agenda.filter.remove",
         "key": "shift+\\",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.filter.remove",
+        "key": "shift+\\",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12630,6 +13620,11 @@
       {
         "command": "org.agenda.archives",
         "key": "v a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.archives",
+        "key": "v a",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12640,6 +13635,11 @@
       {
         "command": "org.agenda.inactive",
         "key": "v [",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.inactive",
+        "key": "v [",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12650,6 +13650,11 @@
       {
         "command": "org.agenda.archives.files",
         "key": "v shift+a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.agenda.archives.files",
+        "key": "v shift+a",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12660,6 +13665,11 @@
       {
         "command": "org.clock.in",
         "key": "shift+i",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.clock.in",
+        "key": "shift+i",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12670,6 +13680,11 @@
       {
         "command": "org.clock.out",
         "key": "shift+o",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.clock.out",
+        "key": "shift+o",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12680,6 +13695,11 @@
       {
         "command": "org.clock.cancel",
         "key": "shift+x",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.clock.cancel",
+        "key": "shift+x",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12690,6 +13710,11 @@
       {
         "command": "org.todo",
         "key": "t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.todo",
+        "key": "t",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12700,6 +13725,11 @@
       {
         "command": "org.todo.nextset",
         "key": "ctrl+shift+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.todo.nextset",
+        "key": "ctrl+shift+right",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12710,6 +13740,11 @@
       {
         "command": "org.todo.previousset",
         "key": "ctrl+shift+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.todo.previousset",
+        "key": "ctrl+shift+left",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12720,7 +13755,17 @@
       {
         "command": "org.priority.up",
         "key": "shift+=",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority.up",
+        "key": "shift+=",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority.up",
+        "key": "shift+up",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.priority.up",
@@ -12740,7 +13785,17 @@
       {
         "command": "org.priority.down",
         "key": "-",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority.down",
+        "key": "-",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority.down",
+        "key": "shift+down",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.priority.down",
@@ -12760,6 +13815,11 @@
       {
         "command": "org.priority",
         "key": ",",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.priority",
+        "key": ",",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12770,12 +13830,22 @@
       {
         "command": "org.property.set",
         "key": "ctrl+c ctrl+x p",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.property.set",
+        "key": "ctrl+c ctrl+x p",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.property.set",
         "key": "ctrl+c ctrl+x p",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.effort.set",
+        "key": "e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.effort.set",
@@ -12790,7 +13860,17 @@
       {
         "command": "org.tags.set",
         "key": "shift+;",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.tags.set",
+        "key": "shift+;",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.tags.set",
+        "key": "ctrl+c ctrl+q",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.tags.set",
@@ -12805,6 +13885,11 @@
       {
         "command": "org.refile",
         "key": "ctrl+c ctrl+w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.refile",
+        "key": "ctrl+c ctrl+w",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12815,6 +13900,11 @@
       {
         "command": "org.add.note",
         "key": "z",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.add.note",
+        "key": "z",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12825,12 +13915,22 @@
       {
         "command": "org.open",
         "key": "ctrl+c ctrl+o",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.open",
+        "key": "ctrl+c ctrl+o",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.open",
         "key": "ctrl+c ctrl+o",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.link.store",
+        "key": "ctrl+c l",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.link.store",
@@ -12845,12 +13945,27 @@
       {
         "command": "org.archive.subtree",
         "key": "shift+4",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.archive.subtree",
+        "key": "shift+4",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.archive.subtree",
         "key": "ctrl+c ctrl+x ctrl+s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.archive.subtree",
+        "key": "ctrl+c ctrl+x ctrl+s",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.archive.subtree",
+        "key": "ctrl+c shift+4",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org.archive.subtree",
@@ -12870,6 +13985,11 @@
       {
         "command": "org.archive.sibling",
         "key": "ctrl+c ctrl+x shift+a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.archive.sibling",
+        "key": "ctrl+c ctrl+x shift+a",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12880,6 +14000,11 @@
       {
         "command": "org.archive.tag",
         "key": "ctrl+c ctrl+x a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.archive.tag",
+        "key": "ctrl+c ctrl+x a",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12890,6 +14015,11 @@
       {
         "command": "org.archive.default",
         "key": "ctrl+c ctrl+x ctrl+a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.archive.default",
+        "key": "ctrl+c ctrl+x ctrl+a",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12900,6 +14030,11 @@
       {
         "command": "org.archive.confirm",
         "key": "a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.archive.confirm",
+        "key": "a",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12910,6 +14045,11 @@
       {
         "command": "org.date.later",
         "key": "shift+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.date.later",
+        "key": "shift+right",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12920,6 +14060,11 @@
       {
         "command": "org.date.earlier",
         "key": "shift+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.date.earlier",
+        "key": "shift+left",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12930,6 +14075,11 @@
       {
         "command": "org.schedule",
         "key": "ctrl+c ctrl+s",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.schedule",
+        "key": "ctrl+c ctrl+s",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12940,6 +14090,11 @@
       {
         "command": "org.deadline",
         "key": "ctrl+c ctrl+d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.deadline",
+        "key": "ctrl+c ctrl+d",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -12950,12 +14105,22 @@
       {
         "command": "org-lsp.help",
         "key": "g shift+/",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org-lsp.help",
+        "key": "g shift+/",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org-lsp.help",
         "key": "g shift+/",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org-lsp.agenda.close",
+        "key": "q",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-agenda'"
       },
       {
         "command": "org-lsp.agenda.close",
@@ -12970,7 +14135,17 @@
       {
         "command": "org.journal.new.date.entry",
         "key": "j n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.new.date.entry",
+        "key": "j n",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.next.entry",
+        "key": "]",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
       },
       {
         "command": "org.journal.next.entry",
@@ -12981,6 +14156,11 @@
         "command": "org.journal.next.entry",
         "key": "]",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.previous.entry",
+        "key": "[",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
       },
       {
         "command": "org.journal.previous.entry",
@@ -12995,7 +14175,17 @@
       {
         "command": "org.journal.search.forever",
         "key": "j s f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.search.forever",
+        "key": "j s f",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.search.future",
+        "key": "j s shift+f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
       },
       {
         "command": "org.journal.search.future",
@@ -13005,7 +14195,17 @@
       {
         "command": "org.journal.search.calendar.week",
         "key": "j s w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.search.calendar.week",
+        "key": "j s w",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.search.calendar.month",
+        "key": "j s m",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
       },
       {
         "command": "org.journal.search.calendar.month",
@@ -13015,7 +14215,17 @@
       {
         "command": "org.journal.search.calendar.year",
         "key": "j s y",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.search.calendar.year",
+        "key": "j s y",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.read.entry",
+        "key": "j r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
       },
       {
         "command": "org.journal.read.entry",
@@ -13025,12 +14235,27 @@
       {
         "command": "org.journal.display.entry",
         "key": "j d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.display.entry",
+        "key": "j d",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
       },
       {
         "command": "org.journal.mark.entries",
         "key": "j m",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.mark.entries",
+        "key": "j m",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.day.later",
+        "key": "shift+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.day.later",
@@ -13050,6 +14275,11 @@
       {
         "command": "org.calendar.day.earlier",
         "key": "shift+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.day.earlier",
+        "key": "shift+left",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
       },
       {
@@ -13061,6 +14291,11 @@
         "command": "org.calendar.day.earlier",
         "key": "shift+left",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.week.later",
+        "key": "shift+down",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.week.later",
@@ -13080,6 +14315,11 @@
       {
         "command": "org.calendar.week.earlier",
         "key": "shift+up",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.week.earlier",
+        "key": "shift+up",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
       },
       {
@@ -13095,6 +14335,11 @@
       {
         "command": "org.calendar.month.later",
         "key": "alt+shift+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.month.later",
+        "key": "alt+shift+right",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
       },
       {
@@ -13105,6 +14350,11 @@
       {
         "command": "org.calendar.month.earlier",
         "key": "alt+shift+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.month.earlier",
+        "key": "alt+shift+left",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
       },
       {
@@ -13115,6 +14365,11 @@
       {
         "command": "org.calendar.year.later",
         "key": "alt+shift+down",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.year.later",
+        "key": "alt+shift+down",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
       },
       {
@@ -13125,6 +14380,11 @@
       {
         "command": "org.calendar.year.earlier",
         "key": "alt+shift+up",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.year.earlier",
+        "key": "alt+shift+up",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
       },
       {
@@ -13135,6 +14395,11 @@
       {
         "command": "org.calendar.scroll.later",
         "key": "shift+.",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.scroll.later",
+        "key": "shift+.",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
       },
       {
@@ -13145,6 +14410,11 @@
       {
         "command": "org.calendar.scroll.earlier",
         "key": "shift+,",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.scroll.earlier",
+        "key": "shift+,",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
       },
       {
@@ -13155,6 +14425,11 @@
       {
         "command": "org.calendar.today",
         "key": ".",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.today",
+        "key": ".",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
       },
       {
@@ -13165,6 +14440,11 @@
       {
         "command": "org.calendar.select",
         "key": "enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.select",
+        "key": "enter",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
       },
       {
@@ -13175,12 +14455,22 @@
       {
         "command": "org.calendar.type",
         "key": "i",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.type",
+        "key": "i",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.type",
         "key": "i",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.time",
+        "key": "t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.time",
@@ -13195,7 +14485,17 @@
       {
         "command": "org.calendar.cancel",
         "key": "q",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.cancel",
+        "key": "q",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.calendar.cancel",
+        "key": "ctrl+g",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.cancel",
@@ -13215,6 +14515,11 @@
       {
         "command": "org.columns.quit",
         "key": "q",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.quit",
+        "key": "q",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
@@ -13225,7 +14530,17 @@
       {
         "command": "org.columns.redo",
         "key": "g",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.redo",
+        "key": "g",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.redo",
+        "key": "r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
         "command": "org.columns.redo",
@@ -13236,6 +14551,11 @@
         "command": "org.columns.redo",
         "key": "r",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.edit",
+        "key": "e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
         "command": "org.columns.edit",
@@ -13250,7 +14570,17 @@
       {
         "command": "org.columns.next",
         "key": "n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.next",
+        "key": "n",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.next",
+        "key": "shift+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
         "command": "org.columns.next",
@@ -13270,7 +14600,17 @@
       {
         "command": "org.columns.previous",
         "key": "p",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.previous",
+        "key": "p",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.previous",
+        "key": "shift+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
         "command": "org.columns.previous",
@@ -13290,12 +14630,22 @@
       {
         "command": "org.columns.show",
         "key": "v",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.show",
+        "key": "v",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
         "command": "org.columns.show",
         "key": "v",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.allowed",
+        "key": "a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
         "command": "org.columns.allowed",
@@ -13310,12 +14660,22 @@
       {
         "command": "org.columns.todo",
         "key": "ctrl+c ctrl+t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.todo",
+        "key": "ctrl+c ctrl+t",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
         "command": "org.columns.todo",
         "key": "t",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org.columns.toggle",
+        "key": "ctrl+c ctrl+c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
         "command": "org.columns.toggle",
@@ -13330,6 +14690,11 @@
       {
         "command": "org.columns.move.left",
         "key": "alt+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.move.left",
+        "key": "alt+left",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
@@ -13340,6 +14705,11 @@
       {
         "command": "org.columns.move.right",
         "key": "alt+right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.move.right",
+        "key": "alt+right",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
@@ -13350,6 +14720,11 @@
       {
         "command": "org.columns.delete",
         "key": "alt+shift+left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.delete",
+        "key": "alt+shift+left",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
@@ -13360,6 +14735,11 @@
       {
         "command": "org.columns.narrow",
         "key": "shift+,",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.narrow",
+        "key": "shift+,",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
@@ -13370,6 +14750,11 @@
       {
         "command": "org.columns.widen",
         "key": "shift+.",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.widen",
+        "key": "shift+.",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
@@ -13380,6 +14765,11 @@
       {
         "command": "org.columns.row.up",
         "key": "alt+up",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.row.up",
+        "key": "alt+up",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
@@ -13390,12 +14780,22 @@
       {
         "command": "org.columns.row.down",
         "key": "alt+down",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
+      },
+      {
+        "command": "org.columns.row.down",
+        "key": "alt+down",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
         "command": "org.columns.row.down",
         "key": "alt+down",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org-lsp.columns.left",
+        "key": "left",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
         "command": "org-lsp.columns.left",
@@ -13411,6 +14811,11 @@
         "command": "org-lsp.columns.left",
         "key": "left",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns && (!vim.active || vim.mode == 'Normal')"
+      },
+      {
+        "command": "org-lsp.columns.right",
+        "key": "right",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs_full' && (editorLangId == 'org' || editorLangId == 'org-agenda') && org-lsp.columns"
       },
       {
         "command": "org-lsp.columns.right",

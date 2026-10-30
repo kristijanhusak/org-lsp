@@ -18,7 +18,8 @@ its sections says what it should look like.
 
 - [ ] Installed with ~install.sh vscode~ (or a ~.vsix~ from the release): the server starts on an Org file
 - [ ] The ~Org:~ commands are in the Command Palette
-- [ ] ~"org-lsp.keys": "vim"~ (with VSCodeVim) switches to the Vim keys
+- [ ] ~"org-lsp.keys": "vim"~ (with VSCodeVim) switches to the Vim keys; ~"emacs_full"~ to all of Emacs's, ~Shift+Right~ on a headline changing its TODO state
+- [ ] With the default keys, in an Org file ~Shift+Right~ selects, ~Ctrl+A~ is VS Code's, ~Ctrl+C~ copies the selection, and with nothing selected ~Ctrl+C Ctrl+T~ changes the TODO state
 - [ ] ~org-lsp.~ settings and =~/.config/org-lsp/config.toml= reach the server
 
 * Highlighting

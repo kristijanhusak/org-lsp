@@ -18,8 +18,8 @@
 //
 // `ORG_LSP_TEST_PRESET` is the preset (`org-lsp.keys`) run.mjs started VS
 // Code with. A command with no key in it fails, unless
-// tests/e2e/exceptions.json says why under `editors.vscode` (the emacs
-// preset) or `editors.vscode-vim`: run.mjs binds it to a key of the
+// tests/e2e/exceptions.json says why under `editors.vscode` (the
+// emacs_full preset) or `editors.vscode-vim`: run.mjs binds it to a key of the
 // user's then, as a step with a count presses a key run.mjs bound with
 // the count, as a user binds one (docs/keys/vscode.org).
 // `snapshots.vscode` there names what VS Code shows otherwise on purpose.
@@ -32,7 +32,7 @@ const vscode = require('vscode');
 
 const root = path.resolve(__dirname, '..', '..', '..');
 const e2e = path.join(root, 'tests', 'e2e');
-const preset = process.env.ORG_LSP_TEST_PRESET || 'emacs';
+const preset = process.env.ORG_LSP_TEST_PRESET || 'emacs_full';
 const exceptions = JSON.parse(fs.readFileSync(path.join(e2e, 'exceptions.json'), 'utf8'));
 /** The snapshots VS Code differs in, whatever the keys: `NAME STEP KIND`. */
 const differences = exceptions.snapshots?.vscode ?? {};

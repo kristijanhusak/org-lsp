@@ -122,7 +122,7 @@ function scenarioNames() {
 function userKeys(preset) {
   const bindings = JSON.parse(readFileSync('package.json', 'utf8')).contributes.keybindings;
   const exceptions = JSON.parse(readFileSync(join('..', '..', 'tests', 'e2e', 'exceptions.json'), 'utf8'));
-  const excepted = exceptions.editors?.[preset === 'emacs' ? 'vscode' : `vscode-${preset}`] ?? {};
+  const excepted = exceptions.editors?.[preset === 'emacs_full' ? 'vscode' : `vscode-${preset}`] ?? {};
   const wanted = new Set();
   for (const name of scenarioNames()) {
     for (const step of JSON.parse(readFileSync(join(scenarios, `${name}.json`), 'utf8')).steps) {
@@ -211,11 +211,12 @@ async function runHighlight(suite, settings = {}) {
  * editors closed, and gives them to each server it starts.
  */
 async function runScenarios() {
-  const presets = ['emacs', 'vim'].filter((preset) => parts.includes(preset));
+  // Emacs's keys all: the scenarios are typed as in Emacs.
+  const presets = ['emacs_full', 'vim'].filter((preset) => parts.includes(preset));
   const failed = [];
   const started = Date.now();
   let ran = 0;
-  for (const preset of presets.length > 0 ? presets : ['emacs', 'vim']) {
+  for (const preset of presets.length > 0 ? presets : ['emacs_full', 'vim']) {
     const settings = {
       'org-lsp.server.path': server,
       'org-lsp.keys': preset,

@@ -142,8 +142,10 @@ waits for a second key instead of copying (~Ctrl+Insert~ still copies). The
 agenda has the keys it has in every editor: Emacs's agenda keys (~f~, ~b~,
 ~t~, ~+~, ~Enter~, ~Ctrl+C Ctrl+S~ …), with ~Shift+J~ for a date and the views
 under ~v~ (~v d~, ~v w~), so that VSCodeVim keeps its motions; ~q~ closes it.
-~org-lsp.keys~ picks other keys: ~"vim"~ binds the Neovim plugin's keys for
-VSCodeVim, ~"custom"~ none. [[file:keys/vscode.org][keys/vscode.org]] lists every key and command,
+~org-lsp.keys~ picks other keys: ~"emacs_full"~ binds all of Emacs's,
+those VS Code uses for text too (Shift, Alt+Shift and Ctrl+Shift with the
+arrows, ~Ctrl+A~, ~Ctrl+X~ …), with ~Ctrl+C~ always starting Org's keys;
+~"vim"~ binds the Neovim plugin's keys for VSCodeVim, ~"custom"~ none. [[file:keys/vscode.org][keys/vscode.org]] lists every key and command,
 and how to add, change and remove keys.
 
 A date is typed as at Org's prompt: ~fri 10:00~, ~+2d~, ~2/15~, ~++1w~,

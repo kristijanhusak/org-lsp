@@ -4,19 +4,25 @@
 The package binds keys by preset, picked with ~org_keys~ in its settings
 (/Preferences: LSP-org Settings/):
 
-- ~"emacs"~, the default: Emacs's keys in Org files. ~Ctrl+C Ctrl+T~ changes
-  the TODO state, ~Shift~ and the arrows change the priority, the timestamp
-  under the cursor or the TODO state, ~Ctrl+C Ctrl+S~ schedules,
-  ~Ctrl+C Ctrl+W~ refiles, ~Ctrl+C c~ captures, ~Ctrl+C a~ opens the agenda
-  menu, ~Tab~ and ~Shift+Tab~ cycle folds as Org's TAB and S-TAB do. In a
-  capture buffer, ~Ctrl+C Ctrl+C~ files the entry.
+- ~"emacs"~, the default: Emacs's keys in Org files, but those Sublime Text
+  uses for text. ~Ctrl+C Ctrl+T~ changes the TODO state, ~Ctrl+C Ctrl+S~
+  schedules, ~Ctrl+C Ctrl+W~ refiles, ~Ctrl+C c~ captures, ~Ctrl+C a~ opens
+  the agenda menu, ~Tab~ and ~Shift+Tab~ cycle folds as Org's TAB and S-TAB
+  do. In a capture buffer, ~Ctrl+C Ctrl+C~ files the entry. Shift,
+  Alt+Shift and Ctrl+Shift with the arrows select, Ctrl+A, Ctrl+E, Ctrl+K,
+  Ctrl+O, Ctrl+X, Ctrl+Y and Ctrl+Enter are Sublime Text's, and ~Ctrl+C~
+  copies a selection: Org's ~Ctrl+C~ keys start where nothing is selected.
+- ~"emacs_full"~: all of Emacs's keys, those too, listed below under
+  /Emacs, every key/: ~Shift~ and the arrows change the priority, the
+  timestamp under the cursor or the TODO state.
 - ~"vim"~, for Vintage and NeoVintageous: the Neovim plugin's keys that do
   not start with a plain letter or the leader, in command mode (~Tab~,
   ~Ctrl+Space~, ~Ctrl+A~ …). Bind the others yourself.
 - ~"custom"~: none; bind your own.
 
 The keys are bound in Org files and the agenda only, where ~Ctrl+C~ does not
-copy. The agenda has the same keys with either preset, and in every
+copy (with ~"emacs"~, unless text is selected). The agenda has the
+same keys with each preset, and in every
 editor: Emacs's agenda keys (~f~, ~b~, ~.~, ~t~, ~+~, ~Enter~, ~Ctrl+C Ctrl+S~ …),
 with ~Shift+J~ for a date and the views under ~v~ (~v d~, ~v w~), so that
 Vintage and NeoVintageous keep their motions; with ~"vim"~, ~$~ stays the
@@ -54,8 +60,6 @@ to install and set up the package.
 | ~Ctrl+C Ctrl+X x~ | ~org.dblock.insert~ | Insert a dynamic block |
 | ~Ctrl+C Ctrl+A~ | ~org.attach~ | Attachments of the entry |
 | ~Ctrl+C Ctrl+T~ | ~org.todo~ | Change the TODO state |
-| ~Ctrl+Shift+Right~ ¹ | ~org.todo.nextset~ | Switch to the next TODO keyword set |
-| ~Ctrl+Shift+Left~ ¹ | ~org.todo.previousset~ | Switch to the previous TODO keyword set |
 | ~Ctrl+C ,~ | ~org.priority~ | Set the priority |
 | ~Ctrl+C Ctrl+X p~ | ~org.property.set~ | Set a property of the entry |
 | ~Ctrl+C Ctrl+X e~ | ~org.effort.set~ | Set the effort of the entry |
@@ -67,18 +71,11 @@ to install and set up the package.
 | ~Enter~ ¹ | ~org.return~ | New line, as Org's RET makes it |
 | ~Alt+Enter~ | ~org.meta.return~ | New heading, item or table row |
 | ~Alt+Shift+Enter~ | ~org.insert.todo.heading~ | New TODO heading, or item with a checkbox |
-| ~Ctrl+Enter~ | ~org.insert.heading.after~ | New heading after the subtree |
-| ~Ctrl+Shift+Enter~ | ~org.insert.todo.heading.after~ | New TODO heading after the subtree |
 | ~Ctrl+C Ctrl+X t~ | ~org.inlinetask.insert~ | Insert an inline task |
 | ~Alt+Left~ ¹ | ~org.meta.left~ | Promote the heading; outdent the item; move the table column left |
 | ~Alt+Right~ ¹ | ~org.meta.right~ | Demote the heading; indent the item, the drawer or the block; move the table column right |
-| ~Alt+Shift+Left~ ¹ | ~org.shiftmeta.left~ | Promote the subtree; outdent the item with its children; delete the table column |
-| ~Alt+Shift+Right~ ¹ | ~org.shiftmeta.right~ | Demote the subtree; indent the item with its children; insert a table column |
 | ~Alt+Up~ ¹ | ~org.meta.up~ | Move the subtree, the item or the table row up |
 | ~Alt+Down~ ¹ | ~org.meta.down~ | Move the subtree, the item or the table row down |
-| ~Alt+Shift+Up~ ¹ | ~org.shiftmeta.up~ | Delete the table row |
-| ~Alt+Shift+Down~ ¹ | ~org.shiftmeta.down~ | Insert a table row above |
-| ~Ctrl+O~ | ~org.open.line~ | Open a line, or in a table insert a row |
 | ~Ctrl+C -~ | ~org.table.hline~ | Insert a rule below the table row |
 | ~Ctrl+C Enter~ | ~org.table.hline.move~ | Insert a rule below the table row and go below it |
 | ~Ctrl+C ^~ | ~org.sort~ | Sort the entries, the items or the table rows |
@@ -87,7 +84,6 @@ to install and set up the package.
 | ~Ctrl+C Ctrl+X Ctrl+W~ | ~org.cut.subtree~ | Cut the subtree |
 | ~Ctrl+C Ctrl+X Alt+W~ | ~org.copy.subtree~ | Copy the subtree |
 | ~Ctrl+C Ctrl+X Ctrl+Y~ | ~org.paste.subtree~ | Paste the subtree |
-| ~Ctrl+Y~ ¹ | ~org.yank~ | Yank, a subtree at its level |
 | ~Ctrl+C Ctrl+W~ | ~org.refile~ | Refile the entry |
 | ~Ctrl+C Alt+W~ | ~org.refile.copy~ | Copy the entry to a refile target |
 | ~Ctrl+C Ctrl+Z~ | ~org.add.note~ | Add a note to the entry |
@@ -103,9 +99,6 @@ to install and set up the package.
 | ~Ctrl+C Ctrl+U~ | ~org.heading.up~ | Move to the parent heading |
 | ~Ctrl+C Ctrl+X Ctrl+N~ | ~org.link.next~ | Move to the next link |
 | ~Ctrl+C Ctrl+X Ctrl+P~ | ~org.link.previous~ | Move to the previous link |
-| ~Ctrl+A~ ¹ | ~org.beginning.of.line~ | Move to the start of the headline's title |
-| ~Ctrl+E~ ¹ | ~org.end.of.line~ | Move to the end of the headline's title |
-| ~Ctrl+K~ ¹ | ~org.kill.line~ | Kill the headline's text to the tags, or the tags |
 | ~Ctrl+C Ctrl+J~ | ~org.goto~ | Go to a heading of the file |
 | ~Ctrl+C Ctrl+X f~ | ~org.footnote.action~ | Make a footnote, or go between a footnote and its definition |
 | ~Ctrl+C ;~ | ~org.toggle.comment~ | Toggle the COMMENT keyword of the heading |
@@ -126,9 +119,6 @@ to install and set up the package.
 | ~Ctrl+C Alt+F~ | ~org.block.next~ | Move to the next block |
 | ~Ctrl+C Alt+B~ | ~org.block.previous~ | Move to the previous block |
 | ~Ctrl+C '~ | ~org.edit.special~ | Edit the block in a file of its own |
-| ~Ctrl+X n s~ | ~org.narrow.subtree~ | Narrow to the subtree: it in a file of its own |
-| ~Ctrl+X n b~ | ~org.narrow.block~ | Narrow to the block: it in a file of its own |
-| ~Ctrl+X n w~ | ~org.narrow.widen~ | Widen: the narrowed file written back and closed |
 | ~Ctrl+C Ctrl+X b~ | ~org.tree.indirect~ | Show the subtree in a file of its own |
 | ~Ctrl+C `~ | ~org.table.edit.field~ | Edit the table field in a file of its own |
 | ~Ctrl+C Ctrl+X Ctrl+C~ | ~org.columns~ | Column view |
@@ -159,10 +149,6 @@ to install and set up the package.
 | ~Ctrl+C j f~ | ~org.journal.next.entry~ | Journal: next entry |
 | ~Ctrl+C j b~ | ~org.journal.previous.entry~ | Journal: previous entry |
 | ~Ctrl+C j s~ | ~org.journal.search~ | Journal: search between two dates |
-| ~Shift+Up~ ¹ | ~org.shift.up~ | Increase the timestamp part, raise the priority, or go to the previous item |
-| ~Shift+Down~ ¹ | ~org.shift.down~ | Decrease the timestamp part, lower the priority, or go to the next item |
-| ~Shift+Left~ ¹ | ~org.shift.left~ | Move the date a day earlier, or cycle the TODO state or the list's bullets backward |
-| ~Shift+Right~ ¹ | ~org.shift.right~ | Move the date a day later, or cycle the TODO state or the list's bullets forward |
 | ~Ctrl+C Ctrl+S~ | ~org.schedule~ | Schedule the entry |
 | ~Ctrl+C Ctrl+D~ | ~org.deadline~ | Set the deadline of the entry |
 | ~Ctrl+C .~ | ~org.timestamp.insert~ | Insert or change a timestamp |
@@ -284,6 +270,39 @@ to install and set up the package.
 
 =¦= stands for =|=, which an Org table cannot hold.
 
+** Emacs, every key (~"org_keys": "emacs_full"~)
+
+All of Emacs's keys: the keys above, and those the default leaves to
+the editor, listed here. In Org files and capture buffers Shift,
+Alt+Shift and Ctrl+Shift with the arrows are then Org's (where
+~org_support_shift_select~ lets them), and so are Ctrl+A, Ctrl+E,
+Ctrl+K, Ctrl+O, Ctrl+X, Ctrl+Y and Ctrl+Enter; Org's ~Ctrl+C~ keys start
+with text selected too, so that ~Ctrl+C~ no longer copies (~Ctrl+Insert~
+still does).
+
+| Keys | Command | What it does |
+|---+---+---|
+| ~Ctrl+Shift+Right~ | ~org.todo.nextset~ | Switch to the next TODO keyword set |
+| ~Ctrl+Shift+Left~ | ~org.todo.previousset~ | Switch to the previous TODO keyword set |
+| ~Ctrl+Enter~ | ~org.insert.heading.after~ | New heading after the subtree |
+| ~Ctrl+Shift+Enter~ | ~org.insert.todo.heading.after~ | New TODO heading after the subtree |
+| ~Alt+Shift+Left~ | ~org.shiftmeta.left~ | Promote the subtree; outdent the item with its children; delete the table column |
+| ~Alt+Shift+Right~ | ~org.shiftmeta.right~ | Demote the subtree; indent the item with its children; insert a table column |
+| ~Alt+Shift+Up~ | ~org.shiftmeta.up~ | Delete the table row |
+| ~Alt+Shift+Down~ | ~org.shiftmeta.down~ | Insert a table row above |
+| ~Ctrl+O~ | ~org.open.line~ | Open a line, or in a table insert a row |
+| ~Ctrl+Y~ | ~org.yank~ | Yank, a subtree at its level |
+| ~Ctrl+A~ | ~org.beginning.of.line~ | Move to the start of the headline's title |
+| ~Ctrl+E~ | ~org.end.of.line~ | Move to the end of the headline's title |
+| ~Ctrl+K~ | ~org.kill.line~ | Kill the headline's text to the tags, or the tags |
+| ~Ctrl+X n s~ | ~org.narrow.subtree~ | Narrow to the subtree: it in a file of its own |
+| ~Ctrl+X n b~ | ~org.narrow.block~ | Narrow to the block: it in a file of its own |
+| ~Ctrl+X n w~ | ~org.narrow.widen~ | Widen: the narrowed file written back and closed |
+| ~Shift+Up~ | ~org.shift.up~ | Increase the timestamp part, raise the priority, or go to the previous item |
+| ~Shift+Down~ | ~org.shift.down~ | Decrease the timestamp part, lower the priority, or go to the next item |
+| ~Shift+Left~ | ~org.shift.left~ | Move the date a day earlier, or cycle the TODO state or the list's bullets backward |
+| ~Shift+Right~ | ~org.shift.right~ | Move the date a day later, or cycle the TODO state or the list's bullets forward |
+
 ** Vim (~"org_keys": "vim"~, in command mode unless it says otherwise)
 
 *** In Org files
@@ -385,10 +404,10 @@ to install and set up the package.
 =¦= stands for =|=, which an Org table cannot hold.
 
 ¹ Where the command does not apply, the key does what it does without
-the package: ~Shift+Up~ off a timestamp selects (and on a headline
-too, as ~org_support_shift_select~ says), ~Tab~ off
-a headline, block or drawer indents or completes, ~Enter~ makes a new
-line.
+the package: ~Tab~ off a headline, block or drawer indents or
+completes, ~Enter~ makes a new line, and with ~emacs_full~ ~Shift+Up~
+off a timestamp selects (and on a headline too, as
+~org_support_shift_select~ says).
 
 ** Without a key
 
