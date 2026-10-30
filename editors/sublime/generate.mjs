@@ -76,6 +76,8 @@ const fallbacks = {
   'shift+down': { command: 'move', args: { by: 'lines', forward: true, extend: true } },
   'shift+left': { command: 'move', args: { by: 'characters', forward: false, extend: true } },
   'shift+right': { command: 'move', args: { by: 'characters', forward: true, extend: true } },
+  'ctrl+shift+left': { command: 'move', args: { by: 'words', forward: false, extend: true } },
+  'ctrl+shift+right': { command: 'move', args: { by: 'word_ends', forward: true, extend: true } },
   'ctrl+a': { command: 'nv_feed_key', args: { key: '<C-a>' } },
   'ctrl+x': { command: 'nv_feed_key', args: { key: '<C-x>' } },
   tab: { command: 'insert_best_completion', args: { default: '\t', exact: false } },

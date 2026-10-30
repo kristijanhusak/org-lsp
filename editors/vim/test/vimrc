@@ -34,6 +34,7 @@ let g:org_lsp = {
       \   'org_todo_keyword_faces': {'TODO': ':foreground #ff8800 :weight bold'},
       \   'org_tag_faces': {'office': '#0088ff'},
       \   'org_fontify_whole_heading_line': v:true,
+      \   'org_support_shift_select': v:false,
       \   'org_return_follows_link': v:true,
       \   'org_agenda_files': [$ORG_LSP_TEST_WORK . '/notes'],
       \   'org_roam_enabled': v:true,

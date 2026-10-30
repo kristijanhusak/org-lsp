@@ -7555,6 +7555,27 @@ The TODO keyword of a new inline task (~org.inlinetask.insert~).
 - Type :: string
 - Default :: unset: no keyword
 
+*** org_support_shift_select
+:PROPERTIES:
+:CUSTOM_ID: org_support_shift_select
+:END:
+
+Where Shift and the arrows select text, as they do in the editor, instead of
+running Org's commands (~S-<left>~ and its kin, ~C-S-<left>~ and
+~C-S-<right>~): ~always~ everywhere but on a timestamp and the ~#+BEGIN:~ line
+of a clock table; ~true~ everywhere but there, on headlines, list items'
+bullets, property lines and tables; ~false~ nowhere, Org's commands wherever
+they apply. With text selected, ~always~ and ~true~ extend it. Emacs's default
+is ~false~; org-lsp's is ~always~, as editors select with these keys.
+
+- Org's option :: ~org-support-shift-select~
+- Type :: "always", true, false
+- Default :: ~"always"~
+
+#+begin_src toml
+org_support_shift_select = "always"
+#+end_src
+
 *** org_special_ctrl_o
 :PROPERTIES:
 :CUSTOM_ID: org_special_ctrl_o

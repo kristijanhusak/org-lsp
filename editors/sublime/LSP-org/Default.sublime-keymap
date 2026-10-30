@@ -279,7 +279,15 @@
     ],
     "command": "org_lsp_run",
     "args": {
-      "command": "org.todo.nextset"
+      "command": "org.todo.nextset",
+      "fallback": {
+        "command": "move",
+        "args": {
+          "by": "word_ends",
+          "forward": true,
+          "extend": true
+        }
+      }
     },
     "context": [
       {
@@ -300,7 +308,15 @@
     ],
     "command": "org_lsp_run",
     "args": {
-      "command": "org.todo.previousset"
+      "command": "org.todo.previousset",
+      "fallback": {
+        "command": "move",
+        "args": {
+          "by": "words",
+          "forward": false,
+          "extend": true
+        }
+      }
     },
     "context": [
       {

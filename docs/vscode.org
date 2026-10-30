@@ -134,7 +134,10 @@ lists the keys of the editor at hand; picking one runs it.
 
 Emacs's keys are bound in Org files (~Ctrl+C Ctrl+T~, ~Ctrl+C Ctrl+S~,
 ~Shift~ and the arrows, ~Tab~ and ~Shift+Tab~ to cycle folds …), in capture
-buffers (~Ctrl+C Ctrl+C~) and in the date prompt. In Org files ~Ctrl+C~
+buffers (~Ctrl+C Ctrl+C~) and in the date prompt. ~Shift~ and the arrows
+change timestamps and select text elsewhere; with
+[[file:configuration.org::#org_support_shift_select][org_support_shift_select]] set to ~true~ or ~false~ they change TODO
+states, priorities and bullets too, as in Emacs. In Org files ~Ctrl+C~
 waits for a second key instead of copying (~Ctrl+Insert~ still copies). The
 agenda has the keys it has in every editor: Emacs's agenda keys (~f~, ~b~,
 ~t~, ~+~, ~Enter~, ~Ctrl+C Ctrl+S~ …), with ~Shift+J~ for a date and the views

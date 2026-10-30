@@ -388,6 +388,9 @@ pub struct Options {
     /// `org-use-fast-todo-selection`: `"auto"`, `"expert"` or `false`.
     #[serde(rename = "org_use_fast_todo_selection")]
     pub use_fast_todo_selection: Option<serde_json::Value>,
+    /// `org-support-shift-select`: `false`, `true` or `"always"`.
+    #[serde(rename = "org_support_shift_select")]
+    pub support_shift_select: Option<serde_json::Value>,
     /// `org-use-fast-tag-selection`: `true`, `false` or `"auto"`.
     #[serde(rename = "org_use_fast_tag_selection")]
     pub use_fast_tag_selection: Option<serde_json::Value>,
@@ -2625,6 +2628,19 @@ impl Options {
             Some(serde_json::Value::Bool(false)) | Some(serde_json::Value::Null) => FastTodo::Never,
             Some(serde_json::Value::String(name)) if name == "expert" => FastTodo::Expert,
             _ => FastTodo::Auto,
+        }
+    }
+
+    /// `org-support-shift-select`: where the shifted cursor keys select
+    /// text. `always` when it is not set, where Emacs's default is `nil`:
+    /// in an editor other than Emacs, Shift and the arrows select text
+    /// first.
+    pub fn shift_select(&self) -> org_core::edit::ShiftSelect {
+        use org_core::edit::ShiftSelect;
+        match &self.support_shift_select {
+            Some(serde_json::Value::Bool(false)) => ShiftSelect::Never,
+            Some(serde_json::Value::Bool(true)) => ShiftSelect::Outside,
+            _ => ShiftSelect::Always,
         }
     }
 

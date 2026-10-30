@@ -2133,6 +2133,16 @@ org_inlinetask_show_first_star = false
 # (org-inlinetask-default-state)
 # org_inlinetask_default_state = … (unset: no keyword)
 
+# Where Shift and the arrows select text, as they do in the editor, instead of
+# running Org's commands (`S-<left>` and its kin, `C-S-<left>` and
+# `C-S-<right>`): `always` everywhere but on a timestamp and the `#+BEGIN:`
+# line of a clock table; `true` everywhere but there, on headlines, list
+# items' bullets, property lines and tables; `false` nowhere, Org's commands
+# wherever they apply. With text selected, `always` and `true` extend it.
+# Emacs's default is `false`; org-lsp's is `always`, as editors select with
+# these keys. (org-support-shift-select)
+org_support_shift_select = "always"
+
 # `org.open.line` (C-o) in a table inserts a row above; with `false` it opens
 # a line there too. (org-special-ctrl-o)
 org_special_ctrl_o = true

@@ -1031,6 +1031,8 @@ struct Server {
     calendar_months: usize,
     /// `org-use-fast-todo-selection`
     fast_todo: crate::config::FastTodo,
+    /// `org-support-shift-select`
+    shift_select: org_core::edit::ShiftSelect,
     /// The day the calendar's weeks start on (`calendar_week_start_day`).
     calendar_week_start: usize,
     auto_save: bool,
@@ -1788,6 +1790,7 @@ pub fn run(connection: Connection) -> Result<()> {
         return_follows_link: options.return_follows_link.unwrap_or(false),
         calendar_months: options.calendar_months.unwrap_or(3),
         fast_todo: options.fast_todo_selection(),
+        shift_select: options.shift_select(),
         calendar_week_start: options.calendar_week_start_day.unwrap_or(0) % 7,
         all_agenda_tags: options.complete_tags_always_offer_all_agenda_tags.unwrap_or(false),
         pretty_entities: options.pretty_entities.unwrap_or(false),
@@ -11873,6 +11876,9 @@ impl Server {
             let extra = Extra { note: Some(context.input.clone().unwrap_or_default()), ..Extra::default() };
             return self.edit_with(&context, id, Some(EditCommand::Todo(target)), &extra);
         }
+        if !self.shift_is_org(id, &context) {
+            return Err(Refusal::NotHere(SHIFT_SELECTS.to_string()));
+        }
         if matches!(id, commands::SHIFT_LEFT | commands::SHIFT_RIGHT | commands::SHIFT_UP | commands::SHIFT_DOWN) {
             if let Some(result) = self.shift_item(id, &context) {
                 return result;
@@ -14698,6 +14704,41 @@ impl Server {
         Ok(result)
     }
 
+    /// Whether a shifted cursor key, or `C-S-<left>` and `C-S-<right>`,
+    /// is Org's at `context` with `org-support-shift-select`, as
+    /// `org-shiftright` and its kin decide: a selection is the editor's to
+    /// extend, then each place Org acts on in turn. When it is not, the
+    /// editor runs its own key and selects. The agenda's keys are always
+    /// its own.
+    fn shift_is_org(&self, id: &str, context: &Context) -> bool {
+        use org_core::edit::{Direction, ShiftSelect};
+        let select = self.shift_select;
+        let uri = &context.text_document.uri;
+        let control = matches!(id, commands::TODO_NEXT_SET | commands::TODO_PREVIOUS_SET);
+        let direction = match id {
+            commands::SHIFT_UP => Direction::Up,
+            commands::SHIFT_DOWN => Direction::Down,
+            commands::SHIFT_LEFT => Direction::Left,
+            commands::SHIFT_RIGHT => Direction::Right,
+            _ if control => Direction::Right,
+            _ => return true,
+        };
+        if select == ShiftSelect::Never || self.is_view(uri) {
+            return true;
+        }
+        if Self::has_region(context) {
+            return false;
+        }
+        let Some(document) = self.document(uri) else { return true };
+        let offset = document.index.offset(&document.text, context.position, self.client.encoding);
+        if control {
+            return org_core::edit::shift_control_acts(&document.text, offset, select);
+        }
+        org_core::edit::shift_acts(&document.text, offset, direction, select, self.edit_settings.priority_commands)
+            || self.at_clocktable(context, org_core::clocktable::at_clocktable_begin)
+            || (select == ShiftSelect::Outside && self.at_table(context))
+    }
+
     /// Org's shifted cursor keys on a list item in an Org file, carried in
     /// the result as `org.return` is: the bullets cycled
     /// (`org-cycle-list-bullet`), or the cursor to the next or previous
@@ -17285,6 +17326,7 @@ const NO_DATE_ASKED: &str = "No date is asked for: the calendar is open on its o
 /// What an agenda command on a line without an entry says, as
 /// `org-agenda-error` does.
 const NOT_ON_ENTRY: &str = "Command not allowed in this line";
+const SHIFT_SELECTS: &str = "Shift selects here (`org-support-shift-select`)";
 
 /// The date `org-goto-calendar` goes to from `offset` in `text`: the
 /// timestamp at it, active or not (`org-at-timestamp-p` with `lax`), or

@@ -295,6 +295,18 @@ pub const SETTINGS: &[Setting] = &[
         )
     },
     setting(
+        "org_support_shift_select",
+        r#""always", true, false"#,
+        r#""always""#,
+        "org-support-shift-select",
+        "Where Shift and the arrows select text, as they do in the editor, instead of running Org's commands \
+         (`S-<left>` and its kin, `C-S-<left>` and `C-S-<right>`): `always` everywhere but on a timestamp and \
+         the `#+BEGIN:` line of a clock table; `true` everywhere but there, on headlines, list items' bullets, \
+         property lines and tables; `false` nowhere, Org's commands wherever they apply. With text selected, \
+         `always` and `true` extend it. Emacs's default is `false`; org-lsp's is `always`, as editors select \
+         with these keys.",
+    ),
+    setting(
         "org_treat_S_cursor_todo_selection_as_state_change",
         "boolean",
         "true",
@@ -4103,6 +4115,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("org_special_ctrl_k", BOOLEAN),
     ("org_special_ctrl_o", BOOLEAN),
+    ("org_support_shift_select", r#"{ "enum": ["always", true, false] }"#),
     ("org_treat_S_cursor_todo_selection_as_state_change", BOOLEAN),
     ("org_treat_insert_todo_heading_as_state_change", BOOLEAN),
     ("org_edit_timestamp_down_means_later", BOOLEAN),

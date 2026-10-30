@@ -49,6 +49,9 @@ impl Client {
         let mut options = if options.is_null() { json!({}) } else { options };
         if let Some(fields) = options.as_object_mut() {
             fields.entry("config_file").or_insert(json!(false));
+            // Shift and the arrows are Org's wherever they apply, as in
+            // Emacs, unless a test says otherwise.
+            fields.entry("org_support_shift_select").or_insert(json!(false));
             // The IDs an Emacs of the machine left in its
             // `org-id-locations-file` are not read.
             fields.entry("org_id_locations_file").or_insert(json!(NO_ID_LOCATIONS));
@@ -1746,6 +1749,49 @@ fn edits_the_structure() {
         .collect();
     assert_eq!(kinds, ["org.meta.left", "org.meta.right", "org.shiftmeta.left", "org.shiftmeta.right", "org.meta.up"]);
     client.shutdown();
+}
+
+/// `org-support-shift-select`: where Shift and the arrows are the editor's,
+/// the server says the command does not apply (`notApplicable`), and the
+/// editor selects; on a timestamp they are always Org's.
+#[test]
+fn leaves_shift_and_the_arrows_to_the_editor() {
+    let text = "* TODO Task\n- item <2026-05-18 Mon>\nplain\n";
+    let applies = |select: Value, command: &str, line: u32, character: u32, range: Option<Value>| {
+        let mut client = Client::start(json!({}), json!({ "org_support_shift_select": select }));
+        client.open(&uri(), text);
+        let mut context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
+        if let Some(range) = range {
+            context["range"] = range;
+        }
+        match client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+            .response_result
+        {
+            Ok(_) => true,
+            Err(error) => error.data.is_none_or(|data| data["notApplicable"] != json!(true)),
+        }
+    };
+    // `always`, the default: Org's on the timestamp alone.
+    assert!(!applies(json!("always"), "org.shift.right", 0, 3, None));
+    assert!(!applies(json!("always"), "org.todo.nextset", 0, 3, None));
+    assert!(!applies(json!("always"), "org.shift.right", 1, 0, None));
+    assert!(applies(json!("always"), "org.shift.right", 1, 10, None));
+    assert!(applies(Value::Null, "org.shift.up", 1, 10, None));
+    assert!(!applies(Value::Null, "org.shift.up", 0, 3, None));
+    // `t`: the headline and the bullet too, not the rest of the item.
+    assert!(applies(json!(true), "org.shift.right", 0, 3, None));
+    assert!(applies(json!(true), "org.todo.nextset", 0, 3, None));
+    assert!(applies(json!(true), "org.shift.right", 1, 0, None));
+    assert!(!applies(json!(true), "org.shift.right", 1, 3, None));
+    assert!(!applies(json!(true), "org.shift.down", 1, 0, None));
+    assert!(!applies(json!(true), "org.shift.left", 2, 1, None));
+    // A selection is the editor's to extend, but with `nil`.
+    let range = json!({ "start": { "line": 0, "character": 2 }, "end": { "line": 0, "character": 4 } });
+    assert!(!applies(json!(true), "org.shift.right", 0, 3, Some(range.clone())));
+    assert!(applies(json!(false), "org.shift.right", 0, 3, Some(range)));
+    assert!(applies(json!(false), "org.shift.right", 1, 3, None));
 }
 
 /// Org's meta and shifted keys on a list item: indent, outdent and move

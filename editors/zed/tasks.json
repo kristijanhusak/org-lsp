@@ -351,32 +351,6 @@
     "use_new_terminal": false
   },
   {
-    "label": "Org: Switch to the next TODO keyword set",
-    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.todo.nextset",
-    "tags": [
-      "org"
-    ],
-    "reveal": "never",
-    "hide": "on_success",
-    "show_summary": false,
-    "show_command": false,
-    "allow_concurrent_runs": true,
-    "use_new_terminal": false
-  },
-  {
-    "label": "Org: Switch to the previous TODO keyword set",
-    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.todo.previousset",
-    "tags": [
-      "org"
-    ],
-    "reveal": "never",
-    "hide": "on_success",
-    "show_summary": false,
-    "show_command": false,
-    "allow_concurrent_runs": true,
-    "use_new_terminal": false
-  },
-  {
     "label": "Org: Set the priority",
     "command": "$HOME/.local/state/org-lsp/agenda-command file:org.priority",
     "tags": [

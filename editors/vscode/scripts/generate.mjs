@@ -111,6 +111,8 @@ const fallbacks = {
   'shift+down': ['cursorDownSelect'],
   'shift+left': ['cursorLeftSelect'],
   'shift+right': ['cursorRightSelect'],
+  'ctrl+shift+left': ['cursorWordLeftSelect'],
+  'ctrl+shift+right': ['cursorWordEndRightSelect'],
   'ctrl+a': ['extension.vim_ctrl+a', { command: 'cursorLineStart', platform: 'darwin' }, 'editor.action.selectAll'],
   // C-e: the line's end on macOS, Quick Open elsewhere. C-k, which
   // starts VS Code's chords elsewhere, deletes to the line's end as on

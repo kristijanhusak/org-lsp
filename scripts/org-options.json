@@ -721,7 +721,7 @@
   "org-log-buffer-setup-hook": "lisp",
   "org-modules": "setting",
   "org-export-backends": "emacs",
-  "org-support-shift-select": "emacs-only",
+  "org-support-shift-select": "setting",
   "org-loop-over-headlines-in-active-region": "emacs-only",
   "org-edit-keep-region": "emacs-only",
   "org-startup-folded": "setting",

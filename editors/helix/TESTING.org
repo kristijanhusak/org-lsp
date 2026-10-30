@@ -88,7 +88,7 @@ Not in Helix:
 
 Not in Helix:
 
-- Switching to the next and previous keyword set says ~Keyword-Set 2/2: REPORT BUG FIXED~: /Switch to the next TODO keyword set/, /Switch to the previous TODO keyword set/ are not among its code actions
+- With ~org_support_shift_select~ set to ~false~: switching to the next and previous keyword set says ~Keyword-Set 2/2: REPORT BUG FIXED~: /Switch to the next TODO keyword set/, /Switch to the previous TODO keyword set/ are not among its code actions
 
 * Priorities
 
@@ -113,7 +113,7 @@ Not in Helix:
 
 Not in Helix:
 
-- On a property line with ~NAME_ALL~, cycling through its values: /Move the date a day later, or cycle the TODO state or the list's bullets forward/, /Move the date a day earlier, or cycle the TODO state or the list's bullets backward/ are not among its code actions
+- With ~org_support_shift_select~ set to ~false~: on a property line with ~NAME_ALL~, cycling through its values: /Move the date a day later, or cycle the TODO state or the list's bullets forward/, /Move the date a day earlier, or cycle the TODO state or the list's bullets backward/ are not among its code actions
 - Deleting a property from the entry, and from the whole file: /Delete a property of the entry/, /Delete a property from every entry of the file/ are not among its code actions
 - Toggling ~ORDERED~: /Toggle whether subtasks must be done in order (ORDERED)/ is not among its code actions
 

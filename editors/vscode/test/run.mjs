@@ -72,6 +72,8 @@ writeFileSync(
       org_journal_enabled: true,
       org_journal_dir: journal,
       org_fontify_whole_heading_line: true,
+      // Shift and the arrows are Org's wherever they apply, as in Emacs.
+      org_support_shift_select: false,
     },
   }),
 );
