@@ -64,7 +64,7 @@ commands and what an integration has to do.
 
 The server is a single binary, ~org-lsp~. CI builds it for Linux (x86_64,
 arm64), macOS (arm64, x86_64) and Windows (x86_64): the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] has
-the binaries (~org-lsp-<platform>.tar.gz~), a VS Code package for each
+the binaries (~org-lsp-<platform>.tar.gz~, a ~.zip~ for Windows), a VS Code package for each
 platform with the server inside, the Sublime Text package and the Zed
 extension. Version tags make releases of their own. A server says the
 commit it was built from with its version: ~org-lsp --version~ prints

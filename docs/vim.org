@@ -23,8 +23,10 @@ well (~client = 'auto'~ takes them in this order):
   as ~win_split_mode~ says. One difference is left: a file an edit is for
   that is not loaded opens as ~workspace.openResourceCommand~ says (see
   [[*What differs from Neovim][What differs from Neovim]]). It needs Node.js.
-- [[https://github.com/prabirshrestha/vim-lsp][vim-lsp]] :: Everything works too, but inlay hints (the time clocked,
-  the ~…~ of shrunk columns) come again only when the cursor moves.
+- [[https://github.com/prabirshrestha/vim-lsp][vim-lsp]] :: Everything works too, but vim-lsp does not ask for the inlay
+  hints (the time clocked, the ~…~ of shrunk columns) again when the server
+  says they changed: the plugin asks for them after each command, and
+  vim-lsp when the cursor moves.
 - [[https://github.com/dense-analysis/ale][ALE]] :: Works, but it has no inlay hints (the time clocked, the ~…~
   of shrunk columns), does not apply the server's edits itself (the plugin
   does), and one server serves the whole session, started for the

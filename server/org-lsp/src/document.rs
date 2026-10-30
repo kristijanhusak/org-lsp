@@ -100,8 +100,11 @@ impl Document {
         let mut index = self.index.clone();
         let mut changed = Vec::new();
         // The parse of `text` as far as the changes went, while each one
-        // could be parsed where it is.
-        let mut parse = Some(self.parse.clone());
+        // could be parsed where it is. A parse that is not of the text (the
+        // empty one left after the parser failed) is not edited: the whole
+        // text is parsed again.
+        let whole = usize::from(self.parse.syntax().text_range().end()) == self.text.len();
+        let mut parse = whole.then(|| self.parse.clone());
         for change in changes {
             match change.range {
                 Some(range) => {
@@ -112,9 +115,9 @@ impl Document {
                     let narrowed = Change::between(&text[start..end], &change.text);
                     let (start, end) = (start + narrowed.start, start + narrowed.end);
                     changed.push(Change { start, end, length: narrowed.length });
-                    let before = text.clone();
+                    let before = parse.is_some().then(|| text.clone());
                     text.replace_range(start..end, &change.text[narrowed.start..narrowed.start + narrowed.length]);
-                    parse = parse.and_then(|parse| {
+                    parse = parse.zip(before).and_then(|(parse, before)| {
                         std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                             parse.edit(&before, start, end, &text, todo)
                         }))
@@ -133,9 +136,11 @@ impl Document {
                     for run in &runs {
                         let (start, end) = (usize::from(run.range.start()), usize::from(run.range.end()));
                         changed.push(Change { start, end, length: run.new_text.len() });
-                        let before = text.clone();
+                        // The text before the run, only while the parse is
+                        // still edited where each run is.
+                        let before = parse.is_some().then(|| text.clone());
                         text.replace_range(start..end, &run.new_text);
-                        parse = parse.and_then(|parse| {
+                        parse = parse.zip(before).and_then(|(parse, before)| {
                             std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                                 parse.edit(&before, start, end, &text, todo)
                             }))
@@ -263,6 +268,19 @@ mod tests {
         );
         assert_eq!(document.text, "* TODO 😀 two\n!");
         assert_eq!(document.version, 2);
+        assert_eq!(document.syntax().text().to_string(), document.text);
+    }
+
+    /// A parse that is not of the text, as the empty one left after the
+    /// parser failed, is not edited where the change is: the change gives
+    /// the parse of the whole text.
+    #[test]
+    fn a_parse_not_of_the_text_is_not_edited() {
+        let todo = TodoKeywords::default();
+        let mut document = Document::new("text\n* a\n".to_string(), 1, &todo);
+        document.parse = org_syntax::parse("", &todo);
+        document.apply(vec![change(Some((0, 0, 0, 0)), "x")], 2, Encoding::Utf8, &todo);
+        assert_eq!(document.text, "xtext\n* a\n");
         assert_eq!(document.syntax().text().to_string(), document.text);
     }
 

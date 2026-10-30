@@ -11,7 +11,7 @@ fn main() {
     let version = std::env::var("CARGO_PKG_VERSION").unwrap_or_default();
     let released = std::env::var("ORG_LSP_COMMIT").ok().filter(|commit| !commit.is_empty());
     let full = match (released, checkout_commit()) {
-        (Some(commit), _) => format!("{version}-{}", &commit[..commit.len().min(7)]),
+        (Some(commit), _) => format!("{version}-{}", commit.chars().take(7).collect::<String>()),
         (None, Some(commit)) => format!("{version}-{commit}-dev"),
         (None, None) => format!("{version}-dev"),
     };

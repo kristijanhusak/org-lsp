@@ -648,8 +648,10 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
       // `org-lsp.headlineLevelColors`; a habit's days in the agenda, in
       // their backgrounds. The server sends no deltas.
       provideDocumentSemanticTokens: async (document, token, next) => {
+        const version = document.version;
         const tokens = await next(document, token);
         habitsOf(document, tokens);
+        tokensFetched(document, version, tokens);
         return levelColored(tokens);
       },
       provideDocumentRangeSemanticTokens: async (document, range, token, next) =>
@@ -856,6 +858,21 @@ function emphasisDecoration(key: string): vscode.TextEditorDecorationType {
   return decoration;
 }
 const faceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+/**
+ * The tokens VS Code last fetched for each document, with the version they
+ * are of: the faces are painted from them, with no request of their own
+ * (the server's tokens of a whole file are not cheap).
+ */
+const fetchedTokens = new Map<string, { version: number; data: ArrayLike<number> }>();
+
+/** Keep the tokens VS Code fetched, and paint the faces from them. */
+function tokensFetched(document: vscode.TextDocument, version: number, tokens: vscode.SemanticTokens | null | undefined): void {
+  if (!tokens || document.version !== version) {
+    return;
+  }
+  fetchedTokens.set(document.uri.toString(), { version, data: tokens.data });
+  vscode.window.visibleTextEditors.filter((editor) => editor.document === document).forEach((editor) => void paintFaces(editor));
+}
 
 function setFaces(faces: Faces | undefined): void {
   for (const decoration of faceDecorations.values()) {
@@ -892,9 +909,15 @@ async function paintFaces(editor: vscode.TextEditor): Promise<void> {
   }
   const legend = running.initializeResult?.capabilities.semanticTokensProvider?.legend;
   const version = document.version;
-  const tokens = (await running
-    .sendRequest('textDocument/semanticTokens/full', { textDocument: { uri: document.uri.toString() } })
-    .catch(() => undefined)) as { data?: number[] } | undefined;
+  // The tokens VS Code fetched for this version; asked for only where it
+  // fetched none (semantic highlighting turned off).
+  const fetched = fetchedTokens.get(document.uri.toString());
+  const tokens =
+    fetched?.version === version
+      ? fetched
+      : ((await running
+          .sendRequest('textDocument/semanticTokens/full', { textDocument: { uri: document.uri.toString() } })
+          .catch(() => undefined)) as { data?: number[] } | undefined);
   if (!legend || !tokens?.data || document.version !== version) {
     return;
   }
@@ -964,7 +987,12 @@ async function paintFaces(editor: vscode.TextEditor): Promise<void> {
   emphasisShown.set(editor, emphasized);
 }
 
-/** Paint again a while after the document changed. */
+/**
+ * Paint again a while after the document changed, unless the tokens VS
+ * Code fetched for the change came and painted the faces already: VS Code
+ * asks for them later the longer they take, so this waits longer still,
+ * and asks itself only where VS Code did not (semantic highlighting off).
+ */
 function facesChanged(event: vscode.TextDocumentChangeEvent): void {
   const key = event.document.uri.toString();
   clearTimeout(faceTimers.get(key));
@@ -972,8 +1000,11 @@ function facesChanged(event: vscode.TextDocumentChangeEvent): void {
     key,
     setTimeout(() => {
       faceTimers.delete(key);
+      if (fetchedTokens.get(key)?.version === event.document.version) {
+        return;
+      }
       vscode.window.visibleTextEditors.filter((editor) => editor.document === event.document).forEach((editor) => void paintFaces(editor));
-    }, 300),
+    }, 1500),
   );
 }
 
@@ -2491,6 +2522,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach((editor) => void paintFaces(editor))),
     vscode.workspace.onDidChangeTextDocument(facesChanged),
     { dispose: () => faceDecorations.forEach((decoration) => decoration.dispose()) },
+    { dispose: () => emphasisDecorations.forEach((decoration) => decoration.dispose()) },
+    vscode.workspace.onDidCloseTextDocument((document) => fetchedTokens.delete(document.uri.toString())),
     imageDecoration,
     imageHiddenText,
     vscode.workspace.onDidChangeTextDocument(imagesChanged),

@@ -342,10 +342,7 @@ Not in Helix:
 - [ ] ~#+~ keywords, and the values after ~#+STARTUP:~
 - [ ] Block names after ~#+begin_~, drawer names after ~:~
 - [ ] Entities after ~\~ (~\alp~ → ~\alpha~)
-
-Not in Helix:
-
-- Showing the version of the server says ~org-lsp version 0.1.0-~ and the commit the server that runs was built from, as ~org-lsp --version~ says: /Show the version of the server/ is not among its code actions
+- [ ] Showing the version of the server says ~org-lsp version~, the version ~scripts/version.sh~ prints and the commit the server that runs was built from, as ~org-lsp --version~ says: the code action /Show the version of the server/
 
 * Timers
 

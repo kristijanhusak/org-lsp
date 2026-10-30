@@ -122,6 +122,17 @@ end
 --- regions of code in their languages: in place of Vim's own, or with
 --- what `org-lsp/syntax` said of the buffer.
 ---@param buf integer
+--- Whether `buf` has the plugin's syntax (`editors/vim/syntax/org.vim`),
+--- not Vim's own: items of its groups, which `:syntax list` shows only
+--- where the buffer has some.
+local function has_plugin_syntax(buf)
+  local listed = vim.api.nvim_buf_call(buf, function()
+    local ok, items = pcall(vim.fn.execute, 'syntax list')
+    return ok and items or ''
+  end)
+  return listed:find('\norgSyntax_') ~= nil
+end
+
 function M.reload_syntax(buf)
   if not vim.api.nvim_buf_is_valid(buf) or vim.bo[buf].syntax ~= 'org' then
     return
@@ -1499,14 +1510,18 @@ function M.start()
     end,
   })
   -- Vim's own syntax for Org, found first when the plugin comes after
-  -- $VIMRUNTIME in 'runtimepath', gives way to the plugin's.
-  vim.api.nvim_create_autocmd('Syntax', {
+  -- $VIMRUNTIME in 'runtimepath', gives way to the plugin's: at first, and
+  -- each time the file is read again (`:e!`) or the syntax set again
+  -- (`:set syntax=org`), which load Vim's again. `b:org_lsp_syntax` stays
+  -- from an earlier load, so what tells is whether the buffer has the
+  -- plugin's syntax items.
+  vim.api.nvim_create_autocmd({ 'Syntax', 'FileType' }, {
     group = group,
     pattern = 'org',
     callback = function(args)
       vim.schedule(function()
         local buf = args.buf
-        if vim.api.nvim_buf_is_valid(buf) and not vim.b[buf].org_lsp_syntax then
+        if vim.api.nvim_buf_is_valid(buf) and not has_plugin_syntax(buf) then
           M.reload_syntax(buf)
         end
       end)
