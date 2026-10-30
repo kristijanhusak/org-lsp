@@ -1,0 +1,54 @@
+[
+  {
+    "text": "* TODO [#B] Task :tag:\n:PROPERTIES:\n:Effort: 1:00\n:END:\nSCHEDULED: <2026-10-30 Fri>\n- item one\n  + nested <2026-10-31 Sat>\n1. first\nplain text\n",
+    "expected": {
+      "nil": {
+        "org-shiftup": "oooooooooooooooooooooooeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeoooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooeeeeeeeeeeee",
+        "org-shiftdown": "oooooooooooooooooooooooeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeoooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooeeeeeeeeeeee",
+        "org-shiftleft": "oooooooooooooooooooooooeeeeeeeeeeeeeooooooooooooooeeeeeeeeeeeeeeeeeoooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooeeeeeeeeeeee",
+        "org-shiftright": "oooooooooooooooooooooooeeeeeeeeeeeeeooooooooooooooeeeeeeeeeeeeeeeeeoooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooeeeeeeeeeeee",
+        "org-shiftcontrolright": "oooooooooooooooooooooooeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "t": {
+        "org-shiftup": "ooooooooooooooooooooooossssssssssssssssssssssssssssssssssssssssssssooooooooooooooooossssssssssssssssssssssooooooooooooooooosssssssssssssssssssss",
+        "org-shiftdown": "ooooooooooooooooooooooossssssssssssssssssssssssssssssssssssssssssssooooooooooooooooossssssssssssssssssssssooooooooooooooooosssssssssssssssssssss",
+        "org-shiftleft": "ooooooooooooooooooooooosssssssssssssoooooooooooooosssssssssssssssssoooooooooooooooooossssssssssssossssssssooooooooooooooooooosssssssssssssssssss",
+        "org-shiftright": "ooooooooooooooooooooooosssssssssssssoooooooooooooosssssssssssssssssoooooooooooooooooossssssssssssossssssssooooooooooooooooooosssssssssssssssssss",
+        "org-shiftcontrolright": "ooooooooooooooooooooooosssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+      },
+      "always": {
+        "org-shiftup": "sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssooooooooooooooooossssssssssssssssssssssooooooooooooooooosssssssssssssssssssss",
+        "org-shiftdown": "sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssooooooooooooooooossssssssssssssssssssssooooooooooooooooosssssssssssssssssssss",
+        "org-shiftleft": "sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssooooooooooooooooossssssssssssssssssssssooooooooooooooooosssssssssssssssssssss",
+        "org-shiftright": "sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssooooooooooooooooossssssssssssssssssssssooooooooooooooooosssssssssssssssssssss",
+        "org-shiftcontrolright": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+      }
+    }
+  },
+  {
+    "text": "Text\n** Headline\n- [ ] box\n   - deep\n:LOGBOOK:\nCLOCK: [2026-10-30 Fri 10:00]--[2026-10-30 Fri 11:00] =>  1:00\n:END:\n",
+    "expected": {
+      "nil": {
+        "org-shiftup": "eeeeeooooooooooooooooooooooooooooooooeeeeeeeeeeeeeeeeeoooooooooooooooooooooooeoooooooooooooooooooooooeeeeeeeeeeeeeeee",
+        "org-shiftdown": "eeeeeooooooooooooooooooooooooooooooooeeeeeeeeeeeeeeeeeoooooooooooooooooooooooeoooooooooooooooooooooooeeeeeeeeeeeeeeee",
+        "org-shiftleft": "eeeeeooooooooooooooooooooooooooooooooeeeeeeeeeeeeeeeeeoooooooooooooooooooooooeoooooooooooooooooooooooeeeeeeeeeeeeeeee",
+        "org-shiftright": "eeeeeooooooooooooooooooooooooooooooooeeeeeeeeeeeeeeeeeoooooooooooooooooooooooeoooooooooooooooooooooooeeeeeeeeeeeeeeee",
+        "org-shiftcontrolright": "eeeeeooooooooooooeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "t": {
+        "org-shiftup": "sssssoooooooooooosssssssssssssssssssssssssssssssssssssooooooooooooooooooooooosooooooooooooooooooooooossssssssssssssss",
+        "org-shiftdown": "sssssoooooooooooosssssssssssssssssssssssssssssssssssssooooooooooooooooooooooosooooooooooooooooooooooossssssssssssssss",
+        "org-shiftleft": "sssssooooooooooooossssssssssssosssssssssssssssssssssssooooooooooooooooooooooosooooooooooooooooooooooossssssssssssssss",
+        "org-shiftright": "sssssooooooooooooossssssssssssosssssssssssssssssssssssooooooooooooooooooooooosooooooooooooooooooooooossssssssssssssss",
+        "org-shiftcontrolright": "sssssoooooooooooossssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+      },
+      "always": {
+        "org-shiftup": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssooooooooooooooooooooooosooooooooooooooooooooooossssssssssssssss",
+        "org-shiftdown": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssooooooooooooooooooooooosooooooooooooooooooooooossssssssssssssss",
+        "org-shiftleft": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssooooooooooooooooooooooosooooooooooooooooooooooossssssssssssssss",
+        "org-shiftright": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssooooooooooooooooooooooosooooooooooooooooooooooossssssssssssssss",
+        "org-shiftcontrolright": "sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+      }
+    }
+  }
+]

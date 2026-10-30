@@ -55,6 +55,9 @@ impl Client {
         let mut options = if options.is_null() { json!({}) } else { options };
         if let Some(fields) = options.as_object_mut() {
             fields.entry("config_file").or_insert(json!(false));
+            // Shift and the arrows are Org's wherever they apply, as in
+            // Emacs, unless a test says otherwise.
+            fields.entry("org_support_shift_select").or_insert(json!(false));
             // The IDs an Emacs of the machine left in its
             // `org-id-locations-file` are not read.
             fields.entry("org_id_locations_file").or_insert(json!(NO_ID_LOCATIONS));

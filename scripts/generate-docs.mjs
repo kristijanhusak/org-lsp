@@ -235,7 +235,9 @@ function neovimKeys(scopes = SCOPES.map(([scope]) => scope)) {
   sections.push(
     '¹ Where the command does not apply, the key does what it does in any\n' +
       'buffer: ~<C-a>~ off a timestamp still increments the number under the\n' +
-      'cursor, and ~<CR>~ in a source block\'s code is Vim\'s own.',
+      'cursor, ~<S-Right>~ off a timestamp goes a word right (and on a\n' +
+      'headline or an item too, as ~org_support_shift_select~ says), and\n' +
+      '~<CR>~ in a source block\'s code is Vim\'s own.',
   );
   return sections.join('\n\n');
 }
@@ -299,7 +301,8 @@ function vscodeKeys() {
   }
   sections.push(
     '¹ Where the command does not apply, the key does what it does without\n' +
-      'the extension: ~Shift+Up~ off a timestamp or headline selects, ~Tab~ off\n' +
+      'the extension: ~Shift+Up~ off a timestamp selects (and on a headline\n' +
+      'too, as ~org_support_shift_select~ says), ~Tab~ off\n' +
       'a headline, block or drawer indents, ~Enter~ in a source block\'s code\n' +
       'is VS Code\'s own.',
   );
@@ -395,7 +398,8 @@ function sublimeKeys() {
   }
   sections.push(
     '¹ Where the command does not apply, the key does what it does without\n' +
-      'the package: ~Shift+Up~ off a timestamp or headline selects, ~Tab~ off\n' +
+      'the package: ~Shift+Up~ off a timestamp selects (and on a headline\n' +
+      'too, as ~org_support_shift_select~ says), ~Tab~ off\n' +
       'a headline, block or drawer indents or completes, ~Enter~ makes a new\n' +
       'line.',
   );

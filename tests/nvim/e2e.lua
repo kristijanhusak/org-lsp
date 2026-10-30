@@ -59,6 +59,8 @@ vim.g.org_lsp = {
     org_cycle_level_faces = false,
     org_fontify_whole_heading_line = true,
     org_custom_properties = { 'ID' },
+    -- Shift and the arrows are Org's wherever they apply, as in Emacs.
+    org_support_shift_select = false,
   },
 }
 vim.opt.runtimepath:prepend(root)

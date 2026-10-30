@@ -54,8 +54,8 @@ to install and set up the package.
 | ~Ctrl+C Ctrl+X x~ | ~org.dblock.insert~ | Insert a dynamic block |
 | ~Ctrl+C Ctrl+A~ | ~org.attach~ | Attachments of the entry |
 | ~Ctrl+C Ctrl+T~ | ~org.todo~ | Change the TODO state |
-| ~Ctrl+Shift+Right~ | ~org.todo.nextset~ | Switch to the next TODO keyword set |
-| ~Ctrl+Shift+Left~ | ~org.todo.previousset~ | Switch to the previous TODO keyword set |
+| ~Ctrl+Shift+Right~ ¹ | ~org.todo.nextset~ | Switch to the next TODO keyword set |
+| ~Ctrl+Shift+Left~ ¹ | ~org.todo.previousset~ | Switch to the previous TODO keyword set |
 | ~Ctrl+C ,~ | ~org.priority~ | Set the priority |
 | ~Ctrl+C Ctrl+X p~ | ~org.property.set~ | Set a property of the entry |
 | ~Ctrl+C Ctrl+X e~ | ~org.effort.set~ | Set the effort of the entry |
@@ -385,7 +385,8 @@ to install and set up the package.
 =¦= stands for =|=, which an Org table cannot hold.
 
 ¹ Where the command does not apply, the key does what it does without
-the package: ~Shift+Up~ off a timestamp or headline selects, ~Tab~ off
+the package: ~Shift+Up~ off a timestamp selects (and on a headline
+too, as ~org_support_shift_select~ says), ~Tab~ off
 a headline, block or drawer indents or completes, ~Enter~ makes a new
 line.
 

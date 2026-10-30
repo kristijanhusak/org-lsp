@@ -168,13 +168,65 @@ pub fn document_priorities(parse: &Parse) -> Option<Priorities> {
     Priorities::from_keyword(keyword_values(&parse.syntax(), "PRIORITIES").first()?)
 }
 
-/// Whether `offset` is on a headline (`org-at-heading-p`).
+/// `org-support-shift-select`: where the shifted cursor keys select text,
+/// as the editor's own keys do, instead of acting on Org's text.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum ShiftSelect {
+    /// `nil`: Org's commands wherever they apply.
+    #[default]
+    Never,
+    /// `t`: selection outside headlines, items' bullets, property lines,
+    /// clock tables and tables, and of a selection already there.
+    Outside,
+    /// `always`: selection but on timestamps and clock tables.
+    Always,
+}
+
+/// Whether the shifted cursor key `direction` at `offset` is Org's with
+/// `select`, as `org-shiftup` and its kin go through the places it acts
+/// on: a timestamp always; a headline (its priority only with
+/// `priority_commands`) and a property line unless `always`; a list item
+/// anywhere on it without shift selection, with `t` on its bullet (and
+/// only to cycle the bullets). Clock tables and tables are the caller's,
+/// as is the selection, which comes first.
+pub fn shift_acts(
+    text: &str,
+    offset: usize,
+    direction: Direction,
+    select: ShiftSelect,
+    priority_commands: bool,
+) -> bool {
+    let sideways = matches!(direction, Direction::Left | Direction::Right);
+    if Stamp::around(text, offset).is_some() {
+        return true;
+    }
+    if select == ShiftSelect::Always {
+        return false;
+    }
+    if on_headline(text, offset) {
+        return sideways || priority_commands;
+    }
+    let item = match select {
+        ShiftSelect::Never => crate::list::at_item(text, offset),
+        _ => sideways && crate::list::at_item_bullet(text, offset),
+    };
+    item || (sideways && properties::property_at(text, offset).is_some())
+}
+
+/// Whether `org-shiftcontrolright` and `org-shiftcontrolleft` (the next
+/// or previous set of TODO keywords) are Org's at `offset` with `select`:
+/// on a headline, unless `always`. The selection is the caller's.
+pub fn shift_control_acts(text: &str, offset: usize, select: ShiftSelect) -> bool {
+    select != ShiftSelect::Always && on_headline(text, offset)
+}
+
 /// Whether Org's shifted cursor keys act on a list item at `offset`: on
 /// the line of one, with no timestamp or headline before it.
 pub fn shifts_item(text: &str, offset: usize) -> bool {
     Stamp::around(text, offset).is_none() && !on_headline(text, offset) && crate::list::at_item(text, offset)
 }
 
+/// Whether `offset` is on a headline (`org-at-heading-p`).
 fn on_headline(text: &str, offset: usize) -> bool {
     let start = text[..offset].rfind('\n').map_or(0, |index| index + 1);
     headline_level(text[start..].split('\n').next().unwrap_or("")).is_some()
@@ -643,5 +695,43 @@ mod tests {
         assert!(moved("2026-10-23").contains("<1000002026-10-23 Fri 10:00"), "{}", moved("2026-10-23"));
         assert!(moved("23 ").contains("<2739933-10-26 Thu 10:00"), "{}", moved("23 "));
         assert!(moved(":00").contains("<3928-02-19 Sun 20:40"), "{}", moved(":00"));
+    }
+
+    /// `org-shiftright` and its kin with each `org-support-shift-select`:
+    /// where Org's command runs and where the editor selects.
+    #[test]
+    fn shift_select_leaves_the_keys_to_the_editor() {
+        use Direction::{Down, Left, Right, Up};
+        use ShiftSelect::{Always, Never, Outside};
+        let text = "* TODO Task\n:PROPERTIES:\n:Effort: 1:00\n:END:\n- item <2026-10-30 Fri>\nplain text\n";
+        let at = |needle: &str| text.find(needle).unwrap();
+        let acts =
+            |needle: &str, direction, select, priority| shift_acts(text, at(needle), direction, select, priority);
+        for select in [Never, Outside, Always] {
+            assert!(acts("2026", Left, select, true), "{select:?}");
+            assert!(acts("Fri", Up, select, true), "{select:?}");
+            assert!(!acts("plain", Right, select, true), "{select:?}");
+        }
+        assert!(acts("TODO", Right, Never, true));
+        assert!(acts("TODO", Right, Outside, true));
+        assert!(!acts("TODO", Right, Always, true));
+        assert!(acts("Task", Up, Outside, true));
+        assert!(!acts("Task", Up, Outside, false));
+        assert!(acts("Effort", Left, Outside, true));
+        assert!(!acts("Effort", Up, Outside, true));
+        assert!(!acts("Effort", Left, Always, true));
+        // An item: anywhere on it without shift selection, with `t` on
+        // its bullet and only sideways.
+        assert!(acts("item", Down, Never, true));
+        assert!(acts("item", Right, Never, true));
+        assert!(!acts("item", Right, Outside, true));
+        assert!(acts("- item", Right, Outside, true));
+        assert!(!acts("- item", Up, Outside, true));
+        assert!(!acts("- item", Right, Always, true));
+        assert!(shift_control_acts(text, at("Task"), Never));
+        assert!(shift_control_acts(text, at("Task"), Outside));
+        assert!(!shift_control_acts(text, at("Task"), Always));
+        assert!(!shift_control_acts(text, at("plain"), Outside));
+        assert!(!shift_control_acts(text, at("plain"), Never));
     }
 }

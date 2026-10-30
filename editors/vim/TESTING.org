@@ -75,6 +75,7 @@ its sections says what it should look like.
 - [ ] A new TODO heading: ~<Leader>oiT~
 - [ ] A new heading after the subtree, and a TODO one: ~<Leader>oih~, ~<Leader>oit~
 - [ ] Promoting and demoting a heading; its tags stay aligned: ~<<~, ~>>~
+- [ ] With ~org_support_shift_select~ unset, Shift and the arrows on a headline select text, and on a timestamp change it: ~<S-Right>~, ~:Org shift up~
 - [ ] Promoting and demoting a subtree: ~<s~, ~>s~
 - [ ] Moving a subtree up and down past its siblings: ~<Leader>oK~, ~<Leader>oJ~
 - [ ] Inserting an inline task gives 15 stars and an ~END~ line; demoting it changes both; the outline leaves it out, and folding it hides its text and its ~END~ line: ~<Leader>oiI~, ~>>~
@@ -103,7 +104,7 @@ its sections says what it should look like.
 - [ ] The next item from the end of an item's line: ~<S-CR>~
 - [ ] Indenting and outdenting an item; and with its children: ~>>~, ~<<~, ~>s~, ~<s~
 - [ ] Moving an item up and down: ~<Leader>oK~, ~<Leader>oJ~
-- [ ] Cycling the bullet ~-~ → ~+~ → ~1.~ → ~1)~ on an item: ~<S-Right>~, ~<S-Left>~
+- [ ] With ~org_support_shift_select~ set to ~false~: cycling the bullet ~-~ → ~+~ → ~1.~ → ~1)~ on an item: ~<S-Right>~, ~<S-Left>~
 - [ ] Toggling a checkbox: its parent box and the ~[1/3]~ cookie follow: ~<C-Space>~
 - [ ] On a list numbered 1, 3, 2, the same command renumbers and repairs it: ~<C-Space>~
 - [ ] Sorting a list's items alphabetically: ~<Leader>o^~
@@ -124,7 +125,7 @@ its sections says what it should look like.
 - [ ] The parent's ~[1/2]~ cookie is recounted: ~cit~
 - [ ] A ~#+TODO: A B | C~ line in the file is used instead of the settings: ~cit~
 - [ ] With ~#+TODO: TODO | DONE~ and ~#+TODO: REPORT BUG | FIXED~, changing the state without keys goes ~BUG~, ~FIXED~, none, then back to ~REPORT~: ~cit~
-- [ ] Switching to the next and previous keyword set says ~Keyword-Set 2/2: REPORT BUG FIXED~: ~:Org todo nextset~, ~:Org todo previousset~
+- [ ] With ~org_support_shift_select~ set to ~false~: switching to the next and previous keyword set says ~Keyword-Set 2/2: REPORT BUG FIXED~: ~:Org todo nextset~, ~:Org todo previousset~
 - [ ] With ~org_todo_keyword_faces = { WAIT = ":foreground orange :weight bold" }~, ~WAIT~ shows in bold orange, in the file and in the agenda
 
 * Priorities
@@ -151,7 +152,7 @@ its sections says what it should look like.
 - [ ] In column view, picking a column, editing its value (~e~), the next and previous allowed value (~n~, ~p~), its value shown (~v~); quitting (~q~)
 - [ ] In column view, moving a column, making it narrower and wider, deleting it; moving an entry up and down
 - [ ] Setting a property: the name and the value are completed, ~NAME_ALL~'s values offered: ~<Leader>oxp~
-- [ ] On a property line with ~NAME_ALL~, cycling through its values: ~<S-Right>~, ~<S-Left>~
+- [ ] With ~org_support_shift_select~ set to ~false~: on a property line with ~NAME_ALL~, cycling through its values: ~<S-Right>~, ~<S-Left>~
 - [ ] Deleting a property from the entry, and from the whole file: ~:Org property delete~, ~:Org property delete globally~
 - [ ] ~C-c C-c~ in a property drawer asks what to do with the property: ~<C-Space>~
 - [ ] Setting the effort: ~<Leader>oxe~
@@ -327,7 +328,7 @@ its sections says what it should look like.
 - [ ] Inserting and deleting a column and a row: ~>s~, ~<s~, ~<Leader>oTO~, ~<Leader>oTd~
 - [ ] A rule below the row; a rule and a move to the row below: ~<Leader>o-~, ~<Leader>o<CR>~
 - [ ] Blanking the field: ~<Leader>o<Space>~
-- [ ] The shifted cursor keys move the field up, down, left and right (needs Emacs); on a timestamp in a field they change it: ~:Org shift up~, ~:Org shift down~, ~<S-Left>~, ~<S-Right>~
+- [ ] With ~org_support_shift_select~ set to ~false~: the shifted cursor keys move the field up, down, left and right (needs Emacs); on a timestamp in a field they change it: ~:Org shift up~, ~:Org shift down~, ~<S-Left>~, ~<S-Right>~
 - [ ] Copying the field down to the next row, a number incremented (needs Emacs); off a table the key keeps its own meaning: ~<Leader>oD~
 - [ ] The sum of the column and the field's references are shown as messages (needs Emacs): ~<Leader>o+~, ~<Leader>o?~
 - [ ] Creating a table asks for its size (~3x2~; empty for Org's default) (needs Emacs): ~<Leader>oi<Bar>~

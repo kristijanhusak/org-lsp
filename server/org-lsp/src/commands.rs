@@ -678,13 +678,14 @@ pub const COMMANDS: &[Command] = &[
     Command { ..edit(TODO_NEXT, "Cycle TODO state forward") },
     Command { vim: &[key(Org, "ciT")], ..edit(TODO_PREVIOUS, "Cycle TODO state backward") },
     // `org-shiftcontrolright` and `org-shiftcontrolleft` on a headline:
-    // `org-todo` with `nextset` and `previousset`.
+    // `org-todo` with `nextset` and `previousset`. Elsewhere, and with
+    // `org-support-shift-select`, the editor's own keys select words.
     Command {
-        emacs: &[key(Org, "C-S-<right>"), key(Agenda, "C-S-<right>")],
+        emacs: &[native(Org, "C-S-<right>"), key(Agenda, "C-S-<right>")],
         ..edit(TODO_NEXT_SET, "Switch to the next TODO keyword set")
     },
     Command {
-        emacs: &[key(Org, "C-S-<left>"), key(Agenda, "C-S-<left>")],
+        emacs: &[native(Org, "C-S-<left>"), key(Agenda, "C-S-<left>")],
         ..edit(TODO_PREVIOUS_SET, "Switch to the previous TODO keyword set")
     },
     Command {

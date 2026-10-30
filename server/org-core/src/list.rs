@@ -310,6 +310,17 @@ pub fn at_item(text: &str, at: usize) -> bool {
     in_item(text, start) == Some(start)
 }
 
+/// `org-at-item-bullet-p`: whether `at` is on the bullet of a list item,
+/// not on a blank before or after it.
+pub fn at_item_bullet(text: &str, at: usize) -> bool {
+    let at = at.min(text.len());
+    let start = line_start(text, at);
+    if !at_item(text, at) || matches!(text[at..].chars().next(), Some(' ' | '\t')) {
+        return false;
+    }
+    item_re().find(line(text, start)).is_some_and(|bullet| at - start < bullet.end())
+}
+
 // ----- org-in-item-p
 
 /// `org-in-item-p`: the start of the item the line at `at` is in.
@@ -2294,5 +2305,18 @@ mod tests {
         assert_eq!(in_item(text, 0), None);
         let list = structure(text, 4);
         assert_eq!(list.iter().map(|item| (item.pos, item.end)).collect::<Vec<_>>(), [(4, 17), (17, 23)]);
+    }
+
+    /// `org-at-item-bullet-p`: the bullet, not the blanks around it or
+    /// the text.
+    #[test]
+    fn finds_item_bullets() {
+        let text = "  - item\n  1. one\ntext\n";
+        let on = |at| at_item_bullet(text, at);
+        assert!(!on(0) && !on(1));
+        assert!(on(2) && !on(3) && !on(4));
+        let one = text.find("1.").unwrap();
+        assert!(on(one) && on(one + 1) && !on(one + 2) && !on(one + 3));
+        assert!(!on(text.find("text").unwrap()));
     }
 }
