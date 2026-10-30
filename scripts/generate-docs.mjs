@@ -1064,7 +1064,8 @@ function parityPage() {
 }
 
 /** Every option of Org and what org-lsp does with it: how many there are
- * of each status, and those that are missing, file by file. */
+ * of each status, and those that are missing or absent, file by file,
+ * with what each is about where its note says. */
 function optionsSection() {
   const all = Object.entries(OPTIONS)
     .filter(([file]) => !EMACS_FILES.has(file))
@@ -1094,12 +1095,24 @@ function optionsSection() {
     lines.push('', heading(2, 'Done another way'), '');
     for (const option of other) lines.push(`- ~${option.name}~ :: ${org(option.value[1])}`);
   }
+  // The options of a status by file: those with a note each with it,
+  // the others named together.
+  const byFile = (status) => {
+    const of = all.filter((option) => statusOf(option.value) === status);
+    const out = [];
+    for (const file of [...new Set(of.map((option) => option.file))]) {
+      const here = of.filter((option) => option.file === file);
+      const bare = here.filter((option) => !Array.isArray(option.value)).map((option) => `~${option.name}~`);
+      const noted = here.filter((option) => Array.isArray(option.value));
+      out.push(`- ${file} (${here.length}) ::${bare.length > 0 ? ' ' + bare.join(', ') : ''}`);
+      for (const option of noted) out.push(`  - ~${option.name}~ :: ${org(option.value[1])}`);
+    }
+    return out;
+  };
   lines.push('', heading(2, 'Missing'), '', 'Options of what org-lsp does that cannot be set yet, by the file of Org they are in.', '');
-  const files = [...new Set(all.filter((option) => statusOf(option.value) === 'missing').map((option) => option.file))];
-  for (const file of files) {
-    const names = all.filter((option) => option.file === file && statusOf(option.value) === 'missing').map((option) => `~${option.name}~`);
-    lines.push(`- ${file} (${names.length}) :: ${names.join(', ')}`);
-  }
+  lines.push(...byFile('missing'));
+  lines.push('', heading(2, 'Not done'), '', 'Options of what org-lsp does not do, by the file of Org they are in.', '');
+  lines.push(...byFile('absent'));
   return lines.join('\n') + '\n';
 }
 
