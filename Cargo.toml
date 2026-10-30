@@ -3,7 +3,7 @@ resolver = "2"
 members = ["server/org-syntax", "server/org-core", "server/org-lsp", "site"]
 
 [workspace.package]
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/kristijanhusak/org-lsp"
