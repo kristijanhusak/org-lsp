@@ -427,9 +427,16 @@ A release is a version tag. The workflow /New version/
 (~.github/workflows/version.yml~), run by hand on main (/Actions › New
 version › Run workflow/), makes one: it sets the version, the last one
 with its last number one more (0.1.13 makes 0.1.14) or the one given
-(~version~, ~0.2.0~), commits it to main as /Version 0.1.14/, tags that
-commit ~v0.1.14~, pushes both and runs the Release workflow for the tag.
-It fails, changing nothing, when the tag is there already.
+(~version~, ~0.2.0~), in a pull request /Version 0.1.14/, merges it, tags
+the merged commit ~v0.1.14~ and runs the Release workflow for the tag. It
+fails, changing nothing, when the tag is there already. When it cannot
+merge the pull request, merge it by hand and run the workflow again: a
+version on main with no tag yet is released as it is.
+
+The workflow needs, in the repository's settings, /Actions › General ›
+Workflow permissions › Allow GitHub Actions to create and approve pull
+requests/, and main's protection has to let a pull request be merged with
+no approving review.
 
 By hand, the same is: set the version, merge that change as any other,
 then tag the commit on main and push the tag:
