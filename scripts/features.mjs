@@ -1096,7 +1096,7 @@ export const AREAS = [
       { text: 'A block from the structure templates (`s` for a source block) (needs Emacs)', cmd: 'org.structure.template', not: ['helix'] },
       { text: 'Emphasis markers around the cursor, `*` for bold (needs Emacs)', cmd: 'org.emphasize', not: ['helix'] },
       { text: 'A drawer, its name completed from the file\'s (needs Emacs)', cmd: 'org.drawer.insert', not: ['helix'] },
-      { text: 'Showing the version of the server says `org-lsp version 0.1.0-` and the commit the server that runs was built from, as `org-lsp --version` says', cmd: 'org.version' },
+      { text: 'Showing the version of the server says `org-lsp version`, the version `scripts/version.sh` prints and the commit the server that runs was built from, as `org-lsp --version` says', cmd: 'org.version' },
     ],
   },
   {

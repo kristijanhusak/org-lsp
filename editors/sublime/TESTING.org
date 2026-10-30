@@ -400,7 +400,7 @@ its sections says what it should look like.
 - [ ] A block from the structure templates (~s~ for a source block) (needs Emacs): ~Ctrl+C Ctrl+,~
 - [ ] Emphasis markers around the cursor, ~*~ for bold (needs Emacs): ~Ctrl+C Ctrl+X Ctrl+F~
 - [ ] A drawer, its name completed from the file's (needs Emacs): ~Ctrl+C Ctrl+X d~
-- [ ] Showing the version of the server says ~org-lsp version 0.1.0-~ and the commit the server that runs was built from, as ~org-lsp --version~ says: /Org: Show the version of the server/
+- [ ] Showing the version of the server says ~org-lsp version~, the version ~scripts/version.sh~ prints and the commit the server that runs was built from, as ~org-lsp --version~ says: /Org: Show the version of the server/
 
 * Timers
 

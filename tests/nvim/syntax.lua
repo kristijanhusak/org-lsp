@@ -216,6 +216,25 @@ end) then
   table.insert(failures, 'Vim\'s own syntax for Org kept, the plugin coming after $VIMRUNTIME: '
     .. vim.fn.synIDattr(vim.fn.synID(1, 1, 1), 'name'))
 end
+-- And again each time the syntax is set again, which loads Vim's again.
+for _, command in ipairs({ 'set syntax=org', 'syntax on' }) do
+  vim.cmd(command)
+  if not vim.wait(2000, function()
+    return vim.fn.synIDattr(vim.fn.synID(1, 1, 1), 'name') == 'orgSyntax_stars_level1'
+  end) then
+    table.insert(failures, ('Vim\'s own syntax for Org after :%s: %s'):format(command, vim.fn.synIDattr(vim.fn.synID(1, 1, 1), 'name')))
+  end
+end
+-- And when the file is read again (`:e!`).
+local reread = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* Level one' }, reread)
+vim.cmd('edit ' .. vim.fn.fnameescape(reread))
+vim.cmd('edit!')
+if not vim.wait(2000, function()
+  return vim.fn.synIDattr(vim.fn.synID(1, 1, 1), 'name') == 'orgSyntax_stars_level1'
+end) then
+  table.insert(failures, 'Vim\'s own syntax for Org after :e!: ' .. vim.fn.synIDattr(vim.fn.synID(1, 1, 1), 'name'))
+end
 
 for i, failure in ipairs(failures) do
   if i > (tonumber(os.getenv("ORG_LSP_SYNTAX_SHOW")) or 200) then

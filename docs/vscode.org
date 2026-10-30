@@ -133,18 +133,20 @@ apply at the cursor under *Quick Fix…* (~Ctrl+.~). *Org: Show the keys*
 lists the keys of the editor at hand; picking one runs it.
 
 Emacs's keys are bound in Org files (~Ctrl+C Ctrl+T~, ~Ctrl+C Ctrl+S~,
-~Shift~ and the arrows, ~Tab~ and ~Shift+Tab~ to cycle folds …), in capture
-buffers (~Ctrl+C Ctrl+C~) and in the date prompt. ~Shift~ and the arrows
-change timestamps and select text elsewhere; with
-[[file:configuration.org::#org_support_shift_select][org_support_shift_select]] set to ~true~ or ~false~ they change TODO
-states, priorities and bullets too, as in Emacs. In Org files ~Ctrl+C~
-waits for a second key instead of copying (~Ctrl+Insert~ still copies). The
+~Alt~ and the arrows, ~Tab~ and ~Shift+Tab~ to cycle folds …), in capture
+buffers (~Ctrl+C Ctrl+C~) and in the date prompt, but those VS Code uses
+for text: there Shift, Alt+Shift and Ctrl+Shift with the arrows select,
+~Ctrl+A~, ~Ctrl+E~, ~Ctrl+K~, ~Ctrl+O~, ~Ctrl+X~, ~Ctrl+Y~ and ~Ctrl+Enter~ are
+VS Code's, and Org's ~Ctrl+C~ keys start only where nothing is selected,
+so that ~Ctrl+C~ copies a selection. The
 agenda has the keys it has in every editor: Emacs's agenda keys (~f~, ~b~,
 ~t~, ~+~, ~Enter~, ~Ctrl+C Ctrl+S~ …), with ~Shift+J~ for a date and the views
 under ~v~ (~v d~, ~v w~), so that VSCodeVim keeps its motions; ~q~ closes it.
 ~org-lsp.keys~ picks other keys: ~"emacs_full"~ binds all of Emacs's,
-those VS Code uses for text too (Shift, Alt+Shift and Ctrl+Shift with the
-arrows, ~Ctrl+A~, ~Ctrl+X~ …), with ~Ctrl+C~ always starting Org's keys;
+those too: Shift and the arrows change timestamps (and, with
+[[file:configuration.org::#org_support_shift_select][org_support_shift_select]] set to ~true~ or ~false~, TODO states,
+priorities and bullets, as in Emacs), and ~Ctrl+C~ always waits for a
+second key instead of copying (~Ctrl+Insert~ still copies);
 ~"vim"~ binds the Neovim plugin's keys for VSCodeVim, ~"custom"~ none. [[file:keys/vscode.org][keys/vscode.org]] lists every key and command,
 and how to add, change and remove keys.
 

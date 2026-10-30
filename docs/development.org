@@ -192,8 +192,8 @@ ORG_LSP_VIM_TESTS=scenarios ORG_LSP_E2E=capture \
   CLIENTS=~/vim-clients editors/vim/test/run.sh coc            # the same, keys fed, not typed
 #+end_src
 
-~ORG_LSP_VIM_TESTS~ is ~cases~, ~scenarios~ (fed, which the typed ones
-cover: quicker to look into) or ~typed~ for only those,
+~ORG_LSP_VIM_TESTS~ is ~cases~, ~highlight~, ~scenarios~ (fed, which the
+typed ones cover: quicker to look into) or ~typed~ for only those,
 ~ORG_LSP_E2E_JOBS~ how many Vims run at once. Each scenario prints one line,
 with the step that failed and what it saw; a step a client cannot take as
 the others do is skipped, with the reason, from ~s:skips~ in

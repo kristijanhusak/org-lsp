@@ -868,7 +868,7 @@ const ACTIONS_IN_FILES = new Set([
   'org.tags.set', 'org.property.set', 'org.effort.set', 'org.sort', 'org.clock.goto', 'org.clock.in.last',
   'org.clock.report', 'org.indent.mode', 'org.dblock.update', 'org.agenda.list', 'org.agenda.todos', 'org.agenda.dispatch', 'org.capture',
   'org.meta.return', 'org.insert.todo.heading', 'org.insert.heading.after', 'org.insert.todo.heading.after',
-  'org.cut.subtree', 'org.copy.subtree', 'org.paste.subtree',
+  'org.cut.subtree', 'org.copy.subtree', 'org.paste.subtree', 'org.version',
 ]);
 /** In a capture buffer. */
 const ACTIONS_IN_CAPTURE = new Set(['org.capture.finish', 'org.capture.abort', 'org.capture.refile']);
