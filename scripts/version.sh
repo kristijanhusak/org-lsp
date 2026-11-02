@@ -9,8 +9,8 @@
 #   scripts/version.sh 0.2.0    set it everywhere
 #   scripts/version.sh          print it; fails when the places disagree
 #
-# Merged into main, a new version is released (docs/development.org,
-# Publishing); the New version workflow opens that pull request.
+# A release sets it from its tag (`v0.2.0`) before building
+# (docs/development.org, Publishing).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
