@@ -1,0 +1,9 @@
+# The issue forms only: a blank issue would leave out what a report needs.
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://kristijanhusak.github.io/org-lsp/
+    about: Install, setup and every option, for each editor.
+  - name: What Emacs Org does that org-lsp does not yet
+    url: https://github.com/kristijanhusak/org-lsp/blob/main/docs/parity.org
+    about: Look here before asking for a feature; it may be known already.
