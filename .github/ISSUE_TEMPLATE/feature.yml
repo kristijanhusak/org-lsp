@@ -1,0 +1,40 @@
+name: Feature
+description: Something Emacs Org (or org-roam, org-journal, org-super-agenda) does that org-lsp does not
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        org-lsp brings Emacs Org mode to other editors, so a feature is usually something Org does in Emacs. [What is not done yet](https://github.com/kristijanhusak/org-lsp/blob/main/docs/parity.org) lists what is known.
+  - type: textarea
+    id: emacs
+    attributes:
+      label: What Emacs does
+      description: The command, key or option in Emacs (`org-sort`, `C-c ^`, `org-log-into-drawer`), and what it does. A link to the Org manual helps.
+    validations:
+      required: true
+  - type: textarea
+    id: org
+    attributes:
+      label: Org text
+      description: An example it works on, if it helps.
+      render: org
+  - type: dropdown
+    id: editors
+    attributes:
+      label: Editors
+      description: Where you would use it.
+      multiple: true
+      options:
+        - Neovim
+        - Vim
+        - VS Code
+        - Sublime Text
+        - Zed
+        - Helix
+        - Another editor
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Why you need it, or how it should look in your editor.
