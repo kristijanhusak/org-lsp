@@ -423,44 +423,24 @@ package (~VERSION~ in ~plugin.py~). ~scripts/version.sh 0.2.0~ sets it in
 all of them; ~scripts/version.sh~ alone prints it, and fails when they
 disagree, which ~scripts/check.sh~ checks.
 
-A release is a version tag. The workflow /New version/
-(~.github/workflows/version.yml~), run by hand on main (/Actions › New
-version › Run workflow/), opens the pull request /Version 0.1.14/: the
-version set, the last one with its last number one more (0.1.13 makes
-0.1.14) or the one given (~version~, ~0.2.0~), and the one who ran it
-asked to review it. Merged, it is released: the Release workflow of the
-push to main finds main's version without a tag, builds it, and when
-every build succeeded tags the commit ~v0.1.14~, makes the GitHub release
-and publishes it. A Release run of such a commit that failed is run
-again from its page (/Re-run failed jobs/).
+A release is a version tag, made on GitHub's page: /Releases › Draft a new
+release/, a new tag ~v0.2.0~ on main, then /Publish release/. The tag starts
+the Release workflow (~.github/workflows/release.yml~), which takes the
+version from it: each job sets it with ~scripts/version.sh 0.2.0~ before
+building, whatever the files on main say, so no change to the repository
+comes first. It builds everything and, when every build succeeded, puts
+the files on the release (its title and notes as written there), then
+publishes it. A tag pushed (~git push origin v0.2.0~) does the same, and
+the workflow makes the release.
 
-The workflow needs, in the repository's settings, /Actions › General ›
-Workflow permissions › Allow GitHub Actions to create and approve pull
-requests/.
+A release that failed is made again by running the workflow by hand on
+main with its tag (/Actions › Release › Run workflow/, ~tag~ ~v0.2.0~):
+it builds that tag again and publishes it, as this workflow does, where
+running it again for the tag would be the workflow as it was at the tag.
 
-By hand, the same is: set the version in a pull request, and merge it:
-
-#+begin_src sh
-scripts/version.sh 0.2.0
-# … pull request, merged: released …
-#+end_src
-
-A tag of a commit with that version, pushed (~git push origin v0.2.0~),
-releases it too.
-
-The tag can also be made on GitHub's page, /Releases › Draft a new
-release/: the workflow then puts the files on that release, its title and
-notes as written there. A release that failed is made again by running
-the workflow by hand on main with its tag (/Actions › Release › Run
-workflow/, ~tag~ ~v0.2.0~): it builds that tag again and publishes it, as
-this workflow does, where running it again for the tag would be the
-workflow as it was at the tag.
-
-The Release workflow (~.github/workflows/release.yml~) fails when the tag
-is not ~v~ and the version, builds everything, makes the GitHub release,
-then publishes it: each of these jobs is skipped while its secret is not
-set, and the nightly build (each push to main, or the workflow run by
-hand on main) publishes none of them.
+Each of the jobs that publish is skipped while its secret is not set, and
+the nightly build (each push to main, or the workflow run by hand on main)
+publishes none of them.
 
 - ~vscode-marketplace~ (the environment ~marketplace~'s ~AZURE_CLIENT_ID~,
   or the secret ~VSCE_PAT~) :: the VS Code packages, one a platform, on the
