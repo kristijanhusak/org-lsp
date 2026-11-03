@@ -8,7 +8,9 @@ short example in its own syntax and points here for the rest.
 
 Nothing has to be set. Without configuration the agenda is built from the
 Org files of the workspace (or the ones that are open), and every option
-is Org's default.
+is Org's default. Their diary sexps that call Lisp are then left out (see
+[[#org_agenda_files][~org_agenda_files~]]): Emacs evaluates those of the files ~org_agenda_files~
+names only.
 
 * The server's options
 :PROPERTIES:
@@ -379,6 +381,41 @@ emacs_config = '''
 
 Emacs asks before it evaluates code, and the editor shows the question.
 
+*** What runs without a question
+:PROPERTIES:
+:CUSTOM_ID: what-runs-without-a-question
+:END:
+
+As in Emacs, some of a file's text is code that runs, without a question,
+when you use a command on the file. Look at a file that is not yours before
+you do:
+
+- ~#+MACRO:~ with ~(eval …)~, Babel's ~:var x=(…)~ :: evaluated by Emacs
+  when the file is exported (~org-confirm-babel-evaluate~ asks about code
+  blocks, not about these).
+- A clock table's ~:formatter~ :: called by Emacs when dynamic blocks are
+  updated (~org.dblock.update~).
+- Lisp formulas of a table (~'(…)~ in ~#+TBLFM:~) :: evaluated by Emacs when
+  the table is recalculated (~org.table.recalculate~ and the like).
+- ~#+PLOT:~ lines :: their ~set:~ options go to gnuplot as they are, which
+  can run programs, when the table is plotted (~org.plot.gnuplot~).
+- Links with ~org-ctags~ in ~org_modules~ :: making the tags table again
+  (asked first) runs [[#org_ctags_path_to_ctags][~org_ctags_path_to_ctags~]] in the link's
+  directory, which reads that directory's own ctags configuration
+  (~.ctags.d/~).
+
+The settings that name programs ([[#emacs][~emacs~]], [[#emacs_config][~emacs_config~]],
+[[#emacs_config_file][~emacs_config_file~]], [[#org_file_apps][~org_file_apps~]], [[#org_man_command][~org_man_command~]],
+[[#notification_command][~notification_command~]], [[#org_roam_graph_executable][~org_roam_graph_executable~]],
+[[#org_roam_graph_viewer][~org_roam_graph_viewer~]], [[#org_ctags_path_to_ctags][~org_ctags_path_to_ctags~]]) or switch off a
+question ([[#org_link_shell_skip_confirm_regexp][~org_link_shell_skip_confirm_regexp~]], ~org-confirm-babel-evaluate~
+in ~emacs_options~, [[#org_resource_download_policy][~org_resource_download_policy~]],
+[[#org_safe_remote_resources][~org_safe_remote_resources~]]) should come from your own configuration
+only: the shared configuration file, or your editor's user settings. Not
+from a project's settings (VS Code's ~.vscode/settings.json~, Helix's
+~.helix/languages.toml~, Zed's ~.zed/settings.json~), which come with a
+folder that may be someone else's.
+
 ** When something is wrong
 :PROPERTIES:
 :CUSTOM_ID: when-something-is-wrong
@@ -431,8 +468,9 @@ require('org-lsp').setup({
   download = true,
 
   -- The release to download: 'nightly' (built from the latest main), or
-  -- a version tag such as 'v0.2.0'.
-  release = 'nightly',
+  -- a version tag such as 'v0.2.0'. Unset, the tag the plugin is checked
+  -- out at, or 'nightly' on any other commit.
+  release = nil,
 
   -- The server's options, passed to it as they are.
   settings = {},
@@ -716,7 +754,7 @@ what you set is merged into the defaults.
 |---------------------+--------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ~cmd~               | found              | The server command, as a list. Unset: the build in the checkout (~target/release~), ~org-lsp~ on PATH, or the downloaded one.                                                                                                                       |
 | ~download~          | ~1~                | When no server is found, download the build of ~release~ for this platform into =~/.local/share/vim/org-lsp= (with ~curl~ and ~tar~) and start it. ~:OrgLspDownload~ downloads it again, to update it.                                              |
-| ~release~           | ~'nightly'~        | The release to download: ~'nightly'~ (built from the latest ~main~), or a version tag such as ~'v0.2.0'~.                                                                                                                                           |
+| ~release~           | ~''~               | The release to download: ~'nightly'~ (built from the latest ~main~), or a version tag such as ~'v0.2.0'~. Empty, the tag the plugin is checked out at, or ~'nightly'~.                                                                              |
 | ~settings~          | ~{}~               | The server's options, passed to it as they are.                                                                                                                                                                                                     |
 | ~client~            | ~'auto'~           | The LSP client: ~'lsp'~ (yegappan/lsp), ~'coc'~, ~'vim-lsp'~ or ~'ale'~. ~'auto'~ takes the first of these that is installed.                                                                                                                       |
 | ~folding~           | ~1~                | Fold with the server's folding ranges, and cycle with ~<Tab>~ and ~<S-Tab>~.                                                                                                                                                                        |
@@ -783,7 +821,12 @@ restarts the server, so the change applies at once. In a workspace VS Code
 does not trust (/restricted mode/), these two come from the user's settings
 only: a folder's ~.vscode/settings.json~ could otherwise name a program for
 the server to run (~emacs~, a capture template's ~function~). They follow
-the folder's settings again once it is trusted. While a clock runs,
+the folder's settings again once it is trusted. The extension also tells
+the server the workspace is not trusted (~workspace_trusted~), which then
+runs nothing from the files: no ~shell:~ or ~elisp:~ link, code block,
+export, ~org_file_apps~ command, or diary sexp, table formula, dynamic
+block or tangle header evaluated by Emacs ([[file:vscode.org::#setting-it-up][Setting it up]] lists them).
+Trusting the workspace restarts the server. While a clock runs,
 the status bar shows it as Emacs's mode line does, such as
 ~[0:25/1:00] (Write the report)~; clicking it goes to the entry.
 
@@ -2983,7 +3026,9 @@ Where archived subtrees go: a file, ~::~, and a headline under which they go
 (they go to the end of the file without one). ~%s~ is the name of the file the
 subtree is in; an empty file part is that file. ~datetree/~ as the headline
 files them under year, month and day, by when they were closed. An ~ARCHIVE~
-property of the entry or a parent, or a ~#+ARCHIVE:~ line, says otherwise.
+property of the entry or a parent, or a ~#+ARCHIVE:~ line, says otherwise;
+unlike Emacs, a file they name outside the file's directory, hidden, or not
+named ~*.org~ or ~*_archive~ is asked about first (~Archive to FILE?~).
 
 - Org's option :: ~org-archive-location~
 - Type :: string
@@ -3866,7 +3911,10 @@ Files, directories and glob patterns (~*~, ~?~, ~**~) the agenda is built
 from. =~/= is the home directory, and a directory stands for the Org files
 directly in it. When empty, the agenda is built from the Org files under the
 workspace folders (hidden directories, ~node_modules~ and ~target~ left out),
-or else from the Org files that are open.
+or else from the Org files that are open; unlike Emacs, the diary sexps of
+those files that call Lisp (beyond the date functions org-lsp reads itself)
+are then not evaluated, and the agenda says so once for each file: only those
+of the files named here (and the journal's) are.
 
 - Org's option :: ~org-agenda-files~
 - Type :: string[]

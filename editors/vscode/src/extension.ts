@@ -15,16 +15,40 @@ let client: LanguageClient | undefined;
 
 /**
  * The server command: the configured path, the binary bundled with the
- * extension, or `org-lsp` from PATH.
+ * extension, or `org-lsp` from PATH; undefined when there is none.
  */
-function serverCommand(context: vscode.ExtensionContext): string {
+function serverCommand(context: vscode.ExtensionContext): string | undefined {
   const configured = vscode.workspace.getConfiguration('org-lsp').get<string>('server.path', '').trim();
   if (configured !== '') {
     return configured;
   }
   const exe = process.platform === 'win32' ? 'org-lsp.exe' : 'org-lsp';
   const bundled = path.join(context.extensionPath, 'server', exe);
-  return fs.existsSync(bundled) ? bundled : exe;
+  return fs.existsSync(bundled) ? bundled : onPath(exe);
+}
+
+/**
+ * The program `name` in a directory of PATH, as an absolute path. Never one
+ * in the current directory, where Windows looks first for a bare name, nor
+ * in an empty or relative entry of PATH, which stand for it.
+ */
+function onPath(name: string): string | undefined {
+  for (const entry of (process.env.PATH ?? '').split(path.delimiter)) {
+    const dir = entry.replace(/^"(.*)"$/, '$1');
+    if (dir === '' || !path.isAbsolute(dir)) {
+      continue;
+    }
+    const candidate = path.join(dir, name);
+    try {
+      fs.accessSync(candidate, process.platform === 'win32' ? fs.constants.F_OK : fs.constants.X_OK);
+      if (fs.statSync(candidate).isFile()) {
+        return candidate;
+      }
+    } catch {
+      // Not there, or not a program: the next directory.
+    }
+  }
+  return undefined;
 }
 
 /**
@@ -500,6 +524,12 @@ async function preview(
 
 async function startClient(context: vscode.ExtensionContext): Promise<void> {
   const command = serverCommand(context);
+  if (command === undefined) {
+    void vscode.window.showErrorMessage(
+      'org-lsp: the server was not found. Install `org-lsp` on your PATH or set "org-lsp.server.path".',
+    );
+    return;
+  }
   const serverOptions: ServerOptions = { command, args: [] };
   const { languages, agendaScheme, capturePrefix, roamBufferPrefix, datePromptUri, clipboardCommands } = context.extension
     .packageJSON.orgLsp as {
@@ -528,7 +558,13 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
   };
   const clientOptions: LanguageClientOptions = {
     documentSelector: [...languages.map((language) => ({ language })), { scheme: agendaScheme }],
-    initializationOptions: vscode.workspace.getConfiguration('org-lsp').get('settings'),
+    // In Restricted Mode the server runs nothing from the files (`shell:`
+    // links, code blocks, exports…): it is told whether the workspace is
+    // trusted, over what the settings say.
+    initializationOptions: {
+      ...vscode.workspace.getConfiguration('org-lsp').get<Record<string, unknown>>('settings', {}),
+      workspace_trusted: vscode.workspace.isTrusted,
+    },
     middleware: {
       // The client registers every command of the server with VS Code. Run
       // from a key or the palette, a command has no arguments: add the
@@ -2480,6 +2516,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
         await restartClient(context);
       }
     }),
+    // Trusted now: a server that runs what the files ask for.
+    vscode.workspace.onDidGrantWorkspaceTrust(() => restartClient(context)),
   );
   clockItem = vscode.window.createStatusBarItem('org-lsp.clock', vscode.StatusBarAlignment.Left, 50);
   clockItem.name = 'Org clock';

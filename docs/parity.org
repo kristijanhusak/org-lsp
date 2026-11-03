@@ -346,7 +346,7 @@ Where editors fall short:
 - ✅ Habits (~org-habit~): the consistency graph, ~K~ /(in part in Sublime Text)/
 - ✅ Groups of org-super-agenda (~org_super_agenda_mode~, ~org_super_agenda_groups~): its selectors, automatic groups and options, for each day and each view; not the selectors that run Lisp
 - ✅ Diary sexps (~%%(diary-…)~ lines, ~<%%(…)>~ timestamps): the date functions of ~diary-lib~ and Org (~diary-anniversary~, ~-block~, ~-cyclic~, ~-date~, ~-float~, ~org-class~ …) with ~and~, ~or~, ~not~ and comparisons
-- ✅ Diary sexps calling other Lisp, evaluated by Emacs (~org-diary-sexp-entry~) for each day of the view
+- ✅ Diary sexps calling other Lisp, evaluated by Emacs (~org-diary-sexp-entry~) for each day of the view; unlike Emacs, only those of the files ~org_agenda_files~ names and the journal's, not of a file that is an agenda file because it is open or in the workspace folder, which the agenda says once
 - ✅ Column view in the agenda (~C-c C-x C-c~, through Emacs): each entry's line covered by its columns, the summaries on the date lines and the blocks' headers; editing, cycling and showing the values of the entries, changed in their files /(not in Sublime Text, Zed, Helix)/
 - ✅ Column view as soon as the agenda is made (~org-agenda-view-columns-initially~) /(not in Sublime Text, Zed, Helix)/
 - ✅ Writing the agenda to a file (~C-x C-w~): ~.org~ and plain text; in plain text, some lines of each entry's text under its line (~org-agenda-add-entry-text-maxlines~)
@@ -511,7 +511,7 @@ Where editors fall short:
 - ✅ Archiving a subtree to its archive file
 - ✅ Archiving to the archive sibling
 - ✅ Toggling the ~ARCHIVE~ tag
-- ✅ Archive locations, ~ARCHIVE~ properties, date trees, ~ARCHIVE_…~ context
+- ✅ Archive locations, ~ARCHIVE~ properties, date trees, ~ARCHIVE_…~ context; unlike Emacs, an archive file the file names (~#+ARCHIVE:~, an ~ARCHIVE~ property) outside the file's directory, hidden, or not named ~*.org~ or ~*_archive~ is asked about first (~Archive to FILE?~), from the agenda's bulk action too
 - ✅ Archiving all done subtrees /(not in Zed, Helix)/
 - ✅ The archive file saved, or left with its changes in the editor, as ~org-archive-subtree-save-file-p~ says (from the agenda it is not, by default)
 - ✅ Logging refiles (~org-log-refile~)
@@ -547,7 +547,7 @@ Where editors fall short:
 - ✅ A search by regular expression (~file:x.org::/regexp/~): a sparse tree of its matches (~org-occur~), in the file the link is in
 - ✅ Making a missing headline a link searches for, or looking for its words in the text (~org-link-search-must-match-exact-headline~); ~doi:~ links at ~org-link-doi-server-url~
 - ✅ Following a link, a timestamp or a citation with ~RET~ (~org-return-follows-link~)
-- ✅ Which program opens a linked file (~org-file-apps~): the editor, the system's application or a shell command; ~C-u~ opens it in the editor, ~C-u C-u~ by the system
+- ✅ Which program opens a linked file (~org-file-apps~): the editor, the system's application or a shell command; ~C-u~ opens it in the editor, ~C-u C-u~ by the system; unlike Emacs, a file the system would run (a program or script by its extension, ~.exe~, ~.bat~, ~.sh~, ~.desktop~, ~.app~ and the like, or a file that may be executed) is asked about first, by ~C-u C-u~ and ~file+sys:~
 - ✅ Opening a linked file that is not there with its program rather than saying ~No such file~ (~org-open-non-existing-files~)
 - ✅ A link to a directory opening the ~index.org~ in it (~org-open-directory-means-index-dot-org~)
 - ✅ Following a ~shell:~ link: its command runs once the user says yes to ~Execute … in shell?~, or at once when ~org-link-shell-skip-confirm-regexp~ matches it; what it writes is a message (its first 50 lines, 8000 characters at most), which Emacs shows in a buffer when long
@@ -649,7 +649,7 @@ Where editors fall short:
 
 92% (12 of 13)
 
-- ✅ Tangling, with Noweb references, comments and header arguments from properties
+- ✅ Tangling, with Noweb references, comments and header arguments from properties; unlike Emacs, files outside the Org file's directory, or given a mode that is setuid, setgid or writable by all, are asked about first, once for all of them (~Tangle to FILES?~), but not when Emacs tangles
 - ✅ Tangling's options: extensions by language, the link comments' format and paths, comments left uncommented, the Org text of comments as it is, the default file mode, deleting files before writing them, Noweb references between other strings (~org-babel-tangle-lang-exts~, ~org-babel-tangle-comment-format-beg~, ~org-babel-noweb-wrap-start~ and the others)
 - ✅ Evaluating a block, a ~#+CALL:~ line and inline code (through Emacs)
 - ✅ Evaluating the file's and the subtree's blocks /(not in Helix)/

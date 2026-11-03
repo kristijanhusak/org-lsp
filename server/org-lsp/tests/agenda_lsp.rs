@@ -3226,7 +3226,8 @@ fn refiles_the_subtrees_selected() {
 }
 
 /// A diary sexp the agenda cannot read is Emacs's to evaluate
-/// (`org-diary-sexp-entry`), for each day of the view.
+/// (`org-diary-sexp-entry`), for each day of the view, in a file of
+/// `org_agenda_files`.
 #[test]
 fn diary_sexps_go_to_emacs() {
     let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
@@ -3239,12 +3240,16 @@ fn diary_sexps_go_to_emacs() {
     if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
         options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
     }
+    let directory = std::env::temp_dir().join(format!("org-lsp-diary-sexps-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let path = directory.join("diary.org");
+    let text = "* Days\n%%(cl-evenp (calendar-extract-day date)) Even day\n%%(error \"boom\") Never\n";
+    std::fs::write(&path, text).unwrap();
+    options["org_agenda_files"] = json!([path.display().to_string()]);
+    let diary = format!("file://{}", path.display());
     let mut client = Client::editor(options, None);
-    client.open(
-        "file:///org/diary.org",
-        "* Days\n%%(cl-evenp (calendar-extract-day date)) Even day\n%%(error \"boom\") Never\n",
-    );
-    client.command("org.agenda.list", "file:///org/diary.org", 0);
+    client.open(&diary, text);
+    client.command("org.agenda.list", &diary, 0);
     let text = client.view_text(VIEW);
     let even: Vec<&str> = text.lines().filter(|line| line.contains("Even day")).collect();
     // Monday 18 to Sunday 24: the 18th, 20th, 22nd and 24th.
@@ -3261,12 +3266,84 @@ fn diary_sexps_go_to_emacs() {
             .collect()
     };
     client.wait_until(|client| !said(client).is_empty());
-    client.command("org.agenda.list", "file:///org/diary.org", 0);
+    client.command("org.agenda.list", &diary, 0);
     client.settle();
     let said = said(&client);
     assert_eq!(said.len(), 1, "{said:?}");
-    assert!(said[0].starts_with("Bad sexp at line 3 in /org/diary.org: (let ((entry Never)"), "{said:?}");
+    let bad = format!("Bad sexp at line 3 in {}: (let ((entry Never)", path.display());
+    assert!(said[0].starts_with(&bad), "{said:?}");
     client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+/// Unlike Emacs, which has no agenda without `org-agenda-files`, a file that
+/// is an agenda file only because it is open (or in the workspace folder)
+/// has its Lisp diary sexps left out, not sent to Emacs, and the agenda
+/// says so once; the native ones are read as before.
+#[test]
+fn diary_sexps_of_files_merely_open_are_not_evaluated() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("diary_sexps_of_files_merely_open_are_not_evaluated: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-diary-open-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let marker = directory.join("ran");
+    let path = directory.join("notes.org");
+    let text = format!(
+        "* Days\n%%(progn (write-region \"\" nil {:?}) t) Lisp ran\n%%(diary-float t 1 1) Native\n",
+        marker.display().to_string()
+    );
+    std::fs::write(&path, &text).unwrap();
+    let uri = format!("file://{}", path.display());
+    let said = |client: &Client| -> Vec<String> {
+        client
+            .notifications
+            .iter()
+            .filter(|notification| notification.method == "window/showMessage")
+            .filter_map(|notification| notification.params["message"].as_str().map(str::to_string))
+            .collect()
+    };
+    let mut options = clock();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
+    }
+    // Open, no agenda files.
+    let mut client = Client::editor(options.clone(), None);
+    client.open(&uri, &text);
+    client.command("org.agenda.list", &uri, 0);
+    let view = client.view_text(VIEW);
+    assert!(!view.contains("Lisp ran"), "{view}");
+    assert!(!marker.exists());
+    let told = format!(
+        "Lisp diary sexps in {} not evaluated: it is no file of org_agenda_files",
+        std::fs::canonicalize(&path).unwrap().display()
+    );
+    assert_eq!(said(&client), std::slice::from_ref(&told));
+    // Said once.
+    client.command("org.agenda.list", &uri, 0);
+    client.settle();
+    assert_eq!(said(&client), [told]);
+    client.shutdown();
+    // In the workspace folder, without `org_agenda_files`: the same.
+    let mut client = Client::editor(options.clone(), Some(&format!("file://{}", directory.display())));
+    client.command("org.agenda.list", &uri, 0);
+    assert!(!client.view_text(VIEW).contains("Lisp ran"));
+    assert!(!marker.exists());
+    client.shutdown();
+    // Named in `org_agenda_files`: Emacs evaluates it.
+    options["org_agenda_files"] = json!([path.display().to_string()]);
+    let mut client = Client::editor(options, None);
+    client.open(&uri, &text);
+    client.command("org.agenda.list", &uri, 0);
+    let view = client.view_text(VIEW);
+    assert!(view.contains("Lisp ran"), "{view}");
+    assert!(marker.exists());
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
 }
 
 /// The `%(…)` of `org-agenda-prefix-format` are Emacs's to evaluate, in
@@ -3547,6 +3624,47 @@ fn follows_attachment_links() {
     client.shutdown();
 }
 
+/// In a workspace the editor does not trust (`workspace_trusted: false`,
+/// VS Code's Restricted Mode), nothing from the files runs: `shell:` and
+/// `elisp:` links, `org-file-apps` commands, code blocks and exports are
+/// refused before anything is asked or run; plain links still open.
+#[test]
+fn runs_nothing_from_an_untrusted_workspace() {
+    let directory = workspace("untrusted");
+    std::fs::write(directory.join("notes.txt"), "notes\n").unwrap();
+    let file = directory.join("index.org");
+    let text = "[[shell:touch ran]] [[elisp:(ignore)]] [[file:notes.txt]] [[https://orgmode.org]]\n\
+                #+begin_src sh\ntouch ran\n#+end_src\n";
+    std::fs::write(&file, text).unwrap();
+    let mut options = clock();
+    options["org_link_shell_skip_confirm_regexp"] = json!(".");
+    options["org_file_apps"] = json!([["txt", "touch ran"]]);
+    options["workspace_trusted"] = json!(false);
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, text);
+    let run = |client: &mut Client, command: &str, line: u32, character: u32| {
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": line, "character": character } });
+        client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+    };
+    let refused = |what: &str| Err(format!("{what} are off in Restricted Mode: trust the workspace to run them"));
+    assert_eq!(run(&mut client, "org.open", 0, 3), refused("shell: links"));
+    assert_eq!(run(&mut client, "org.open", 0, 25), refused("elisp: links"));
+    assert_eq!(run(&mut client, "org.open", 0, 45), refused("org-file-apps commands"));
+    assert_eq!(run(&mut client, "org.babel.execute", 2, 0), refused("Code blocks"));
+    assert_eq!(run(&mut client, "org.babel.execute.buffer", 2, 0), refused("Code blocks"));
+    assert_eq!(run(&mut client, "org.checkbox.toggle", 1, 2), refused("Code blocks"));
+    assert_eq!(run(&mut client, "org.export.dispatch", 0, 0), refused("Exports"));
+    // A link that runs nothing still opens.
+    client.received.clear();
+    run(&mut client, "org.open", 0, 70).unwrap();
+    client.settle();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    assert_eq!(shown.params["uri"], "https://orgmode.org");
+    client.shutdown();
+    assert!(!directory.join("ran").exists(), "something ran");
+}
+
 /// `org-file-apps`: a command of its runs with the file in place of `%s`
 /// (`Running ...done`), `C-u` opens the file in the editor anyway, and a
 /// PDF goes to the system's application.
@@ -3600,6 +3718,76 @@ fn opens_files_as_org_file_apps_says() {
     let missing = open(&mut client, 40, None).unwrap_err();
     assert_eq!(missing, format!("No such file: {}", directory.join("missing.txt").display()));
     client.shutdown();
+}
+
+/// Unlike Emacs, a file the system's application would run (`file+sys:`,
+/// `C-u C-u`) is asked about first: a script or program by its name, or a
+/// file that may be executed. No opens nothing, yes opens it, and a yes to
+/// one file is not one to another. Other files open at once.
+#[test]
+fn asks_before_the_system_opens_a_program() {
+    let directory = workspace("system-programs");
+    let file = directory.join("links.org");
+    std::fs::write(directory.join("paper.pdf"), "pdf").unwrap();
+    std::fs::write(directory.join("setup.bat"), "echo").unwrap();
+    std::fs::write(directory.join("tool"), "#!/bin/sh\n").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(directory.join("tool"), std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let text = "[[file+sys:setup.bat]] [[file+sys:paper.pdf]] [[file:tool]] [[file+sys:Run.SH]]\n";
+    std::fs::write(&file, text).unwrap();
+    let mut client = Client::editor(clock(), None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, text);
+    let open = |client: &mut Client, character: u32, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": character } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let shown = |client: &Client| {
+        client
+            .received
+            .iter()
+            .find(|request| request.method == "window/showDocument")
+            .map(|request| request.params["uri"].as_str().unwrap().to_string())
+    };
+    let named = |name: &str| directory.join(name).display().to_string();
+    let asked = open(&mut client, 3, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], format!("Open {} with the system, which may run it? ", named("setup.bat")));
+    assert_eq!(asked["input"]["context"]["program"], named("setup.bat"));
+    assert_eq!(shown(&client), None);
+    let mut answer = asked["input"]["context"].clone();
+    answer["input"] = json!("n");
+    assert_eq!(open(&mut client, 3, answer.clone()), Err("Abort".to_string()));
+    assert_eq!(shown(&client), None);
+    answer["input"] = json!("y");
+    open(&mut client, 3, answer.clone()).unwrap();
+    assert_eq!(shown(&client), Some(format!("file://{}", named("setup.bat"))));
+    // The yes to that file is not one to another.
+    assert_eq!(open(&mut client, 70, answer), Err("The link changed after the question: not opened".to_string()));
+    assert_eq!(shown(&client), None);
+    // Not a program: opened at once.
+    open(&mut client, 26, json!({})).unwrap();
+    assert_eq!(shown(&client), Some(format!("file://{}", named("paper.pdf"))));
+    // `C-u C-u` on a file that may be executed.
+    #[cfg(unix)]
+    {
+        let asked = open(&mut client, 50, json!({ "count": 16 })).unwrap();
+        assert_eq!(asked["input"]["prompt"], format!("Open {} with the system, which may run it? ", named("tool")));
+        // In the editor, with `C-u`: not asked.
+        open(&mut client, 50, json!({ "count": 4 })).unwrap();
+        assert_eq!(shown(&client), Some(format!("file://{}", named("tool"))));
+    }
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
 }
 
 /// `org-open-non-existing-files`: a file that is not there is given to
@@ -5883,6 +6071,123 @@ fn archives_subtrees() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
+/// Unlike Emacs, an archive file the file names outside its directory,
+/// hidden, or not named as Org files are asks first (`Archive to FILE?`):
+/// no writes nothing, yes archives there, and a yes to one file is not
+/// one to another. The bulk action `$` asks the same, and goes on with
+/// the entries left.
+#[test]
+fn asks_before_archiving_outside_the_file_s_directory() {
+    let root = workspace("archive-ask");
+    let outside = workspace("archive-ask-outside");
+    let keys = outside.join("authorized_keys");
+    let mut options = clock();
+    options["org_agenda_files"] = json!([root.display().to_string()]);
+    let mut client = Client::editor(options, None);
+    let work = format!("file://{}/work.org", root.display());
+    let original = format!(
+        "* TODO Keys\n:PROPERTIES:\n:ARCHIVE: {}::\n:END:\nkey line\n\
+         * TODO Hidden\n:PROPERTIES:\n:ARCHIVE: .old/done.org::\n:END:\n\
+         * TODO Text\n:PROPERTIES:\n:ARCHIVE: notes.txt::\n:END:\n\
+         * TODO Below\n:PROPERTIES:\n:ARCHIVE: old/done.org::\n:END:\n",
+        keys.display()
+    );
+    let mut text = original.clone();
+    client.open(&work, &text);
+    // A path as the question shows it: `~` for the home directory.
+    let shown = |path: &std::path::Path| {
+        let home = std::env::var_os("HOME").map(std::path::PathBuf::from);
+        match home.as_deref().and_then(|home| path.strip_prefix(home).ok()) {
+            Some(rest) => format!("~/{}", rest.display()),
+            None => path.display().to_string(),
+        }
+    };
+    let ask = |client: &mut Client, line: u32, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": work }, "position": { "line": line, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result = client
+            .request("workspace/executeCommand", json!({ "command": "org.archive.subtree", "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let asked = ask(&mut client, 0, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], format!("Archive to {}? ", shown(&keys)));
+    let question = asked["input"]["context"].clone();
+    assert_eq!(question["step"], "archive-to");
+    assert_eq!(question["targets"], json!([keys.display().to_string()]));
+    // No: nothing is written.
+    let mut answer = question.clone();
+    answer["input"] = json!("n");
+    assert_eq!(ask(&mut client, 0, answer), Err("Abort".to_string()));
+    assert!(!keys.exists());
+    assert!(!client.received.iter().any(|request| request.method == "workspace/applyEdit"));
+    // A yes to that file is not one to another entry's.
+    let mut answer = question.clone();
+    answer["input"] = json!("y");
+    let other = ask(&mut client, 5, answer.clone()).unwrap();
+    assert_eq!(other["input"]["prompt"], format!("Archive to {}? ", shown(&root.join(".old/done.org"))));
+    assert!(!root.join(".old").exists());
+    let text_file = ask(&mut client, 10, json!({})).unwrap();
+    assert!(text_file["input"]["prompt"].as_str().unwrap().ends_with("/notes.txt? "), "{text_file}");
+    // Yes: archived there.
+    let result = run_edit(&mut client, "org.archive.subtree", &work, (0, 0), answer, &mut text);
+    assert_eq!(result["message"], format!("Subtree archived in file: {}", keys.display()), "{result}");
+    assert!(std::fs::read_to_string(&keys).unwrap().contains("* TODO Keys\n"));
+    assert!(!text.contains("Keys"));
+    // Below the file's directory, named as Org files are: not asked.
+    let line = text.lines().position(|line| line == "* TODO Below").unwrap() as u32;
+    let result = run_edit(&mut client, "org.archive.subtree", &work, (line, 0), json!({}), &mut text);
+    assert!(result["message"].as_str().unwrap().starts_with("Subtree archived in file: "), "{result}");
+    assert!(root.join("old/done.org").exists());
+
+    // `$` on marked entries: asked once for the file, then done.
+    std::fs::remove_file(&keys).unwrap();
+    let mut text = original.clone();
+    std::fs::write(root.join("tasks.org"), &text).unwrap();
+    let tasks = format!("file://{}/tasks.org", root.display());
+    client.open(&tasks, &text);
+    client.command("org.agenda.todos", VIEW, 0);
+    let view = client.show_view();
+    let line = view.lines().position(|line| line.contains("Keys") && line.contains("tasks")).unwrap() as u32;
+    client.command("org.agenda.bulk.mark", VIEW, line);
+    let bulk = |client: &mut Client, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result = client.request(
+            "workspace/executeCommand",
+            json!({ "command": "org.agenda.bulk.action", "arguments": [context] }),
+        );
+        client.settle();
+        result
+    };
+    let menu = bulk(&mut client, json!({})).unwrap();
+    let asked =
+        bulk(&mut client, json!({ "step": "action", "input": "$", "answers": menu["input"]["context"]["answers"] }))
+            .unwrap();
+    assert_eq!(asked["input"]["prompt"], format!("Archive to {}? ", shown(&keys)));
+    let mut answer = asked["input"]["context"].clone();
+    answer["input"] = json!("n");
+    assert_eq!(bulk(&mut client, answer.clone()), Err("Abort".to_string()));
+    assert!(!keys.exists());
+    answer["input"] = json!("y");
+    let done = bulk(&mut client, answer).unwrap();
+    assert_eq!(done["message"], "Acted on 1 entries");
+    assert!(std::fs::read_to_string(&keys).unwrap().contains("* TODO Keys\n"));
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").unwrap();
+    let (_, edits) = edits_of(edit);
+    text = apply(&text, &edits);
+    assert!(!text.contains("Keys"), "{text}");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+    std::fs::remove_dir_all(outside).unwrap();
+}
+
 /// From the agenda, a new archive file is made by the edit (a `create`
 /// resource operation) and left unsaved, when the client can make files.
 #[test]
@@ -6356,9 +6661,19 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
         // The token is in the script's environment, off the command line.
         assert_eq!(words[words.len() - 2], "-");
         let token = text.split_whitespace().find_map(|word| word.strip_prefix("ORG_LSP_TOKEN=")).unwrap();
-        (words[words.len() - 3].clone(), token.to_string())
+        // The address quoted, as a path is (on Unix, the socket's).
+        (words[words.len() - 3].trim_matches('\'').to_string(), token.to_string())
     };
     let (address, token) = sent_to(&script_path);
+    // On Unix, a socket beside the script, which only the user may use.
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::{FileTypeExt, PermissionsExt};
+        let socket = std::fs::metadata(&address).unwrap();
+        assert!(socket.file_type().is_socket(), "{address}");
+        assert_eq!(socket.permissions().mode() & 0o777, 0o600);
+        assert_eq!(std::path::Path::new(&address).parent(), script_path.parent());
+    }
     // The agenda's file is in a place of its own beside the script, the
     // same one each time, for Zed to open again when it starts.
     assert!(agenda_path.starts_with(script_path.parent().unwrap().join("agenda")), "{}", agenda_path.display());

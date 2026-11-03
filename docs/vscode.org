@@ -49,6 +49,9 @@ this order: the ~org-lsp.server.path~ setting, the one inside the
 extension, ~org-lsp~ on PATH.
 
 * Setting it up
+:PROPERTIES:
+:CUSTOM_ID: setting-it-up
+:END:
 
 The settings go in ~settings.json~ (*Preferences: Open User Settings
 (JSON)*). The server's options go in ~org-lsp.settings~, where they are
@@ -86,6 +89,23 @@ the server, so the change applies at once. A folder's
 ~.vscode/settings.json~ may set them too, but only once VS Code trusts the
 folder: in /restricted mode/, ~org-lsp.settings~ and ~org-lsp.server.path~
 come from the user's settings alone, as they name programs the server runs.
+
+In /restricted mode/ the server also runs nothing the files would have it
+run, and says so when asked to (~Code blocks are off in Restricted Mode:
+trust the workspace to run them~):
+
+- ~shell:~ and ~elisp:~ links are not followed;
+- code blocks and calls are not evaluated (~C-c C-c~, ~org.babel.execute~);
+- files are not exported, as exporting evaluates code blocks and
+  ~(eval …)~ macros;
+- ~org_file_apps~ runs no shell command (files still open in VS Code or
+  the system's application);
+- Emacs evaluates no diary sexp (~%%(…)~ lines are left out of the agenda
+  unless org-lsp reads them itself), no table formula it alone computes,
+  no dynamic block other than a clock table, and no tangle whose headers
+  are Lisp.
+
+Trusting the workspace restarts the server with all of them on.
 
 The server also reads [[file:configuration.org::#the-shared-configuration-file][the shared configuration file]],
 =~/.config/org-lsp/config.toml=, which every editor shares;

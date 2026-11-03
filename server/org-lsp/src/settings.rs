@@ -60,7 +60,9 @@ pub const SETTINGS: &[Setting] = &[
         "Files, directories and glob patterns (`*`, `?`, `**`) the agenda is built from. `~/` is the home \
          directory, and a directory stands for the Org files directly in it. When empty, the agenda is built \
          from the Org files under the workspace folders (hidden directories, `node_modules` and `target` left \
-         out), or else from the Org files that are open.",
+         out), or else from the Org files that are open; unlike Emacs, the diary sexps of those files that \
+         call Lisp (beyond the date functions org-lsp reads itself) are then not evaluated, and the agenda says \
+         so once for each file: only those of the files named here (and the journal's) are.",
     ),
     Setting {
         default: None,
@@ -1471,7 +1473,9 @@ pub const SETTINGS: &[Setting] = &[
         "Where archived subtrees go: a file, `::`, and a headline under which they go (they go to the end of the \
          file without one). `%s` is the name of the file the subtree is in; an empty file part is that file. \
          `datetree/` as the headline files them under year, month and day, by when they were closed. An \
-         `ARCHIVE` property of the entry or a parent, or a `#+ARCHIVE:` line, says otherwise.",
+         `ARCHIVE` property of the entry or a parent, or a `#+ARCHIVE:` line, says otherwise; unlike Emacs, a \
+         file they name outside the file's directory, hidden, or not named `*.org` or `*_archive` is asked \
+         about first (`Archive to FILE?`).",
     ),
     setting(
         "org_archive_reversed_order",
@@ -3962,6 +3966,20 @@ pub const SETTINGS: &[Setting] = &[
     },
     Setting {
         integration: true,
+        editor_only: true,
+        ..setting(
+            "workspace_trusted",
+            "boolean",
+            "true",
+            "",
+            "Whether the editor trusts the workspace. With `false`, as VS Code gives it in Restricted Mode, \
+             nothing in the files runs code: `shell:` and `elisp:` links are not followed, code blocks and calls \
+             are not evaluated, files are not exported, `org_file_apps` runs no command, and Emacs evaluates no \
+             diary sexp, table formula, dynamic block or tangling header.",
+        )
+    },
+    Setting {
+        integration: true,
         ..setting(
             "display",
             "boolean",
@@ -4042,7 +4060,8 @@ pub const SETTINGS: &[Setting] = &[
             "",
             "Offer more commands as code actions: the agenda, capture, refile, a TODO state or a priority picked \
              from a list, a new heading or item (M-RET and its neighbours), for a client that cannot run a \
-             command from a key. The agenda's commands go through a local port instead: the server writes a \
+             command from a key. The agenda's commands go through the server's own port instead (on Unix a socket \
+             beside the script, only the user's): the server writes a \
              script (`command_script`) that runs `SCRIPT COMMAND [ROW COLUMN]` in the agenda, where the cursor \
              is when no row is given (the server follows the cursor through the document highlights the client \
              asks for), for the editor's keys to call; with no agenda open, the commands that need none (the \
@@ -4750,6 +4769,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("code_blocks", BOOLEAN),
     ("syntax", BOOLEAN),
     ("run_command", BOOLEAN),
+    ("workspace_trusted", BOOLEAN),
     ("hidden_lines", BOOLEAN),
     ("display", BOOLEAN),
     ("images", BOOLEAN),

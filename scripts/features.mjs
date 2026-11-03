@@ -56,6 +56,7 @@ export const EDITORS = [
       '`"org-lsp.keys": "vim"` (with VSCodeVim) switches to the Vim keys; `"emacs_full"` to all of Emacs\'s, `Shift+Right` on a headline changing its TODO state',
       'With the default keys, in an Org file `Shift+Right` selects, `Ctrl+A` is VS Code\'s, `Ctrl+C` copies the selection, and with nothing selected `Ctrl+C Ctrl+T` changes the TODO state',
       '`org-lsp.` settings and `~/.config/org-lsp/config.toml` reach the server',
+      'In a folder opened in Restricted Mode, `C-c C-o` on a `[[shell:…]]` link says `shell: links are off in Restricted Mode: trust the workspace to run them` and runs nothing; once the folder is trusted (*Manage* in the banner, *Trust*), the same link runs',
     ],
   },
   {
@@ -517,7 +518,7 @@ export const AREAS = [
       ['Habits (`org-habit`): the consistency graph, `K`', true, { sublime: 'part' }],
       ['Groups of org-super-agenda (`org_super_agenda_mode`, `org_super_agenda_groups`): its selectors, automatic groups and options, for each day and each view; not the selectors that run Lisp', true],
       ['Diary sexps (`%%(diary-…)` lines, `<%%(…)>` timestamps): the date functions of `diary-lib` and Org (`diary-anniversary`, `-block`, `-cyclic`, `-date`, `-float`, `org-class` …) with `and`, `or`, `not` and comparisons', true],
-      ['Diary sexps calling other Lisp, evaluated by Emacs (`org-diary-sexp-entry`) for each day of the view', true],
+      ['Diary sexps calling other Lisp, evaluated by Emacs (`org-diary-sexp-entry`) for each day of the view; unlike Emacs, only those of the files `org_agenda_files` names and the journal\'s, not of a file that is an agenda file because it is open or in the workspace folder, which the agenda says once', true],
       ['Column view in the agenda (`C-c C-x C-c`, through Emacs): each entry\'s line covered by its columns, the summaries on the date lines and the blocks\' headers; editing, cycling and showing the values of the entries, changed in their files', true, { sublime: 'no', zed: 'no', helix: 'no' }],
       ['Column view as soon as the agenda is made (`org-agenda-view-columns-initially`)', true, { sublime: 'no', zed: 'no', helix: 'no' }],
       ['Writing the agenda to a file (`C-x C-w`): `.org` and plain text; in plain text, some lines of each entry\'s text under its line (`org-agenda-add-entry-text-maxlines`)', true],
@@ -765,7 +766,7 @@ export const AREAS = [
       ['Archiving a subtree to its archive file', true],
       ['Archiving to the archive sibling', true],
       ['Toggling the `ARCHIVE` tag', true],
-      ['Archive locations, `ARCHIVE` properties, date trees, `ARCHIVE_…` context', true],
+      ['Archive locations, `ARCHIVE` properties, date trees, `ARCHIVE_…` context; unlike Emacs, an archive file the file names (`#+ARCHIVE:`, an `ARCHIVE` property) outside the file\'s directory, hidden, or not named `*.org` or `*_archive` is asked about first (`Archive to FILE?`), from the agenda\'s bulk action too', true],
       ['Archiving all done subtrees', true, { zed: 'no', helix: 'no' }],
       ['The archive file saved, or left with its changes in the editor, as `org-archive-subtree-save-file-p` says (from the agenda it is not, by default)', true],
       ['Logging refiles (`org-log-refile`)', true],
@@ -807,7 +808,7 @@ export const AREAS = [
       ['A search by regular expression (`file:x.org::/regexp/`): a sparse tree of its matches (`org-occur`), in the file the link is in', true],
       ['Making a missing headline a link searches for, or looking for its words in the text (`org-link-search-must-match-exact-headline`); `doi:` links at `org-link-doi-server-url`', true],
       ['Following a link, a timestamp or a citation with `RET` (`org-return-follows-link`)', true],
-      ['Which program opens a linked file (`org-file-apps`): the editor, the system\'s application or a shell command; `C-u` opens it in the editor, `C-u C-u` by the system', true],
+      ['Which program opens a linked file (`org-file-apps`): the editor, the system\'s application or a shell command; `C-u` opens it in the editor, `C-u C-u` by the system; unlike Emacs, a file the system would run (a program or script by its extension, `.exe`, `.bat`, `.sh`, `.desktop`, `.app` and the like, or a file that may be executed) is asked about first, by `C-u C-u` and `file+sys:`', true],
       ['Opening a linked file that is not there with its program rather than saying `No such file` (`org-open-non-existing-files`)', true],
       ['A link to a directory opening the `index.org` in it (`org-open-directory-means-index-dot-org`)', true],
       ['Following a `shell:` link: its command runs once the user says yes to `Execute … in shell?`, or at once when `org-link-shell-skip-confirm-regexp` matches it; what it writes is a message (its first 50 lines, 8000 characters at most), which Emacs shows in a buffer when long', true],
@@ -952,7 +953,7 @@ export const AREAS = [
   {
     name: 'Code blocks (Babel)',
     emacs: [
-      ['Tangling, with Noweb references, comments and header arguments from properties', true],
+      ['Tangling, with Noweb references, comments and header arguments from properties; unlike Emacs, files outside the Org file\'s directory, or given a mode that is setuid, setgid or writable by all, are asked about first, once for all of them (`Tangle to FILES?`), but not when Emacs tangles', true],
       ['Tangling\'s options: extensions by language, the link comments\' format and paths, comments left uncommented, the Org text of comments as it is, the default file mode, deleting files before writing them, Noweb references between other strings (`org-babel-tangle-lang-exts`, `org-babel-tangle-comment-format-beg`, `org-babel-noweb-wrap-start` and the others)', true],
       ['Evaluating a block, a `#+CALL:` line and inline code (through Emacs)', true],
       ['Evaluating the file\'s and the subtree\'s blocks', true, { helix: 'no' }],

@@ -134,3 +134,32 @@ fn roam_links_are_no_fuzzy_links_with_org_roam() {
     assert_eq!(fuzzy(&[]), ["Unknown fuzzy location \"roam:Beta\"", "Unknown fuzzy location \"Nowhere\""]);
     assert_eq!(fuzzy(&["roam"]), ["Unknown fuzzy location \"Nowhere\""]);
 }
+
+/// `item-number` numbers the items of a list in one pass: each item used
+/// to walk back over the ones before it for the nearest counter, and a
+/// list of 100,000 items held the server up for seconds as it opened.
+#[test]
+fn numbers_the_items_of_a_long_list_fast() {
+    let text = "- a\n".repeat(50_000) + "- [@3] b\n- c\n3. d\n";
+    let parse = org_syntax::parse(&text, &Default::default());
+    let context = Context {
+        file_exists: &|_| true,
+        priorities: org_core::priority::Priorities::default(),
+        read_file: &|_| None,
+        file_name: &|| None,
+        id_known: &|_| None,
+        link_types: &[],
+    };
+    let start = std::time::Instant::now();
+    let reports: Vec<(usize, String)> = lint::lint(&text, &parse, &context)
+        .into_iter()
+        .filter(|report| report.checker == "item-number")
+        .map(|report| (report.offset, report.message))
+        .collect();
+    let elapsed = start.elapsed();
+    let last = text.len() - "3. d\n".len();
+    let message = "Bullet counter \"3. \" is not the same with item position 5.  Consider adding manual [@3] counter.";
+    assert_eq!(reports, [(last, message.to_string())]);
+    // Generous: this takes a fraction of a second in a debug build.
+    assert!(elapsed < std::time::Duration::from_secs(5), "took {elapsed:?}");
+}

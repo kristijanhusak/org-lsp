@@ -15,7 +15,7 @@ let s:root = fnamemodify(expand('<sfile>:p'), ':h:h:h:h')
 let s:defaults = {
       \ 'cmd': [],
       \ 'download': 1,
-      \ 'release': 'nightly',
+      \ 'release': '',
       \ 'settings': {},
       \ 'client': 'auto',
       \ 'folding': 1,
@@ -60,6 +60,23 @@ function! org_lsp#config() abort
   return config
 endfunction
 
+" The program `name` in a directory of PATH, as an absolute path; '' when it
+" is in none. Never one in the current directory, where Windows looks first
+" for a bare name, nor in an empty or relative entry of PATH, which stand for
+" it.
+function! org_lsp#on_path(name) abort
+  for dir in split($PATH, has('win32') ? ';' : ':')
+    let dir = substitute(dir, '^"\(.*\)"$', '\1', '')
+    if !empty(dir) && isabsolutepath(dir)
+      let path = dir . '/' . a:name
+      if executable(path) && !isdirectory(path)
+        return path
+      endif
+    endif
+  endfor
+  return ''
+endfunction
+
 " The server command: the configured one, a build inside the plugin's
 " checkout, `org-lsp` on PATH, or the downloaded one; empty when there is
 " none.
@@ -75,8 +92,9 @@ function! org_lsp#server_command() abort
       return [built]
     endif
   endfor
-  if executable('org-lsp')
-    return ['org-lsp']
+  let on_path = org_lsp#on_path(exe)
+  if !empty(on_path)
+    return [on_path]
   endif
   let downloaded = org_lsp#download#path()
   return executable(downloaded) ? [downloaded] : []
@@ -201,7 +219,25 @@ endfunction
 " client, and starts for the Org buffers open, when there was none before;
 " a server that runs already is replaced the next time Vim starts.
 function! org_lsp#download() abort
-  call org_lsp#download#run(org_lsp#config().release, {path -> s:downloaded()})
+  call org_lsp#download#run(org_lsp#release(), {path -> s:downloaded()})
+endfunction
+
+" The release to download: the `release` option; empty, the version tag the
+" plugin's checkout is at, so that a plugin pinned to a release runs that
+" release's server; 'nightly' on any other commit, or when git cannot tell.
+function! org_lsp#release() abort
+  let release = org_lsp#config().release
+  return empty(release) ? org_lsp#checkout_release(s:root) : release
+endfunction
+
+" The release of the checkout in `dir`: the version tag (`v0.2.0`) its
+" commit has, or 'nightly'.
+function! org_lsp#checkout_release(dir) abort
+  if !executable('git')
+    return 'nightly'
+  endif
+  let tag = trim(system('git -C ' . shellescape(a:dir) . ' describe --tags --exact-match HEAD'))
+  return v:shell_error == 0 && tag =~# '^v[0-9][0-9A-Za-z._-]*$' ? tag : 'nightly'
 endfunction
 
 function! s:downloaded() abort
@@ -3080,29 +3116,47 @@ function! s:define_faces() abort
   endfor
 endfunction
 
+" The face's color `key` (`foreground`, `background`) as Vim takes it: `#rrggbb`
+" or a name, Emacs's spaces dropped (`dark green` is Vim's `darkgreen`);
+" empty for anything else.
+function! s:face_color(face, key) abort
+  let value = get(a:face, a:key, '')
+  if type(value) != v:t_string
+    return ''
+  endif
+  let value = substitute(value, ' ', '', 'g')
+  return value =~# '^#\x\{6}$\|^\a\w*$' ? value : ''
+endfunction
+
 " The highlight group and text property type of the face of keyword or
 " priority `name`; returns the type.
 function! s:define_face(kind, name, face) abort
   let [kind, name, face] = [a:kind, a:name, a:face]
   let group = s:face_group(kind, name)
-  let attributes = filter(['bold', 'italic', 'underline', 'strikethrough'], {_, a -> get(face, a, v:false)})
-  let attr = empty(attributes) ? 'NONE' : join(attributes, ',')
-  let colors = ''
-  if has_key(face, 'foreground')
-    let colors .= ' guifg=' . face.foreground
+  let attributes = {}
+  for attribute in filter(['bold', 'italic', 'underline', 'strikethrough'], {_, a -> get(face, a, v:false)})
+    let attributes[attribute] = v:true
+  endfor
+  " Set with `hlset()`, never through `:highlight`: the colors come from
+  " the user's options, and only a color is taken from them.
+  let look = {'name': group, 'default': v:true, 'term': attributes, 'cterm': attributes, 'gui': attributes}
+  let foreground = s:face_color(face, 'foreground')
+  let background = s:face_color(face, 'background')
+  if !empty(foreground)
+    let look.guifg = foreground
   endif
-  if has_key(face, 'background')
-    let colors .= ' guibg=' . face.background
+  if !empty(background)
+    let look.guibg = background
   endif
   try
-    execute 'highlight default' group 'term=' . attr 'cterm=' . attr 'gui=' . attr colors
+    call hlset([look])
   catch
   endtry
   " A color name the terminal knows, without 'termguicolors'.
-  for [key, value] in [['ctermfg', get(face, 'foreground', '')], ['ctermbg', get(face, 'background', '')]]
+  for [key, value] in [['ctermfg', foreground], ['ctermbg', background]]
     if value =~# '^\a\+$'
       try
-        execute 'highlight' group key . '=' . value
+        call hlset([{'name': group, key: value}])
       catch
       endtry
     endif

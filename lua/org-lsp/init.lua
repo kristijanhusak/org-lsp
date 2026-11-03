@@ -24,7 +24,7 @@ local SERVER = 'org_lsp'
 ---@class org_lsp.Config
 ---@field cmd? string[] Server command. Found automatically when unset: a build in the plugin's directory, `org-lsp` on PATH, or the one `download` fetched.
 ---@field download? boolean Whether a server is downloaded when none is found: the build of `release` for this platform, into `stdpath('data')/org-lsp` (needs `curl` and `tar`). `:OrgLspDownload` downloads it again, to update it.
----@field release? string The release `download` and `:OrgLspDownload` fetch the server from: 'nightly' (built from the latest `main`), or a version tag such as 'v0.2.0'.
+---@field release? string The release `download` and `:OrgLspDownload` fetch the server from: 'nightly' (built from the latest `main`), or a version tag such as 'v0.2.0'. Unset, the tag the plugin is checked out at (lazy.nvim's `version`, `tag`), or 'nightly' on any other commit.
 ---@field settings? org_lsp.Settings The server's options, such as `org_agenda_files` and `org_todo_keywords`; see docs/configuration.org.
 ---@field startup_folded? 'showeverything'|'overview' How a newly opened file shows when neither the settings' `org_startup_folded` nor its `#+STARTUP:` say: everything open or every subtree folded. The file's `#+STARTUP:` and `VISIBILITY` properties always decide for it.
 ---@field folding? boolean Whether to fold with the server's folding ranges.
@@ -57,7 +57,6 @@ local SERVER = 'org_lsp'
 local defaults = {
   cmd = nil,
   download = true,
-  release = 'nightly',
   settings = {},
   folding = true,
   replace_syntax = false,
@@ -130,6 +129,27 @@ local function plugin_root()
   return vim.fs.dirname(vim.fs.dirname(vim.fs.dirname(source)))
 end
 
+--- The release to download: the `release` option; unset, the version tag
+--- the plugin's checkout is at, so that a plugin pinned to a release runs
+--- that release's server; 'nightly' on any other commit, or when git
+--- cannot tell.
+---@return string
+function M.release()
+  return M.config.release or M._checkout_release(plugin_root())
+end
+
+--- The release of the checkout in `dir`: the version tag (`v0.2.0`) its
+--- commit has, or 'nightly'.
+---@param dir string
+---@return string
+function M._checkout_release(dir)
+  local ok, result = pcall(function()
+    return vim.system({ 'git', '-C', dir, 'describe', '--tags', '--exact-match', 'HEAD' }, { text = true }):wait()
+  end)
+  local tag = ok and result.code == 0 and vim.trim(result.stdout or '') or ''
+  return tag:match('^v%d[%w._-]*$') and tag or 'nightly'
+end
+
 --- The server command: the configured one, a build inside the plugin
 --- directory, `org-lsp` on PATH, or the downloaded one. Returns nil when
 --- none is found.
@@ -161,6 +181,25 @@ function M.reload_syntax(buf)
   require('org-lsp.src').reapply(buf)
 end
 
+--- The program `name` in a directory of PATH, as an absolute path; nil
+--- when it is in none. Never one in the current directory, where Windows
+--- looks first for a bare name, nor in an empty or relative entry of PATH,
+--- which stand for it.
+---@param name string
+---@return string|nil
+function M.on_path(name)
+  local separator = vim.fn.has('win32') == 1 and ';' or ':'
+  for dir in vim.gsplit(vim.env.PATH or '', separator, { plain = true }) do
+    dir = dir:gsub('^"(.*)"$', '%1')
+    if dir ~= '' and vim.fn.isabsolutepath(dir) == 1 then
+      local path = vim.fs.joinpath(dir, name)
+      if vim.fn.executable(path) == 1 and vim.fn.isdirectory(path) == 0 then
+        return path
+      end
+    end
+  end
+end
+
 function M.server_command()
   if M.config.cmd then
     return M.config.cmd
@@ -170,8 +209,9 @@ function M.server_command()
   if vim.fn.executable(built) == 1 then
     return { built }
   end
-  if vim.fn.executable('org-lsp') == 1 then
-    return { 'org-lsp' }
+  local on_path = M.on_path(exe)
+  if on_path then
+    return { on_path }
   end
   local downloaded = require('org-lsp.download').path()
   if vim.fn.executable(downloaded) == 1 then
@@ -1437,7 +1477,7 @@ end
 
 --- Download the server, then start it (or restart it, when one runs).
 local function download()
-  require('org-lsp.download').run(M.config.release, function()
+  require('org-lsp.download').run(M.release(), function()
     if enable() then
       restart()
     end

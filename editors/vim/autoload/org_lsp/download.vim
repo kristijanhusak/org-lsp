@@ -115,8 +115,7 @@ endfunction
 
 function! s:fetched(state, error) abort
   if empty(a:error)
-    return s:run(org_lsp#download#unpack_command(a:state.file, a:state.staging),
-          \ {error -> s:unpacked(a:state, error)})
+    return s:fetch_sums(a:state)
   endif
   " A private repository's files need GitHub's login, which `gh` has.
   if executable('gh') && a:state.url =~# '^https://github\.com/' && !get(a:state, 'gh', 0)
@@ -126,6 +125,104 @@ function! s:fetched(state, error) abort
           \ {error -> s:fetched(a:state, empty(error) ? '' : a:error . '; ' . error)})
   endif
   call a:state.Callback('could not download ' . a:state.url . ': ' . a:error, '')
+endfunction
+
+" The release's SHA256SUMS, as `scripts/install.sh` gets them: a release
+" without them (not found, or not there in a `file://` release) is not
+" checked; any other failure to get them stops the download.
+function! s:fetch_sums(state) abort
+  let a:state.sums = a:state.staging . '/SHA256SUMS'
+  let a:state.sums_url = printf('%s/%s/SHA256SUMS', g:org_lsp#download#base_url, a:state.release)
+  let result = {'out': [], 'errors': []}
+  call job_start(['curl', '--fail', '--silent', '--show-error', '--location', '--retry', '2',
+        \ '--write-out', '%{http_code}', '--output', a:state.sums, a:state.sums_url], {
+        \ 'in_io': 'null',
+        \ 'out_cb': {channel, message -> add(result.out, message)},
+        \ 'err_cb': {channel, message -> add(result.errors, message)},
+        \ 'exit_cb': {job, status -> s:got_sums(a:state, status, result)},
+        \ })
+endfunction
+
+function! s:got_sums(state, status, result) abort
+  if a:status == 0
+    return s:check(a:state, 1)
+  endif
+  call delete(a:state.sums)
+  " 22: an HTTP error, here 404; 37: no such file (`file://`).
+  if !(a:status == 22 && trim(join(a:result.out, '')) ==# '404' || a:status == 37)
+    return s:fail(a:state, printf('could not download SHA256SUMS from the %s release (%s): %s',
+          \ a:state.release, a:state.sums_url, trim(join(a:result.errors, ' '))))
+  endif
+  " A private repository's files need GitHub's login, which `gh` has;
+  " without it, they are not found.
+  if executable('gh') && a:state.sums_url =~# '^https://github\.com/'
+    return s:run(['gh', 'release', 'download', a:state.release, '--repo', s:repository,
+          \ '--pattern', 'SHA256SUMS', '--dir', a:state.staging, '--clobber'],
+          \ {error -> s:check(a:state, empty(error))})
+  endif
+  call s:check(a:state, 0)
+endfunction
+
+" The archive checked against the release's SHA256SUMS (when `found`),
+" then unpacked.
+function! s:check(state, found) abort
+  if !a:found
+    call s:warn(printf('the %s release has no SHA256SUMS: %s is not checked', a:state.release, a:state.archive))
+  else
+    let expected = ''
+    for line in readfile(a:state.sums)
+      let fields = matchlist(line, '^\(\x\+\)\s\+\*\=\(.\{-}\)\s*$')
+      if !empty(fields) && fields[2] ==# a:state.archive
+        let expected = tolower(fields[1])
+        break
+      endif
+    endfor
+    " The files built together are all in SHA256SUMS: one that is not is
+    " left from an older build (a platform whose build failed).
+    if empty(expected)
+      return s:fail(a:state, printf('%s is not in the SHA256SUMS of the %s release: it is not from the same build, so it is not installed',
+            \ a:state.archive, a:state.release))
+    endif
+    let actual = s:sha256(a:state.file)
+    if empty(actual)
+      call s:warn(printf('neither sha256() nor a sha256sum, shasum or certutil can hash files: %s is not checked', a:state.archive))
+    elseif actual !=# expected
+      return s:fail(a:state, printf('%s does not match its checksum in SHA256SUMS: the download is broken', a:state.archive))
+    endif
+  endif
+  call s:run(org_lsp#download#unpack_command(a:state.file, a:state.staging),
+        \ {error -> s:unpacked(a:state, error)})
+endfunction
+
+" The SHA-256 of `file`, in lowercase hex: Vim's own `sha256()` where it
+" takes a Blob, else the system's tool; '' when there is none.
+function! s:sha256(file) abort
+  try
+    return sha256(readblob(a:file))
+  catch
+  endtry
+  if has('win32')
+    let lines = systemlist('certutil -hashfile ' . shellescape(a:file) . ' SHA256')
+    return v:shell_error == 0 && len(lines) > 1 ? tolower(substitute(lines[1], '\s', '', 'g')) : ''
+  endif
+  for tool in ['sha256sum', 'shasum -a 256']
+    if executable(split(tool)[0])
+      let out = system(tool . ' ' . shellescape(a:file))
+      return v:shell_error == 0 ? tolower(matchstr(out, '^\x\{64}')) : ''
+    endif
+  endfor
+  return ''
+endfunction
+
+function! s:fail(state, error) abort
+  call delete(a:state.staging, 'rf')
+  call a:state.Callback(a:error, '')
+endfunction
+
+function! s:warn(message) abort
+  echohl WarningMsg
+  echomsg 'org-lsp: ' . a:message
+  echohl None
 endfunction
 
 function! s:unpacked(state, error) abort

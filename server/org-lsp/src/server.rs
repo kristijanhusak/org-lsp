@@ -275,6 +275,17 @@ enum EmacsJob {
 /// document's version when open, and its text.
 type SentFiles = Vec<(Uri, Option<i32>, String)>;
 
+/// Which files' diary sexps Emacs evaluates: those of the agenda files
+/// `org_agenda_files` names (and the journal's), not a file that is one
+/// only because it is open or in the workspace folder. The files whose
+/// sexps were left out, and those the user was told of.
+#[derive(Default)]
+struct SexpFiles {
+    trusted: HashSet<PathBuf>,
+    skipped: std::collections::BTreeSet<PathBuf>,
+    told: HashSet<PathBuf>,
+}
+
 /// The `%(…)` of `org-agenda-prefix-format` on the lines of the view being
 /// built: what Emacs made of them, those it was asked and that were
 /// used, and those it has yet to evaluate.
@@ -672,6 +683,9 @@ struct Context {
     /// For the commands that ask several questions in turn (the BibTeX
     /// commands): the answers so far; `input` is then the next one.
     replies: Option<Vec<String>>,
+    /// For archiving: the archive files the user was asked about
+    /// (`Archive to FILE?`), which a yes lets it write.
+    targets: Option<Vec<String>>,
     /// The text of the buffer the command runs in, as the editor has it:
     /// a capture or note buffer whose last changes the server may not have
     /// heard of yet.
@@ -686,6 +700,9 @@ struct Context {
     /// from the keys of modal editors (`<Leader><CR>`).
     #[serde(default)]
     below: bool,
+    /// For tangling: the files (and modes) the question `Tangle to …?`
+    /// asked about, which a yes lets it write.
+    tangled: Option<Vec<String>>,
     /// What the editor would paste, for the commands that read it
     /// (`"clipboard": true` in the manifest).
     clipboard: Option<String>,
@@ -694,6 +711,9 @@ struct Context {
     range: Option<Range>,
     /// In column view: the column picked, from 0.
     column: Option<usize>,
+    /// For a file the system is to open that may run (`Open FILE with the
+    /// system?`): the file asked about, which a yes lets it open.
+    program: Option<String>,
     /// For the commands that read them (`"folds": true` in the manifest):
     /// the closed folds of the editor's window, as their first and last
     /// lines, from 0.
@@ -1280,6 +1300,9 @@ struct Server {
     agenda: AgendaConfig,
     /// The `%(…)` of the prefix formats, shared with `agenda`'s evaluator.
     prefix_forms: std::sync::Arc<std::sync::Mutex<PrefixForms>>,
+    /// The files whose diary sexps Emacs may evaluate, shared with
+    /// `agenda`'s evaluator of them.
+    sexp_files: std::sync::Arc<std::sync::Mutex<SexpFiles>>,
     /// Why the last of them could not be evaluated, which was said once:
     /// the agenda is built again as files change.
     prefix_failed: Option<String>,
@@ -1499,6 +1522,9 @@ struct Server {
     file_apps: org_core::file_apps::FileApps,
     /// `org-open-non-existing-files`
     open_non_existing_files: bool,
+    /// Whether the editor trusts the workspace (`workspace_trusted`):
+    /// without, what would run code from its files is refused.
+    trusted: bool,
     /// `org-capture-use-agenda-date`
     capture_use_agenda_date: bool,
     /// `org-agenda-persistent-filter`
@@ -1922,9 +1948,25 @@ pub fn run(connection: Connection) -> Result<()> {
     });
     let mut agenda = options.agenda_config();
     // The diary sexps the agenda cannot read, read by Emacs
-    // (`org-diary-sexp-entry`).
+    // (`org-diary-sexp-entry`): only those of the agenda files the
+    // configuration names. Emacs evaluates the sexps of `org-agenda-files`
+    // only; here a file that is open would be one too, without the agenda
+    // files set, and its Lisp would run when any agenda is built.
     let caller = emacs.caller();
+    let sexp_files = std::sync::Arc::new(std::sync::Mutex::new(SexpFiles::default()));
+    let checked = sexp_files.clone();
     agenda.diary = org_core::agenda::diary::Outside(Some(std::sync::Arc::new(move |sexp, entry, day, place| {
+        {
+            let file = place.file.as_deref().map(|file| {
+                let path = PathBuf::from(file);
+                std::fs::canonicalize(&path).unwrap_or(path)
+            })?;
+            let mut files = checked.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+            if !files.trusted.contains(&file) {
+                files.skipped.insert(file);
+                return None;
+            }
+        }
         let date = org_core::date::Date::from_day(day);
         let params = json!({
             "sexp": sexp,
@@ -1938,6 +1980,11 @@ pub fn run(connection: Connection) -> Result<()> {
             result.as_array()?.iter().filter_map(|line| line.as_str().map(str::to_string)).collect();
         (!lines.is_empty()).then_some(lines)
     })));
+    // None in a workspace the editor does not trust: they are Lisp from
+    // its files.
+    if options.workspace_trusted == Some(false) {
+        agenda.diary = org_core::agenda::diary::Outside(None);
+    }
     // The `%(…)` of the prefix formats: those Emacs evaluated for this
     // view, the others empty and noted, for Emacs to evaluate before the
     // view is built again (see `Server::render_with`).
@@ -2030,6 +2077,7 @@ pub fn run(connection: Connection) -> Result<()> {
         todo,
         agenda,
         prefix_forms,
+        sexp_files,
         prefix_failed: None,
         agenda_options: options.agenda.clone(),
         edit_settings: options.edit_settings(),
@@ -2136,6 +2184,7 @@ pub fn run(connection: Connection) -> Result<()> {
         open_settings: options.open_settings(),
         file_apps: options.file_apps.as_deref().map(org_core::file_apps::FileApps::from_pairs).unwrap_or_default(),
         open_non_existing_files: options.open_non_existing_files.unwrap_or(false),
+        trusted: options.workspace_trusted != Some(false),
         capture_use_agenda_date: options.capture_use_agenda_date.unwrap_or(false),
         agenda_persistent_filter: options.agenda_persistent_filter.unwrap_or(false),
         clock_in_resume: options.clock_in_resume.unwrap_or(false),
@@ -3229,6 +3278,42 @@ fn written_path(path: &Path) -> PathBuf {
     }
 }
 
+/// The step of the question `Archive to FILE?`.
+const ARCHIVE_TO: &str = "archive-to";
+
+/// Whether archiving from the file `source` to `file` asks first: `file`,
+/// where its links lead, is outside `source`'s directory, or has a hidden
+/// directory or name below it, or is not named as Org names its files
+/// and its archive files (`.org`, `%s_archive`).
+fn unusual_archive(file: &Path, source: &Path) -> bool {
+    let target = real_path(file);
+    let directory = source.parent().map(real_path).unwrap_or_default();
+    let Ok(below) = target.strip_prefix(&directory) else { return true };
+    let hidden = below.components().any(|part| part.as_os_str().to_string_lossy().starts_with('.'));
+    let name = target.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
+    hidden || !(name.ends_with(".org") || name.ends_with("_archive"))
+}
+
+/// [`written_path`] for a file whose directories may not be there yet: the
+/// part there as the file system has it, then the rest.
+fn real_path(path: &Path) -> PathBuf {
+    let path = written_path(path);
+    let mut rest = Vec::new();
+    let mut there = path.as_path();
+    loop {
+        if let Ok(found) = std::fs::canonicalize(there) {
+            return rest.iter().rev().fold(found, |path, part| path.join(part));
+        }
+        match (there.parent(), there.file_name()) {
+            (Some(parent), Some(name)) => {
+                rest.push(name.to_os_string());
+                there = parent;
+            }
+            _ => return path,
+        }
+    }
+}
+
 /// Write a tangled file as `org-babel-tangle` writes it: only when its text
 /// changed, its directories made with `:mkdirp`, its mode set. A file there
 /// already is deleted first as `org-babel-tangle-remove-file-before-write`
@@ -3263,6 +3348,59 @@ fn write_tangled(file: &org_core::tangle::File, remove_first: Option<bool>) -> s
         std::fs::set_permissions(&file.path, std::fs::Permissions::from_mode(mode)).map_err(failed)?;
     }
     Ok(())
+}
+
+/// The step of the question `Tangle to …?`.
+const TANGLE_STEP: &str = "tangle";
+
+/// Where writing `path` lands: its links followed, and for the part that
+/// is not there yet (`:mkdirp`), `..` taken back.
+fn tangle_destination(path: &Path) -> PathBuf {
+    let path = written_path(path);
+    let mut rest: Vec<std::ffi::OsString> = Vec::new();
+    let mut there = path.as_path();
+    loop {
+        if let Ok(found) = std::fs::canonicalize(there) {
+            let mut landed = found;
+            for part in rest.iter().rev() {
+                if part == ".." {
+                    landed.pop();
+                } else if part != "." {
+                    landed.push(part);
+                }
+            }
+            return landed;
+        }
+        match (there.parent(), there.file_name()) {
+            (Some(parent), Some(name)) => {
+                rest.push(name.to_os_string());
+                there = parent;
+            }
+            // `..` and `.` have no name: kept as they are.
+            (Some(parent), None) => {
+                rest.push(
+                    there.components().next_back().map(|part| part.as_os_str().to_os_string()).unwrap_or_default(),
+                );
+                there = parent;
+            }
+            _ => return path,
+        }
+    }
+}
+
+/// Why a tangled file's mode is asked about: setuid, setgid, or writable
+/// by every user.
+fn risky_mode(mode: Option<u32>) -> Option<&'static str> {
+    let mode = mode?;
+    if mode & 0o4000 != 0 {
+        Some("setuid")
+    } else if mode & 0o2000 != 0 {
+        Some("setgid")
+    } else if mode & 0o002 != 0 {
+        Some("writable by all")
+    } else {
+        None
+    }
 }
 
 /// Whether byte `offset` is in a source block.
@@ -5766,11 +5904,19 @@ impl Server {
         let creating = context.step.as_deref() == Some("create");
         let shell = context.step.as_deref() == Some("shell");
         let elisp = context.step.as_deref() == Some("elisp");
-        let answer = if creating || shell || elisp { context.answers.as_deref() } else { context.input.as_deref() }
-            .and_then(|input| input.chars().next());
+        let program = context.step.as_deref() == Some(SYSTEM_STEP);
+        let answer =
+            if creating || shell || elisp || program { context.answers.as_deref() } else { context.input.as_deref() }
+                .and_then(|input| input.chars().next());
         // `org-ctags`'s functions in `org-open-link-functions`, which Org
         // runs first for an internal link.
-        if self.ctags.is_some() && !creating && !shell && !elisp && !self.is_view(&context.text_document.uri) {
+        if self.ctags.is_some()
+            && !creating
+            && !shell
+            && !elisp
+            && !program
+            && !self.is_view(&context.text_document.uri)
+        {
             if let Some(name) =
                 open::internal_path(&text, &parse, offset, &self.link_abbreviations, &self.open_settings)
             {
@@ -5835,6 +5981,7 @@ impl Server {
                 file_apps::Opener::Editor => *system = false,
                 file_apps::Opener::System => *system = true,
                 file_apps::Opener::Command(command) => {
+                    self.trusted("org-file-apps commands")?;
                     let directory = uri::to_path(&uri).and_then(|path| path.parent().map(PathBuf::from));
                     run_shell(&command, directory.as_deref())
                         .map_err(|error| Refusal::Failed(format!("{command}: {error}")))?;
@@ -5869,8 +6016,35 @@ impl Server {
                 self.show_external(target);
             }
             Open::File { path, system: true, .. } => {
-                let target =
-                    self.link_path(&uri, path).and_then(|path| uri::from_path(&path)).ok_or("Cannot open the file")?;
+                let full = self.link_path(&uri, path).ok_or("Cannot open the file")?;
+                // Unlike Emacs, a file the system's application may run (one
+                // that may be executed, or a program or script by its name)
+                // is asked about first: `file+sys:` and `C-u C-u` hand it to
+                // the system, which would run it.
+                if may_run(&full) {
+                    let named = full.display().to_string();
+                    if !program {
+                        return Ok(json!({ "input": {
+                            "kind": "key",
+                            "prompt": format!("Open {} with the system, which may run it? ", abbreviate_path(&full)),
+                            "value": "",
+                            "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
+                            "context": {
+                                "step": SYSTEM_STEP,
+                                "answers": answer.map(String::from).unwrap_or_default(),
+                                "program": named,
+                            },
+                        } }));
+                    }
+                    if !matches!(context.input.as_deref(), Some("y" | "Y" | "yes")) {
+                        return Err("Abort".into());
+                    }
+                    // The yes was to that file.
+                    if context.program.as_deref() != Some(named.as_str()) {
+                        return Err("The link changed after the question: not opened".into());
+                    }
+                }
+                let target = uri::from_path(&full).ok_or("Cannot open the file")?;
                 self.show_external(target);
             }
             Open::Agenda { date, span } => {
@@ -5897,6 +6071,7 @@ impl Server {
             // `org-link-shell-confirm-function` (`yes-or-no-p`) asks,
             // unless `org-link-shell-skip-confirm-regexp` matches.
             Open::Shell { command, confirm } => {
+                self.trusted("shell: links")?;
                 if *confirm && !shell {
                     return Ok(json!({ "input": {
                         "kind": "key",
@@ -5926,6 +6101,7 @@ impl Server {
             // `org-link-elisp-confirm-function` (`yes-or-no-p`) asks, then
             // evaluated by Emacs and its value said.
             Open::Elisp(form) => {
+                self.trusted("elisp: links")?;
                 if !elisp {
                     return Ok(json!({ "input": {
                         "kind": "key",
@@ -6501,7 +6677,9 @@ impl Server {
                     Some((uri.clone(), open(&self.documents[key], &uri)))
                 })
                 .collect();
-            return self.with_journal_files(files);
+            let files = self.with_journal_files(files);
+            self.trust_sexps_of(&files, false);
+            return files;
         }
         // Open documents by path, through links: the client may spell a
         // URI differently, or reach the file by another link.
@@ -6525,7 +6703,46 @@ impl Server {
         if self.agenda_archives == ArchivesMode::Files {
             files = self.with_archive_files(files, &open);
         }
+        // The files of the workspace folders, without `org_agenda_files`,
+        // are the folder's, which may be anyone's.
+        self.trust_sexps_of(&files, self.workspace.names_files());
         files
+    }
+
+    /// Let Emacs evaluate the diary sexps of the agenda `files` when the
+    /// configuration names them (`all`), else of the journal's only.
+    fn trust_sexps_of(&self, files: &[(Uri, Held)], all: bool) {
+        let journal = self.journal.clone();
+        let trusted: HashSet<PathBuf> = files
+            .iter()
+            .filter_map(|(uri, _)| uri::to_path(uri))
+            .filter(|path| all || journal.as_ref().is_some_and(|journal| is_journal(path, journal)))
+            .map(|path| std::fs::canonicalize(&path).unwrap_or(path))
+            .collect();
+        self.sexp_files().trusted = trusted;
+    }
+
+    fn sexp_files(&self) -> std::sync::MutexGuard<'_, SexpFiles> {
+        self.sexp_files.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    /// Say once of each file whose Lisp diary sexps were left out, the
+    /// first time they are.
+    fn tell_skipped_sexps(&mut self) {
+        let new: Vec<PathBuf> = {
+            let mut files = self.sexp_files();
+            let skipped = std::mem::take(&mut files.skipped);
+            skipped.into_iter().filter(|file| files.told.insert(file.clone())).collect()
+        };
+        for file in new {
+            self.show_message(
+                MessageType::INFO,
+                format!(
+                    "Lisp diary sexps in {} not evaluated: it is no file of org_agenda_files",
+                    abbreviate_path(&file)
+                ),
+            );
+        }
     }
 
     /// `org-journal-enable-agenda-integration`: the journal's files of
@@ -6719,6 +6936,7 @@ impl Server {
         if let Some((forms, all)) = wanted {
             self.ask_prefixes(forms, all, replaced_text.as_ref());
         }
+        self.tell_skipped_sexps();
         self.dim_blocked(&mut view);
         view
     }
@@ -7177,7 +7395,19 @@ impl Server {
         if !self.client.command_actions || self.port.is_some() {
             return;
         }
-        match port::open(self.port_sender.clone()) {
+        // The port's socket goes beside the script, in a directory only
+        // the user may enter.
+        let directory = self
+            .client
+            .command_script
+            .as_ref()
+            .and_then(|script| script.parent().map(Path::to_path_buf))
+            .or_else(|| crate::protocol::state_directory(&|name| std::env::var(name).ok()));
+        let Some(directory) = directory else {
+            self.show_message(MessageType::ERROR, "Cannot open the command port: no state directory".to_string());
+            return;
+        };
+        match port::open(&directory, self.port_sender.clone()) {
             Ok(port) => {
                 let taken = self.client.command_script.as_ref().is_some_and(|script| port.answered_elsewhere(script));
                 self.port = Some(port);
@@ -7928,7 +8158,11 @@ impl Server {
                 Ok(Value::Null)
             }
             commands::DETANGLE => self.detangle(&context.ok_or("This command needs the cursor position")?),
-            commands::EXPORT => self.export(&context.ok_or("This command needs the cursor position")?),
+            commands::EXPORT => {
+                // Exporting evaluates code blocks and `(eval …)` macros.
+                self.trusted("Exports")?;
+                self.export(&context.ok_or("This command needs the cursor position")?)
+            }
             commands::HEADING_NEXT
             | commands::HEADING_PREVIOUS
             | commands::HEADING_FORWARD
@@ -7974,12 +8208,15 @@ impl Server {
                 self.emacs_command(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
             commands::BABEL_EXECUTE => {
+                self.trusted("Code blocks")?;
                 self.emacs_run("org-babel-execute-maybe", &context.ok_or("This command needs the cursor position")?)
             }
             commands::BABEL_EXECUTE_BUFFER => {
+                self.trusted("Code blocks")?;
                 self.emacs_run("org-babel-execute-buffer", &context.ok_or("This command needs the cursor position")?)
             }
             commands::BABEL_EXECUTE_SUBTREE => {
+                self.trusted("Code blocks")?;
                 self.emacs_run("org-babel-execute-subtree", &context.ok_or("This command needs the cursor position")?)
             }
             commands::CRYPT_ENCRYPT
@@ -9807,7 +10044,17 @@ impl Server {
             json!({ "input": input })
         };
         let (defaults, default_command) = self.archive.clone();
+        // The answer to `Archive to FILE?`: the files asked about, which a
+        // yes lets it write; a no ends it. The questions before it were
+        // answered.
+        let asked_where = context.step.as_deref() == Some(ARCHIVE_TO);
+        let allowed: Vec<String> = match asked_where {
+            true if !matches!(context.input.as_deref(), Some("y" | "Y" | " ")) => return Err("Abort".into()),
+            // A bulk action passes the files its question was about.
+            _ => context.targets.clone().unwrap_or_default(),
+        };
         let id = match id {
+            commands::ARCHIVE_CONFIRM if asked_where => commands::ARCHIVE_DEFAULT,
             commands::ARCHIVE_CONFIRM => match context.input.as_deref() {
                 None => return Ok(yes_or_no("Archive this subtree or entry?", None)),
                 Some("y" | "Y" | " ") => commands::ARCHIVE_DEFAULT,
@@ -9848,6 +10095,10 @@ impl Server {
         let now = self.date_time();
         let path = uri::to_path(&file);
         let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
+        // The files to ask about before they are written, and the answers
+        // to `org-archive-all-done`'s questions so far.
+        let mut unusual: Vec<PathBuf> = Vec::new();
+        let mut answered = context.answers.clone().unwrap_or_default();
         let archived = match id {
             commands::ARCHIVE_SIBLING => {
                 let (source, cursor) = archive::to_sibling(&text, offset, &keywords, now, &settings)?;
@@ -9870,11 +10121,10 @@ impl Server {
                     Some((_, text)) => Some(text.clone()),
                     None => std::fs::read_to_string(wanted).ok(),
                 };
-                if id == commands::ARCHIVE_SUBTREE {
+                let done = if id == commands::ARCHIVE_SUBTREE {
                     archive::archive_subtree(&text, offset, &keywords, &where_, &settings, &mut read)?
                 } else {
-                    let mut answered = context.answers.clone().unwrap_or_default();
-                    if let Some(input) = context.input.as_deref() {
+                    if let Some(input) = context.input.as_deref().filter(|_| !asked_where) {
                         answered.push(if matches!(input, "y" | "Y" | " ") { 'y' } else { 'n' });
                     }
                     let answers: Vec<bool> = answered.chars().map(|answer| answer == 'y').collect();
@@ -9884,10 +10134,30 @@ impl Server {
                         AllOutcome::Ask(question) => return Ok(yes_or_no(&question, Some(answered))),
                         AllOutcome::Done(done) => done,
                     }
-                }
+                };
+                let configured = archive::archive_files("", &keywords, &where_, &settings.location);
+                unusual = done
+                    .files
+                    .iter()
+                    .map(|file| file.path.clone())
+                    .filter(|file| !configured.contains(file) && unusual_archive(file, &path))
+                    .collect();
+                done
             }
             _ => return Err(format!("Unknown command {id}").into()),
         };
+        // Unlike Emacs, an archive file the file names (`#+ARCHIVE:`, an
+        // `ARCHIVE` property) outside its directory, hidden, or not named
+        // as Org names its files is asked about first: such a line may come
+        // from someone else's text, and the entry's text would go there.
+        let names: Vec<String> = unusual.iter().map(|file| file.display().to_string()).collect();
+        if names.iter().any(|name| !allowed.contains(name)) {
+            let shown: Vec<String> = unusual.iter().map(|file| abbreviate_path(file)).collect();
+            let mut question = yes_or_no(&format!("Archive to {}? ", shown.join(", ")), Some(answered));
+            question["input"]["context"]["step"] = json!(ARCHIVE_TO);
+            question["input"]["context"]["targets"] = json!(names);
+            return Ok(question);
+        }
         // The entry's file, and the archive files open in an editor, get
         // edits. The others are written when `org-archive-subtree-save-file-p`
         // says the archive is saved, and else get edits too, which the
@@ -12188,6 +12458,7 @@ impl Server {
         }
         // `C-c C-c` on a source block or a call evaluates it, in Emacs.
         if id == commands::CHECKBOX_TOGGLE && self.at_babel(&context) {
+            self.trusted("Code blocks")?;
             return self.emacs_run("org-ctrl-c-ctrl-c", &context);
         }
         // `C-c C-c` in a table aligns it (`org-table-align`).
@@ -12309,10 +12580,44 @@ impl Server {
             Ok(outcome) => outcome,
             // Emacs Lisp to evaluate, or a block to run: Emacs tangles.
             Err(message) if org_core::tangle::needs_emacs(&message) => {
+                self.trusted("Tangles with Lisp in their headers")?;
                 return self.emacs_run("org-babel-tangle", context);
             }
             Err(message) => return Err(message.into()),
         };
+        // Unlike Emacs, files outside the file's directory, or given a mode
+        // that is setuid, setgid or writable by every user, are asked about
+        // first, once for them all: a block's header may come from someone
+        // else's text, and `:tangle` and `:tangle-mode` say any file and
+        // mode.
+        let directory = path.parent().map(tangle_destination).unwrap_or_default();
+        let asked: Vec<&org_core::tangle::File> = outcome
+            .files
+            .iter()
+            .filter(|file| !tangle_destination(&file.path).starts_with(&directory) || risky_mode(file.mode).is_some())
+            .collect();
+        let named: Vec<String> =
+            asked.iter().map(|file| format!("{} {:o}", file.path.display(), file.mode.unwrap_or(0))).collect();
+        if context.step.as_deref() == Some(TANGLE_STEP) && !matches!(context.input.as_deref(), Some("y" | "Y" | " ")) {
+            return Err("Abort".into());
+        }
+        let allowed = context.tangled.clone().filter(|_| context.step.as_deref() == Some(TANGLE_STEP));
+        if !named.is_empty() && named.iter().any(|file| !allowed.iter().flatten().any(|said| said == file)) {
+            let shown: Vec<String> = asked
+                .iter()
+                .map(|file| match risky_mode(file.mode) {
+                    Some(why) => format!("{} (mode {:o}, {why})", abbreviate_path(&file.path), file.mode.unwrap_or(0)),
+                    None => abbreviate_path(&file.path),
+                })
+                .collect();
+            return Ok(json!({ "input": {
+                "kind": "key",
+                "prompt": format!("Tangle to {}? ", shown.join(", ")),
+                "value": "",
+                "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
+                "context": { "step": TANGLE_STEP, "tangled": named },
+            } }));
+        }
         for file in &outcome.files {
             write_tangled(file, self.tangle_remove_first)?;
         }
@@ -14558,6 +14863,16 @@ impl Server {
         }
     }
 
+    /// Refuses `what`, which would run code from the workspace's files,
+    /// while the editor does not trust the workspace (`workspace_trusted`:
+    /// VS Code's Restricted Mode).
+    fn trusted(&self, what: &str) -> std::result::Result<(), Refusal> {
+        if self.trusted {
+            return Ok(());
+        }
+        Err(format!("{what} are off in Restricted Mode: trust the workspace to run them").into())
+    }
+
     fn emacs_run(&mut self, command: &str, context: &Context) -> std::result::Result<Value, Refusal> {
         self.emacs_run_with(command, Vec::new(), context)
     }
@@ -14593,6 +14908,8 @@ impl Server {
     /// for the formulas org-lsp leaves to it, and for all of them while the
     /// formula debugger is on.
     fn emacs_recalculate(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        // Its formulas may be Lisp.
+        self.trusted("Formulas that only Emacs computes")?;
         let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, self.client.encoding);
         let (command, args) = if org_core::tblfm::on_formula_line(&document.text, offset) {
@@ -16611,6 +16928,7 @@ impl Server {
             _ => false,
         };
         if others {
+            self.trusted("Dynamic blocks other than clock tables")?;
             return match count {
                 Some(_) if id == commands::DBLOCK_UPDATE => self.emacs_run("org-update-all-dblocks", context),
                 _ => self.emacs_run("org-dblock-update", context),
@@ -17629,6 +17947,37 @@ fn file_question(prompt: &str, file: Option<&Path>, complete: &str) -> Value {
     json!({ "kind": "text", "prompt": prompt, "value": value, "complete": complete })
 }
 
+/// The step of the question about a file the system may run.
+const SYSTEM_STEP: &str = "system";
+
+/// The extensions of programs and scripts that the system's application
+/// for a file runs (Windows, macOS, the desktops of Linux).
+const PROGRAM_EXTENSIONS: &[&str] = &[
+    "exe", "com", "bat", "cmd", "ps1", "psm1", "vbs", "vbe", "js", "jse", "wsf", "wsh", "msi", "msp", "scr", "pif",
+    "cpl", "hta", "lnk", "reg", "jar", "sh", "bash", "zsh", "csh", "ksh", "fish", "command", "tool", "app", "pkg",
+    "workflow", "desktop", "appimage", "run", "bin", "py", "pyw", "pl", "rb",
+];
+
+/// Whether opening `path` with the system's application may run it: an
+/// extension of [`PROGRAM_EXTENSIONS`], or a file whose mode lets it be
+/// executed.
+fn may_run(path: &Path) -> bool {
+    let extension = path.extension().map(|extension| extension.to_string_lossy().to_ascii_lowercase());
+    if extension.is_some_and(|extension| PROGRAM_EXTENSIONS.contains(&extension.as_str())) {
+        return true;
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if std::fs::metadata(path)
+            .is_ok_and(|metadata| metadata.is_file() && metadata.permissions().mode() & 0o111 != 0)
+        {
+            return true;
+        }
+    }
+    false
+}
+
 pub(crate) fn abbreviate_path(path: &Path) -> String {
     let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
     match home.as_deref().and_then(|home| path.strip_prefix(home).ok()) {
@@ -17728,6 +18077,20 @@ mod tests {
         assert_eq!(std::fs::metadata(&name).unwrap().permissions().mode() & 0o777, 0o700);
         assert_eq!(named.made(), Some(name.as_path()));
         std::fs::remove_dir(&name).unwrap();
+    }
+
+    /// The modes of tangled files asked about, and where a file not made
+    /// yet lands.
+    #[test]
+    fn tells_risky_modes_and_where_tangled_files_land() {
+        assert_eq!(risky_mode(Some(0o4755)), Some("setuid"));
+        assert_eq!(risky_mode(Some(0o2755)), Some("setgid"));
+        assert_eq!(risky_mode(Some(0o666)), Some("writable by all"));
+        assert_eq!(risky_mode(Some(0o775)), None);
+        assert_eq!(risky_mode(None), None);
+        let temp = std::fs::canonicalize(std::env::temp_dir()).unwrap();
+        let missing = std::env::temp_dir().join("org-lsp-not-there/a/../../b/c.sh");
+        assert_eq!(tangle_destination(&missing), temp.join("b/c.sh"));
     }
 
     /// `org-babel-tangle-remove-file-before-write`: with `t` a link to the

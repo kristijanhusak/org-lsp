@@ -81,6 +81,20 @@ vim.cmd('runtime plugin/org-lsp.lua')
 local org_lsp = require('org-lsp')
 eq(org_lsp.server_command(), nil, 'no server is found before the download')
 
+-- A server in the current directory is never taken, as Windows would
+-- take it for a bare name, even with `.` or an empty entry in PATH.
+local here = vim.fn.tempname()
+vim.fn.mkdir(here, 'p')
+vim.uv.fs_copyfile(server, vim.fs.joinpath(here, 'org-lsp'))
+local path, cwd = vim.env.PATH, vim.fn.getcwd()
+vim.cmd.cd(here)
+vim.env.PATH = '.::' .. path
+eq(org_lsp.server_command(), nil, 'no server is taken from the current directory')
+vim.env.PATH = here .. ':' .. path
+eq(org_lsp.server_command(), { vim.fs.joinpath(here, 'org-lsp') }, 'a server on PATH is taken by its absolute path')
+vim.env.PATH = path
+vim.cmd.cd(cwd)
+
 -- 1. Opening an Org file downloads the server and starts it.
 local file = vim.fn.tempname() .. '.org'
 vim.fn.writefile({ '* TODO Task' }, file)
@@ -177,6 +191,28 @@ eq(download.version(), before, 'the server downloaded before stays')
 local unchecked = download_release('v9.0.0-unchecked', vim.log.levels.WARN)
 check(unchecked and unchecked[1]:find('the v9.0.0-unchecked release has no SHA256SUMS: ' .. archive .. ' is not checked', 1, true), 'an unchecked download is said: ' .. vim.inspect(messages))
 check((download.version() or ''):match('^v9.0.0%-unchecked '), 'it is installed: ' .. tostring(download.version()))
+
+-- 8. With no `release`, the release of the plugin's checkout: the version
+-- tag of its commit, or nightly.
+local checkout = vim.fn.tempname()
+vim.fn.mkdir(checkout, 'p')
+local function git(...)
+  local result = vim.system({ 'git', '-C', checkout, '-c', 'user.name=t', '-c', 'user.email=t@t', ... }):wait()
+  assert(result.code == 0, result.stderr)
+end
+eq(org_lsp._checkout_release(checkout), 'nightly', 'not a git checkout: nightly')
+git('init', '-q')
+git('commit', '-q', '--allow-empty', '-m', 'one')
+eq(org_lsp._checkout_release(checkout), 'nightly', 'a commit without a tag: nightly')
+git('tag', 'v0.3.1')
+eq(org_lsp._checkout_release(checkout), 'v0.3.1', 'a commit with a version tag: that release')
+git('tag', 'latest')
+git('commit', '-q', '--allow-empty', '-m', 'two')
+eq(org_lsp._checkout_release(checkout), 'nightly', 'a commit after the tag: nightly')
+git('tag', 'stable')
+eq(org_lsp._checkout_release(checkout), 'nightly', 'a tag that is no version: nightly')
+org_lsp.setup({ release = 'v0.2.0' })
+eq(org_lsp.release(), 'v0.2.0', 'the release option first')
 
 io.stdout:write(('ok: %d download checks passed\n'):format(checks))
 vim.cmd('qall!')
