@@ -321,6 +321,7 @@ export const AREAS = [
     emacs: [
       ['Cycling states, and fast selection by key (`TODO(t)`), from a menu or the keys in the prompt alone, or never (`org-use-fast-todo-selection`)', true],
       ['Sequences and types from `#+TODO:` and `org_todo_keywords`', true],
+      ['Setup files (`#+SETUPFILE:`, as `org-collect-keywords` reads them): their TODO keywords, `#+TAGS:`, `#+FILETAGS:`, `#+STARTUP:`, `#+LINK:`, `#+PRIORITIES:`, `#+PROPERTY:`, `#+CATEGORY:`, `#+ARCHIVE:`, `#+CONSTANTS:` and `#+BIBLIOGRAPHY:`, and those of a setup file\'s own setup files, each file read once; unlike Emacs, read before the file\'s own settings wherever its line is, and not from the web (`https://…`)', true],
       ['Several sequences: cycling stays in the entry\'s sequence, and `C-S-<right>`, `C-S-<left>` switch sets', true, { helix: 'part' }],
       ['Keywords given alone read as a sequence or as types (`org-todo-interpretation`)', true],
       ['Faces of particular keywords and priorities (`org-todo-keyword-faces`, `org-priority-faces`)', true, { sublime: 'part', zed: 'no', helix: 'no' }],

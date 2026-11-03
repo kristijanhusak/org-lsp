@@ -42,7 +42,7 @@ fn run(case: &Value) -> Option<Result<String, String>> {
         Err(refusal) => return Some(Err(refusal.message().to_string())),
     };
     let line = text[heading..].lines().next().unwrap_or("");
-    let table = tags::table(text, &settings, &[]);
+    let table = tags::table(text, &org_syntax::TodoKeywords::default(), &settings, &[]);
     let chosen = if tags::uses_fast_selection(&table, &settings) {
         let selection = Selection::new(&table);
         let mut state = State { current: tags::local_tags(line), groups: true, exit_after_next: settings.single_key };
@@ -124,7 +124,7 @@ fn sets_tags_as_emacs_does() {
 fn offers_the_tags_of_the_tags_lines_too() {
     let settings = settings(&serde_json::json!({ "org_tag_alist": "global(g)" }));
     let sorted = |text: &str| {
-        let mut tags = tags::global_tags(text, &settings);
+        let mut tags = tags::global_tags(text, &org_syntax::TodoKeywords::default(), &settings);
         tags.sort();
         tags
     };

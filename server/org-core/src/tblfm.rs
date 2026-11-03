@@ -246,11 +246,17 @@ fn locate(text: &str, offset: usize) -> Result<Place, String> {
 fn constants(text: &str) -> Vec<(String, String)> {
     static KEYWORD: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"(?im)^[ \t]*#\+CONSTANTS:[ \t]*(.*)$").expect("a valid regex"));
+    constant_values(KEYWORD.captures_iter(text).map(|captures| captures.get(1).map_or("", |value| value.as_str())))
+}
+
+/// The constants of `#+CONSTANTS:` values (`c=299792458 pi=3.14`), a
+/// later value of a name over an earlier one.
+pub fn constant_values<'a>(values: impl Iterator<Item = &'a str>) -> Vec<(String, String)> {
     static PAIR: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"^([a-zA-Z0][_a-zA-Z0-9]*)=(.*)").expect("a valid regex"));
     let mut found: Vec<(String, String)> = Vec::new();
-    for captures in KEYWORD.captures_iter(text) {
-        for pair in captures[1].split_whitespace() {
+    for value in values {
+        for pair in value.split_whitespace() {
             if let Some(pair) = PAIR.captures(pair) {
                 match found.iter_mut().find(|(name, _)| *name == pair[1]) {
                     Some(old) => old.1 = pair[2].to_string(),

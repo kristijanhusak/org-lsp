@@ -1288,6 +1288,93 @@ fn lists_the_entries_with_the_keywords_asked_for() {
     client.shutdown();
 }
 
+/// `#+SETUPFILE:`: the TODO keywords and other settings of the setup
+/// file count as the document's own, in the file open and in the agenda
+/// files read from disk, and follow a change of the `#+SETUPFILE:` line.
+#[test]
+fn reads_the_settings_of_setup_files() {
+    let directory = std::env::temp_dir().join(format!("org-lsp-setupfile-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    std::fs::write(
+        directory.join("setup.org"),
+        "#+TODO: FOO | BAR\n#+FILETAGS: :shared:\n#+STARTUP: overview\n#+LINK: gh https://github.com/%s\n",
+    )
+    .unwrap();
+    std::fs::write(directory.join("other.org"), "#+SETUPFILE: setup.org\n* FOO From disk\n").unwrap();
+    let mut options = clock();
+    options["org_agenda_files"] = json!([directory.join("other.org").display().to_string()]);
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", directory.join("notes.org").display());
+    let mut text = "#+SETUPFILE: setup.org\n* item\n".to_string();
+    client.open(&uri, &text);
+    client.settle();
+    // `#+STARTUP: overview` of the setup file: the subtree opens folded.
+    text = "#+SETUPFILE: setup.org\n* item\nbody\n".to_string();
+    client.file_version += 1;
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri, "version": client.file_version }, "contentChanges": [{ "text": text }] }),
+    );
+    client.settle();
+    let folds = client.request("org-lsp/startupFolds", json!({ "textDocument": { "uri": uri } })).unwrap();
+    assert_eq!(folds["folds"][0]["startLine"], 1, "{folds}");
+    client.edit("org.todo.next", &uri, (1, 0), json!({}), &mut text);
+    assert_eq!(text, "#+SETUPFILE: setup.org\n* FOO item\nbody\n");
+    // Its `#+LINK:` abbreviation, in the document link of `[[gh:x]]`.
+    text.push_str("[[gh:org-lsp]]\n");
+    client.file_version += 1;
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri, "version": client.file_version }, "contentChanges": [{ "text": text }] }),
+    );
+    client.settle();
+    let links = client.request("textDocument/documentLink", json!({ "textDocument": { "uri": uri } })).unwrap();
+    assert!(links.to_string().contains("https://github.com/org-lsp"), "{links}");
+    // Followed as the URL it stands for, and not a fuzzy link to lint.
+    let said = client
+        .notifications
+        .iter()
+        .rev()
+        .find(|notification| {
+            notification.method == "textDocument/publishDiagnostics" && notification.params["uri"] == uri
+        })
+        .map(|notification| notification.params["diagnostics"].to_string())
+        .unwrap_or_default();
+    assert!(!said.contains("fuzzy"), "{said}");
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 3, "character": 4 } });
+    client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] })).unwrap();
+    client.settle();
+    let shown = client.received.iter().rev().find(|request| request.method == "window/showDocument");
+    assert_eq!(shown.expect("a document shown").params["uri"], "https://github.com/org-lsp");
+    // The agenda file's entry is a TODO entry with the setup file's tag.
+    let asked = client.request(
+        "workspace/executeCommand",
+        json!({ "command": "org.agenda.dispatch", "arguments": [{ "input": "m" }] }),
+    );
+    assert!(asked.is_ok());
+    client.request(
+        "workspace/executeCommand",
+        json!({ "command": "org.agenda.dispatch", "arguments": [{ "keys": "m", "ask": "match", "input": "shared/FOO" }] }),
+    )
+    .unwrap();
+    client.settle();
+    let view = client.view_text(VIEW);
+    assert!(view.contains("From disk"), "{view}");
+    // Without the setup file, `TODO` again.
+    text = "* item\n".to_string();
+    client.file_version += 1;
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri, "version": client.file_version }, "contentChanges": [{ "text": text }] }),
+    );
+    client.settle();
+    client.edit("org.todo.next", &uri, (0, 0), json!({}), &mut text);
+    assert_eq!(text, "* TODO item\n");
+    client.shutdown();
+    std::fs::remove_dir_all(&directory).unwrap();
+}
+
 /// Moving an agenda block below others keeps the cursor in that block,
 /// and `agenda_hide_empty_blocks` leaves out the blocks with nothing to show.
 #[test]

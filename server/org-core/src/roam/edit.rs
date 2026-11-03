@@ -146,8 +146,8 @@ pub fn property_remove(
 /// inherited ones too (`org-get-tags`).
 pub fn node_tags(text: &str, outline: &Outline, point: usize) -> Option<Vec<String>> {
     let Some(heading) = properties::heading_at(text, point) else {
-        let root = org_syntax::parse(text, &outline.todo).syntax();
-        let first = crate::outline::keyword_values(&root, "FILETAGS").into_iter().next()?;
+        let parse = org_syntax::parse(text, &outline.todo);
+        let first = crate::outline::keyword_values(&parse, "FILETAGS").into_iter().next()?;
         return Some(first.split(':').filter(|tag| !tag.is_empty()).map(str::to_string).collect());
     };
     let entry = outline.entries.iter().find(|entry| entry.offset == heading)?;

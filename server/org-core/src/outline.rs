@@ -332,26 +332,26 @@ impl Outline {
     pub fn with_inheritance(parse: &Parse, text: &str, name: &str, inheritance: &Inheritance) -> Outline {
         let root = parse.syntax();
         let todo = parse.todo_keywords().clone();
-        let file_tags = file_tags(&root);
+        let file_tags = file_tags(parse);
         let top_properties = root
             .children()
             .find(|child| child.kind() == SECTION)
             .and_then(|section| section.children().find(|child| child.kind() == PROPERTY_DRAWER))
             .map(|drawer| properties(&drawer))
             .unwrap_or_default();
-        let from_file = last_keyword_value(&root, "CATEGORY").unwrap_or_else(|| name.to_string());
+        let from_file = last_keyword_value(parse, "CATEGORY").unwrap_or_else(|| name.to_string());
         let category = category_values(&top_properties, &from_file);
 
         let mut outline = Outline {
             file: None,
-            odd_levels: crate::structure::odd_levels(text, crate::structure::odd_levels_default()),
+            odd_levels: crate::structure::odd_levels(text, &todo, crate::structure::odd_levels_default()),
             text: text.to_string(),
             category: shown_category(&category),
             name: name.to_string(),
             file_tags,
             todo,
             // Only the first such line counts.
-            priorities: keyword_values(&root, "PRIORITIES").first().and_then(|value| Priorities::from_keyword(value)),
+            priorities: keyword_values(parse, "PRIORITIES").first().and_then(|value| Priorities::from_keyword(value)),
             entries: Vec::new(),
             stamps: Vec::new(),
             blocks: Vec::new(),
@@ -359,7 +359,7 @@ impl Outline {
             sexps: Vec::new(),
             logs: Vec::new(),
             clocks: Vec::new(),
-            keyword_properties: keyword_properties(&root),
+            keyword_properties: keyword_properties(parse),
             file_properties: top_properties,
             inheritance: inheritance.clone(),
         };
@@ -937,26 +937,34 @@ fn shown_category(value: &str) -> String {
     if value == "nil" { "???" } else { value }.to_string()
 }
 
-/// Stand-alone keyword lines with the given key, in document order.
-pub(crate) fn keyword_values(root: &SyntaxNode, key: &str) -> Vec<String> {
+/// The values of the keyword `key` (`org-collect-keywords`): those the
+/// setup files give it (`#+SETUPFILE:`), then the document's stand-alone
+/// keyword lines, in order.
+pub(crate) fn keyword_values(parse: &Parse, key: &str) -> Vec<String> {
     let wanted = format!("#+{key}:");
-    root.descendants()
-        .filter(|node| node.kind() == KEYWORD && !ast::is_affiliated_keyword(node))
-        .filter(|node| token_text(node, KEYWORD_KEY).is_some_and(|found| found.eq_ignore_ascii_case(&wanted)))
-        .map(|node| token_text(&node, KEYWORD_VALUE).unwrap_or_default())
+    let setup = parse.todo_keywords().setup_values(key).map(|value| value.trim().to_string());
+    setup
+        .chain(
+            parse
+                .syntax()
+                .descendants()
+                .filter(|node| node.kind() == KEYWORD && !ast::is_affiliated_keyword(node))
+                .filter(|node| token_text(node, KEYWORD_KEY).is_some_and(|found| found.eq_ignore_ascii_case(&wanted)))
+                .map(|node| token_text(&node, KEYWORD_VALUE).unwrap_or_default()),
+        )
         .collect()
 }
 
-fn last_keyword_value(root: &SyntaxNode, key: &str) -> Option<String> {
-    keyword_values(root, key).pop()
+fn last_keyword_value(parse: &Parse, key: &str) -> Option<String> {
+    keyword_values(parse, key).pop()
 }
 
 /// `#+FILETAGS:` values, split on blanks and colons.
 /// `org-keyword-properties`: the `#+PROPERTY: NAME VALUE` lines in
 /// order, a `NAME+` line appending to the value of `NAME`.
-fn keyword_properties(root: &SyntaxNode) -> Vec<(String, String)> {
+fn keyword_properties(parse: &Parse) -> Vec<(String, String)> {
     let mut properties: Vec<(String, String)> = Vec::new();
-    for value in keyword_values(root, "PROPERTY") {
+    for value in keyword_values(parse, "PROPERTY") {
         let Some((key, rest)) = value.split_once([' ', '\t']) else { continue };
         let rest = rest.trim_start_matches([' ', '\t']);
         let (key, appending) = match key.strip_suffix('+') {
@@ -973,8 +981,8 @@ fn keyword_properties(root: &SyntaxNode) -> Vec<(String, String)> {
     properties
 }
 
-fn file_tags(root: &SyntaxNode) -> Vec<String> {
-    keyword_values(root, "FILETAGS")
+fn file_tags(parse: &Parse) -> Vec<String> {
+    keyword_values(parse, "FILETAGS")
         .iter()
         .flat_map(|value| value.split_whitespace())
         .flat_map(|word| word.split(':'))

@@ -110,7 +110,7 @@ does not work there and why.
 | [[file:docs/parity.org::#folding-and-visibility][Folding and visibility]] | 83% | 75% | 71% | 79% | 79% | 8% | 0% |
 | [[file:docs/parity.org::#headings-and-structure][Headings and structure]] | 84% | 84% | 84% | 79% | 84% | 65% | 53% |
 | [[file:docs/parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 74% | 74% | 74% | 74% | 74% | 61% | 58% |
-| [[file:docs/parity.org::#todo-keywords][TODO keywords]] | 100% | 100% | 100% | 100% | 96% | 93% | 89% |
+| [[file:docs/parity.org::#todo-keywords][TODO keywords]] | 100% | 100% | 100% | 100% | 97% | 93% | 90% |
 | [[file:docs/parity.org::#priorities][Priorities]] | 100% | 100% | 100% | 100% | 100% | 100% | 100% |
 | [[file:docs/parity.org::#tags][Tags]] | 78% | 78% | 78% | 78% | 67% | 61% | 61% |
 | [[file:docs/parity.org::#properties-and-column-view][Properties and column view]] | 91% | 91% | 82% | 82% | 77% | 59% | 55% |

@@ -18,7 +18,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#folding-and-visibility][Folding and visibility]] | 83% | 10 of 12 |
 | [[#headings-and-structure][Headings and structure]] | 84% | 26 of 31 |
 | [[#lists-and-checkboxes][Lists and checkboxes]] | 74% | 14 of 19 |
-| [[#todo-keywords][TODO keywords]] | 100% | 14 of 14 |
+| [[#todo-keywords][TODO keywords]] | 100% | 15 of 15 |
 | [[#priorities][Priorities]] | 100% | 4 of 4 |
 | [[#tags][Tags]] | 78% | 7 of 9 |
 | [[#properties-and-column-view][Properties and column view]] | 91% | 10 of 11 |
@@ -194,10 +194,11 @@ Where editors fall short:
 :CUSTOM_ID: todo-keywords
 :END:
 
-100% (14 of 14)
+100% (15 of 15)
 
 - ✅ Cycling states, and fast selection by key (~TODO(t)~), from a menu or the keys in the prompt alone, or never (~org-use-fast-todo-selection~)
 - ✅ Sequences and types from ~#+TODO:~ and ~org_todo_keywords~
+- ✅ Setup files (~#+SETUPFILE:~, as ~org-collect-keywords~ reads them): their TODO keywords, ~#+TAGS:~, ~#+FILETAGS:~, ~#+STARTUP:~, ~#+LINK:~, ~#+PRIORITIES:~, ~#+PROPERTY:~, ~#+CATEGORY:~, ~#+ARCHIVE:~, ~#+CONSTANTS:~ and ~#+BIBLIOGRAPHY:~, and those of a setup file's own setup files, each file read once; unlike Emacs, read before the file's own settings wherever its line is, and not from the web (~https://…~)
 - ✅ Several sequences: cycling stays in the entry's sequence, and ~C-S-<right>~, ~C-S-<left>~ switch sets /(in part in Helix)/
 - ✅ Keywords given alone read as a sequence or as types (~org-todo-interpretation~)
 - ✅ Faces of particular keywords and priorities (~org-todo-keyword-faces~, ~org-priority-faces~) /(not in Zed, Helix; in part in Sublime Text)/

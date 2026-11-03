@@ -123,7 +123,7 @@ server first, with a tab that says so and closes when the agenda opens.
 | [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 79% | A closed fold ends in Sublime Text's own marker: a package cannot change it (~org_ellipsis~). |
 | [[file:parity.org::#headings-and-structure][Headings and structure]] | 84% |  |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 74% |  |
-| [[file:parity.org::#todo-keywords][TODO keywords]] | 96% | Faces of particular keywords and priorities are not shown in the file: Sublime Text colors text by its color scheme only. The list of TODO states shows them in the color of each item's kind, the nearest of those Sublime Text has. |
+| [[file:parity.org::#todo-keywords][TODO keywords]] | 97% | Faces of particular keywords and priorities are not shown in the file: Sublime Text colors text by its color scheme only. The list of TODO states shows them in the color of each item's kind, the nearest of those Sublime Text has. |
 | [[file:parity.org::#priorities][Priorities]] | 100% |  |
 | [[file:parity.org::#tags][Tags]] | 67% | Faces of particular tags are not shown: Sublime Text colors text by its color scheme only. |
 | [[file:parity.org::#properties-and-column-view][Properties and column view]] | 77% | Column view is left out: it draws over the headlines, which Sublime Text cannot. A custom property hidden (~org.custom.properties.toggle~) is in a fold from the end of the line before, which shows the fold's marker: Sublime Text hides text only in folds. |

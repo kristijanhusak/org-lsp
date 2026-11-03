@@ -31,6 +31,7 @@ fn headlines_take_the_level_faces_emacs_gives_them() {
             cycle_level_faces: case.get("cycle").and_then(Value::as_bool).unwrap_or(true),
             odd_levels: org_core::structure::odd_levels(
                 text,
+                &org_syntax::TodoKeywords::default(),
                 case.get("odd").and_then(Value::as_bool).unwrap_or(false),
             ),
             whole_heading_line: case.get("whole").and_then(Value::as_bool).unwrap_or(false),

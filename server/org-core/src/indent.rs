@@ -1401,9 +1401,9 @@ pub struct Startup {
     pub hide_stars: Option<bool>,
 }
 
-pub fn startup(text: &str) -> Startup {
+pub fn startup(text: &str, keywords: &TodoKeywords) -> Startup {
     let mut out = Startup::default();
-    for word in crate::text::startup_words(text) {
+    for word in crate::text::startup_words(text, keywords) {
         match word.to_ascii_lowercase().as_str() {
             "indent" => out.indent = Some(true),
             "noindent" => out.indent = Some(false),
@@ -1434,6 +1434,9 @@ pub struct Display {
     /// `org-indent-mode` as `M-x org-indent-mode` last turned it in the
     /// buffer, whatever the options and its `#+STARTUP:` say.
     pub mode: Option<bool>,
+    /// What the `#+STARTUP:` lines of the document's setup files
+    /// (`#+SETUPFILE:`) say, which its own lines override.
+    pub setup: Startup,
 }
 
 impl Default for Display {
@@ -1446,6 +1449,7 @@ impl Default for Display {
             indent_turns_off_adapt: true,
             per_level: 2,
             mode: None,
+            setup: Startup::default(),
         }
     }
 }
@@ -1453,7 +1457,14 @@ impl Default for Display {
 impl Display {
     /// Whether `org-indent-mode` is on in `text`.
     pub fn indented(&self, text: &str) -> bool {
-        self.mode.or(startup(text).indent).unwrap_or(self.startup_indented)
+        self.mode.or(self.startup(text).indent).unwrap_or(self.startup_indented)
+    }
+
+    /// What the `#+STARTUP:` lines of `text`, then of its setup files,
+    /// say.
+    fn startup(&self, text: &str) -> Startup {
+        let own = startup(text, &TodoKeywords::default());
+        Startup { indent: own.indent.or(self.setup.indent), hide_stars: own.hide_stars.or(self.setup.hide_stars) }
     }
 
     /// Whether the leading stars of headlines are hidden in `text`:
@@ -1462,7 +1473,7 @@ impl Display {
     /// `org-hide-leading-stars`, the one `#+STARTUP:` set too: the option's
     /// value is left.
     pub fn hides_stars(&self, text: &str) -> bool {
-        let startup = startup(text);
+        let startup = self.startup(text);
         let own = match self.mode {
             Some(false) => self.hide_leading_stars,
             _ => startup.hide_stars.unwrap_or(self.hide_leading_stars),

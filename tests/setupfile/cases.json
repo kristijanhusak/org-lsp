@@ -1,0 +1,167 @@
+[
+  {
+    "files": {
+      "notes.org": "#+SETUPFILE: setup.org\n* item\n",
+      "setup.org": "#+TODO: FOO | BAR\n#+TAGS: a b\n"
+    },
+    "document": "notes.org",
+    "expected": {
+      "keywords": {
+        "TODO": [
+          "FOO | BAR"
+        ],
+        "TAGS": [
+          "a b"
+        ]
+      },
+      "todo": [
+        "FOO",
+        "BAR"
+      ]
+    }
+  },
+  {
+    "files": {
+      "notes.org": "#+setupfile: \"./setup.org\"\n* item\n",
+      "setup.org": "#+TODO: FOO | BAR\n#+SETUPFILE: sub/more.org\n#+STARTUP: overview\n",
+      "sub/more.org": "#+TAGS: a b\n#+SETUPFILE: ../setup.org\n#+BIBLIOGRAPHY: refs.bib\n#+begin_src org\n#+TODO: NO\n#+end_src\n"
+    },
+    "document": "notes.org",
+    "expected": {
+      "keywords": {
+        "TODO": [
+          "FOO | BAR"
+        ],
+        "TAGS": [
+          "a b"
+        ],
+        "BIBLIOGRAPHY": [
+          "sub/refs.bib"
+        ],
+        "STARTUP": [
+          "overview"
+        ]
+      },
+      "todo": [
+        "FOO",
+        "BAR"
+      ]
+    }
+  },
+  {
+    "files": {
+      "notes.org": "#+SETUPFILE: missing.org\n#+TODO: A | B\n* item\n"
+    },
+    "document": "notes.org",
+    "expected": {
+      "keywords": {
+        "TODO": [
+          "A | B"
+        ]
+      },
+      "todo": [
+        "A",
+        "B"
+      ]
+    }
+  },
+  {
+    "files": {
+      "notes.org": "#+SETUPFILE: setup.org\n#+TODO: NEXT | DONE\n#+STARTUP: indent\n* item\n",
+      "setup.org": "#+TODO: TODO WAIT | CANCELLED\n#+STARTUP: overview\n#+FILETAGS: :shared:\n"
+    },
+    "document": "notes.org",
+    "expected": {
+      "keywords": {
+        "TODO": [
+          "TODO WAIT | CANCELLED",
+          "NEXT | DONE"
+        ],
+        "STARTUP": [
+          "overview",
+          "indent"
+        ],
+        "FILETAGS": [
+          ":shared:"
+        ]
+      },
+      "todo": [
+        "TODO",
+        "WAIT",
+        "CANCELLED",
+        "NEXT",
+        "DONE"
+      ]
+    }
+  },
+  {
+    "files": {
+      "dir/notes.org": "#+SETUPFILE: ../setups/one.org\n* item\n",
+      "setups/one.org": "#+SETUPFILE: two.org\n#+LINK: gh https://github.com/%s\n",
+      "setups/two.org": "#+TYP_TODO: ME YOU | DONE\n#+PROPERTY: Effort_ALL 0 1:00\n#+CONSTANTS: c=299792458 pi=3.14\n"
+    },
+    "document": "dir/notes.org",
+    "expected": {
+      "keywords": {
+        "TYP_TODO": [
+          "ME YOU | DONE"
+        ],
+        "PROPERTY": [
+          "Effort_ALL 0 1:00"
+        ],
+        "CONSTANTS": [
+          "c=299792458 pi=3.14"
+        ],
+        "LINK": [
+          "gh https://github.com/%s"
+        ]
+      },
+      "todo": [
+        "ME",
+        "YOU",
+        "DONE"
+      ]
+    }
+  },
+  {
+    "files": {
+      "notes.org": "#+SETUPFILE: setup.org\n* item\n",
+      "setup.org": "#+SETUPFILE: notes.org\n#+TAGS: x\n#+begin_example\n#+TAGS: no\n#+end_example\n"
+    },
+    "document": "notes.org",
+    "expected": {
+      "keywords": {
+        "TAGS": [
+          "x"
+        ]
+      },
+      "todo": [
+        "TODO",
+        "DONE"
+      ]
+    }
+  },
+  {
+    "files": {
+      "notes.org": "#+SETUPFILE: one.org\n#+SETUPFILE: two.org\n* item\n",
+      "one.org": "#+STARTUP: content\n",
+      "two.org": "#+STARTUP: showall\n#+TODO: X Y\n"
+    },
+    "document": "notes.org",
+    "expected": {
+      "keywords": {
+        "STARTUP": [
+          "content",
+          "showall"
+        ],
+        "TODO": [
+          "X Y"
+        ]
+      },
+      "todo": [
+        "X",
+        "Y"
+      ]
+    }
+  }
+]
