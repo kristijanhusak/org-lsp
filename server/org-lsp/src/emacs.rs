@@ -1001,6 +1001,46 @@ done
         assert_eq!(value, r#"("ipython" . python) ("ipython" . "py") nil"#);
     }
 
+    /// The buffers the bridge sets up for a document take its local
+    /// variables, from the `-*-` line and the `Local Variables:` list,
+    /// but never call the function a `mode:` among them names.
+    #[test]
+    fn takes_local_variables_but_no_mode_in_documents() {
+        let found = Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+        if !found {
+            assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+            eprintln!("takes_local_variables_but_no_mode_in_documents: no Emacs, skipped");
+            return;
+        }
+        let load =
+            std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+        let emacs = Emacs::new(Settings {
+            program: "emacs".to_string(),
+            config: Some(format!(
+                "{load}\n(defvar org-lsp-test-called nil)\n\
+                 (defun org-lsp-test-mode () (setq org-lsp-test-called t))"
+            )),
+            ..Settings::default()
+        });
+        let file = std::env::temp_dir().join("org-lsp-local-variables.org");
+        let value = |text: &str| {
+            let sexp = format!(
+                "(progn (setq org-lsp-test-called nil) \
+                 (org-lsp-bridge--in-document '((file . {:?}) (text . {text:?})) \
+                 (format \"%S %S\" org-lsp-test-called fill-column)))",
+                file.display().to_string()
+            );
+            loop {
+                match emacs.call("eval", json!({ "sexp": sexp.clone() }), Duration::from_secs(60)) {
+                    Err(error) if error == STARTING => continue,
+                    result => return result.unwrap(),
+                }
+            }
+        };
+        assert_eq!(value("# -*- mode: org-lsp-test; fill-column: 33 -*-\n* x\n"), "nil 33");
+        assert_eq!(value("* x\n\n# Local Variables:\n# mode: org-lsp-test\n# fill-column: 44\n# End:\n"), "nil 44");
+    }
+
     #[test]
     fn escapes_beyond_ascii() {
         assert_eq!(ascii_json(&json!("\u{e9}\u{1f600}")), r#""\u00e9\ud83d\ude00""#);
