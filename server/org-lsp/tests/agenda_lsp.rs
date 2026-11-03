@@ -3624,6 +3624,47 @@ fn follows_attachment_links() {
     client.shutdown();
 }
 
+/// In a workspace the editor does not trust (`workspace_trusted: false`,
+/// VS Code's Restricted Mode), nothing from the files runs: `shell:` and
+/// `elisp:` links, `org-file-apps` commands, code blocks and exports are
+/// refused before anything is asked or run; plain links still open.
+#[test]
+fn runs_nothing_from_an_untrusted_workspace() {
+    let directory = workspace("untrusted");
+    std::fs::write(directory.join("notes.txt"), "notes\n").unwrap();
+    let file = directory.join("index.org");
+    let text = "[[shell:touch ran]] [[elisp:(ignore)]] [[file:notes.txt]] [[https://orgmode.org]]\n\
+                #+begin_src sh\ntouch ran\n#+end_src\n";
+    std::fs::write(&file, text).unwrap();
+    let mut options = clock();
+    options["org_link_shell_skip_confirm_regexp"] = json!(".");
+    options["org_file_apps"] = json!([["txt", "touch ran"]]);
+    options["workspace_trusted"] = json!(false);
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, text);
+    let run = |client: &mut Client, command: &str, line: u32, character: u32| {
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": line, "character": character } });
+        client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+    };
+    let refused = |what: &str| Err(format!("{what} are off in Restricted Mode: trust the workspace to run them"));
+    assert_eq!(run(&mut client, "org.open", 0, 3), refused("shell: links"));
+    assert_eq!(run(&mut client, "org.open", 0, 25), refused("elisp: links"));
+    assert_eq!(run(&mut client, "org.open", 0, 45), refused("org-file-apps commands"));
+    assert_eq!(run(&mut client, "org.babel.execute", 2, 0), refused("Code blocks"));
+    assert_eq!(run(&mut client, "org.babel.execute.buffer", 2, 0), refused("Code blocks"));
+    assert_eq!(run(&mut client, "org.checkbox.toggle", 1, 2), refused("Code blocks"));
+    assert_eq!(run(&mut client, "org.export.dispatch", 0, 0), refused("Exports"));
+    // A link that runs nothing still opens.
+    client.received.clear();
+    run(&mut client, "org.open", 0, 70).unwrap();
+    client.settle();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    assert_eq!(shown.params["uri"], "https://orgmode.org");
+    client.shutdown();
+    assert!(!directory.join("ran").exists(), "something ran");
+}
+
 /// `org-file-apps`: a command of its runs with the file in place of `%s`
 /// (`Running ...done`), `C-u` opens the file in the editor anyway, and a
 /// PDF goes to the system's application.

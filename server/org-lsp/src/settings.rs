@@ -3966,6 +3966,20 @@ pub const SETTINGS: &[Setting] = &[
     },
     Setting {
         integration: true,
+        editor_only: true,
+        ..setting(
+            "workspace_trusted",
+            "boolean",
+            "true",
+            "",
+            "Whether the editor trusts the workspace. With `false`, as VS Code gives it in Restricted Mode, \
+             nothing in the files runs code: `shell:` and `elisp:` links are not followed, code blocks and calls \
+             are not evaluated, files are not exported, `org_file_apps` runs no command, and Emacs evaluates no \
+             diary sexp, table formula, dynamic block or tangling header.",
+        )
+    },
+    Setting {
+        integration: true,
         ..setting(
             "display",
             "boolean",
@@ -4755,6 +4769,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("code_blocks", BOOLEAN),
     ("syntax", BOOLEAN),
     ("run_command", BOOLEAN),
+    ("workspace_trusted", BOOLEAN),
     ("hidden_lines", BOOLEAN),
     ("display", BOOLEAN),
     ("images", BOOLEAN),

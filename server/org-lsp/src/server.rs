@@ -1346,6 +1346,9 @@ struct Server {
     file_apps: org_core::file_apps::FileApps,
     /// `org-open-non-existing-files`
     open_non_existing_files: bool,
+    /// Whether the editor trusts the workspace (`workspace_trusted`):
+    /// without, what would run code from its files is refused.
+    trusted: bool,
     /// `org-capture-use-agenda-date`
     capture_use_agenda_date: bool,
     /// `org-agenda-persistent-filter`
@@ -1793,6 +1796,11 @@ pub fn run(connection: Connection) -> Result<()> {
             result.as_array()?.iter().filter_map(|line| line.as_str().map(str::to_string)).collect();
         (!lines.is_empty()).then_some(lines)
     })));
+    // None in a workspace the editor does not trust: they are Lisp from
+    // its files.
+    if options.workspace_trusted == Some(false) {
+        agenda.diary = org_core::agenda::diary::Outside(None);
+    }
     // The `%(…)` of the prefix formats: those Emacs evaluated for this
     // view, the others empty and noted, for Emacs to evaluate before the
     // view is built again (see `Server::render_with`).
@@ -1988,6 +1996,7 @@ pub fn run(connection: Connection) -> Result<()> {
         open_settings: options.open_settings(),
         file_apps: options.file_apps.as_deref().map(org_core::file_apps::FileApps::from_pairs).unwrap_or_default(),
         open_non_existing_files: options.open_non_existing_files.unwrap_or(false),
+        trusted: options.workspace_trusted != Some(false),
         capture_use_agenda_date: options.capture_use_agenda_date.unwrap_or(false),
         agenda_persistent_filter: options.agenda_persistent_filter.unwrap_or(false),
         clock_in_resume: options.clock_in_resume.unwrap_or(false),
@@ -5776,6 +5785,7 @@ impl Server {
                 file_apps::Opener::Editor => *system = false,
                 file_apps::Opener::System => *system = true,
                 file_apps::Opener::Command(command) => {
+                    self.trusted("org-file-apps commands")?;
                     let directory = uri::to_path(&uri).and_then(|path| path.parent().map(PathBuf::from));
                     run_shell(&command, directory.as_deref())
                         .map_err(|error| Refusal::Failed(format!("{command}: {error}")))?;
@@ -5865,6 +5875,7 @@ impl Server {
             // `org-link-shell-confirm-function` (`yes-or-no-p`) asks,
             // unless `org-link-shell-skip-confirm-regexp` matches.
             Open::Shell { command, confirm } => {
+                self.trusted("shell: links")?;
                 if *confirm && !shell {
                     return Ok(json!({ "input": {
                         "kind": "key",
@@ -5894,6 +5905,7 @@ impl Server {
             // `org-link-elisp-confirm-function` (`yes-or-no-p`) asks, then
             // evaluated by Emacs and its value said.
             Open::Elisp(form) => {
+                self.trusted("elisp: links")?;
                 if !elisp {
                     return Ok(json!({ "input": {
                         "kind": "key",
@@ -7950,7 +7962,11 @@ impl Server {
                 Ok(Value::Null)
             }
             commands::DETANGLE => self.detangle(&context.ok_or("This command needs the cursor position")?),
-            commands::EXPORT => self.export(&context.ok_or("This command needs the cursor position")?),
+            commands::EXPORT => {
+                // Exporting evaluates code blocks and `(eval …)` macros.
+                self.trusted("Exports")?;
+                self.export(&context.ok_or("This command needs the cursor position")?)
+            }
             commands::HEADING_NEXT
             | commands::HEADING_PREVIOUS
             | commands::HEADING_FORWARD
@@ -7996,12 +8012,15 @@ impl Server {
                 self.emacs_command(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
             commands::BABEL_EXECUTE => {
+                self.trusted("Code blocks")?;
                 self.emacs_run("org-babel-execute-maybe", &context.ok_or("This command needs the cursor position")?)
             }
             commands::BABEL_EXECUTE_BUFFER => {
+                self.trusted("Code blocks")?;
                 self.emacs_run("org-babel-execute-buffer", &context.ok_or("This command needs the cursor position")?)
             }
             commands::BABEL_EXECUTE_SUBTREE => {
+                self.trusted("Code blocks")?;
                 self.emacs_run("org-babel-execute-subtree", &context.ok_or("This command needs the cursor position")?)
             }
             commands::CRYPT_ENCRYPT
@@ -12243,6 +12262,7 @@ impl Server {
         }
         // `C-c C-c` on a source block or a call evaluates it, in Emacs.
         if id == commands::CHECKBOX_TOGGLE && self.at_babel(&context) {
+            self.trusted("Code blocks")?;
             return self.emacs_run("org-ctrl-c-ctrl-c", &context);
         }
         // `C-c C-c` in a table aligns it (`org-table-align`).
@@ -12364,6 +12384,7 @@ impl Server {
             Ok(outcome) => outcome,
             // Emacs Lisp to evaluate, or a block to run: Emacs tangles.
             Err(message) if org_core::tangle::needs_emacs(&message) => {
+                self.trusted("Tangles with Lisp in their headers")?;
                 return self.emacs_run("org-babel-tangle", context);
             }
             Err(message) => return Err(message.into()),
@@ -14646,6 +14667,16 @@ impl Server {
         }
     }
 
+    /// Refuses `what`, which would run code from the workspace's files,
+    /// while the editor does not trust the workspace (`workspace_trusted`:
+    /// VS Code's Restricted Mode).
+    fn trusted(&self, what: &str) -> std::result::Result<(), Refusal> {
+        if self.trusted {
+            return Ok(());
+        }
+        Err(format!("{what} are off in Restricted Mode: trust the workspace to run them").into())
+    }
+
     fn emacs_run(&mut self, command: &str, context: &Context) -> std::result::Result<Value, Refusal> {
         self.emacs_run_with(command, Vec::new(), context)
     }
@@ -14681,6 +14712,8 @@ impl Server {
     /// for the formulas org-lsp leaves to it, and for all of them while the
     /// formula debugger is on.
     fn emacs_recalculate(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        // Its formulas may be Lisp.
+        self.trusted("Formulas that only Emacs computes")?;
         let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, self.client.encoding);
         let (command, args) = if org_core::tblfm::on_formula_line(&document.text, offset) {
@@ -16726,6 +16759,7 @@ impl Server {
             _ => false,
         };
         if others {
+            self.trusted("Dynamic blocks other than clock tables")?;
             return match count {
                 Some(_) if id == commands::DBLOCK_UPDATE => self.emacs_run("org-update-all-dblocks", context),
                 _ => self.emacs_run("org-dblock-update", context),
