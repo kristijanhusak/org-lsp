@@ -1,6 +1,10 @@
 //! An open document: its text, its parse and the index for positions.
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use lsp_types::TextDocumentContentChangeEvent;
+use org_core::outline::{Inheritance, Outline};
 use org_syntax::{Parse, SyntaxNode, TodoKeywords};
 
 use crate::line_index::{Encoding, LineIndex};
@@ -66,13 +70,44 @@ pub struct Document {
     pub text: String,
     pub index: LineIndex,
     pub parse: Parse,
+    /// The outlines made of this text (`outline`): the agenda, built
+    /// again, takes them as they are until the text changes.
+    outlines: RefCell<Vec<Rc<Outline>>>,
 }
 
 impl Document {
     pub fn new(text: String, version: i32, todo: &TodoKeywords) -> Document {
         let index = LineIndex::new(&text);
         let parse = org_syntax::parse(&text, todo);
-        Document { version, text, index, parse }
+        Document { version, text, index, parse, outlines: RefCell::default() }
+    }
+
+    /// The outline of the text as the file `name` at `file`, with what
+    /// entries inherit: made once for each version of the text.
+    pub fn outline(&self, name: &str, file: Option<String>, inheritance: &Inheritance) -> Rc<Outline> {
+        let mut outlines = self.outlines.borrow_mut();
+        let made = outlines
+            .iter()
+            .find(|outline| outline.name == name && outline.file == file && outline.inheritance == *inheritance);
+        if let Some(outline) = made {
+            return outline.clone();
+        }
+        let mut outline = Outline::with_inheritance(&self.parse, &self.text, name, inheritance);
+        outline.file = file;
+        let outline = Rc::new(outline);
+        // The agenda's and the views' (with the file's path), and one
+        // without it: no more are asked for at once.
+        if outlines.len() >= 2 {
+            outlines.remove(0);
+        }
+        outlines.push(outline.clone());
+        outline
+    }
+
+    /// Parse the text again, with other keywords.
+    pub fn reparse(&mut self, todo: &TodoKeywords) {
+        self.parse = org_syntax::parse(&self.text, todo);
+        self.outlines.borrow_mut().clear();
     }
 
     pub fn syntax(&self) -> SyntaxNode {
@@ -162,7 +197,7 @@ impl Document {
             std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| org_syntax::parse(&text, todo)))
                 .unwrap_or_else(|_| org_syntax::parse("", todo))
         });
-        *self = Document { version, text, index, parse };
+        *self = Document { version, text, index, parse, outlines: RefCell::default() };
         changed
     }
 }
@@ -179,6 +214,30 @@ mod tests {
             range_length: None,
             text: text.to_string(),
         }
+    }
+
+    /// An outline is made once for each version of the text, and for each
+    /// name, file and inheritance asked for.
+    #[test]
+    fn keeps_its_outlines_until_the_text_changes() {
+        let todo = TodoKeywords::default();
+        let mut document = Document::new("* TODO a :x:\n** b\n".to_string(), 1, &todo);
+        let inheritance = Inheritance::default();
+        let first = document.outline("notes", Some("/n/notes.org".to_string()), &inheritance);
+        let again = document.outline("notes", Some("/n/notes.org".to_string()), &inheritance);
+        assert!(Rc::ptr_eq(&first, &again));
+        let mut made = Outline::with_inheritance(&document.parse, &document.text, "notes", &inheritance);
+        made.file = Some("/n/notes.org".to_string());
+        assert_eq!(*first, made);
+        let other = document.outline("notes", None, &inheritance);
+        assert!(!Rc::ptr_eq(&first, &other));
+        assert_eq!(other.file, None);
+        let none = Inheritance { tags: org_core::outline::Inherit::Nothing, ..Inheritance::default() };
+        assert_eq!(document.outline("notes", None, &none).inheritance, none);
+        document.apply(vec![change(Some((1, 3, 1, 4)), "c")], 2, Encoding::Utf16, &todo);
+        let changed = document.outline("notes", Some("/n/notes.org".to_string()), &inheritance);
+        assert!(!Rc::ptr_eq(&first, &changed));
+        assert_eq!(changed.entries[1].head, "c");
     }
 
     #[test]

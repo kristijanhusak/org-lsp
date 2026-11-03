@@ -982,7 +982,9 @@ impl org_core::clocktable::Files for ClocktableFiles {
 }
 
 enum Held {
-    Open(Box<Outline>),
+    /// An open document's, which it keeps until its text changes
+    /// (`Document::outline`).
+    Open(Rc<Outline>),
     Disk(Rc<Source>),
 }
 
@@ -3993,7 +3995,7 @@ impl Server {
                     // A `#+SETUPFILE:` line changed: the settings it reads.
                     let fresh = setup::settings(uri::to_path(&uri).as_deref(), &document.text);
                     if fresh.as_slice() != todo.setup() {
-                        document.parse = org_syntax::parse(&document.text, &self.todo.clone().with_setup(fresh));
+                        document.reparse(&self.todo.clone().with_setup(fresh));
                     }
                     same_text = changes.iter().all(|change| change.start == change.end && change.length == 0);
                     // The agenda's entries in this file follow the text,
@@ -6229,8 +6231,7 @@ impl Server {
         paths.sort();
         // A file is the same reached through a link.
         let mut seen: HashSet<PathBuf> = paths.iter().map(|path| self.canonical(path)).collect();
-        let agenda: Vec<PathBuf> =
-            self.agenda_files().into_iter().filter_map(|(file, _)| uri::to_path(&file)).collect();
+        let agenda = self.agenda_paths();
         let open: HashMap<PathBuf, String> = self
             .documents
             .keys()
@@ -6447,26 +6448,55 @@ impl Server {
             return Some(action(&document.text, &document.index, &document.parse, &outline, version));
         }
         if let Some(document) = self.documents.get(uri.as_str()) {
-            let outline = Outline::with_inheritance(
-                &document.parse,
-                &document.text,
-                &uri::file_stem(uri),
-                &self.workspace.inheritance,
-            );
+            let outline = document.outline(&uri::file_stem(uri), None, &self.workspace.inheritance);
             return Some(action(&document.text, &document.index, &document.parse, &outline, Some(document.version)));
         }
         let source = self.workspace.read(&uri::to_path(uri)?, &self.todo)?;
         Some(action(&source.text, &source.index, &source.parse, &source.outline, None))
     }
 
+    /// The paths of the agenda files, as `agenda_files` has them, without
+    /// reading the files or making outlines of the open ones: for the
+    /// IDs, looked for on every change (`id_paths`). A file that cannot be
+    /// read is among them, with no IDs.
+    fn agenda_paths(&mut self) -> Vec<PathBuf> {
+        let configured = self.workspace.is_configured();
+        let mut paths: Vec<PathBuf> = if configured {
+            self.workspace.files().into_iter().filter(|path| path.is_file()).collect()
+        } else {
+            let mut keys: Vec<&String> = self.documents.keys().collect();
+            keys.sort();
+            keys.into_iter().filter_map(|key| uri::to_path(&key.parse().ok()?)).collect()
+        };
+        if let Some(journal) = self.journal.clone() {
+            if let Some((directory, agenda)) = journal_agenda_files(&journal, self.date_time()) {
+                paths.retain(|path| !is_journal(path, &journal));
+                paths.extend(agenda.into_iter().map(|name| directory.join(name)).filter(|path| path.is_file()));
+            }
+        }
+        if configured && self.agenda_archives == ArchivesMode::Files {
+            let open: HashMap<PathBuf, String> = self
+                .documents
+                .keys()
+                .filter_map(|key| Some((self.canonical(&uri::to_path(&key.parse::<Uri>().ok()?)?), key.clone())))
+                .collect();
+            for path in paths.clone() {
+                for file in self.archives_of(&path, &open) {
+                    if !paths.contains(&file) {
+                        paths.push(file);
+                    }
+                }
+            }
+        }
+        paths
+    }
+
     /// The agenda files with their outlines, in agenda order.
     fn agenda_files(&mut self) -> Vec<(Uri, Held)> {
         let inheritance = self.workspace.inheritance.clone();
         let open = |document: &Document, uri: &Uri| {
-            let mut outline =
-                Outline::with_inheritance(&document.parse, &document.text, &uri::file_stem(uri), &inheritance);
-            outline.file = uri::to_path(uri).map(|path| path.display().to_string());
-            Held::Open(Box::new(outline))
+            let file = uri::to_path(uri).map(|path| path.display().to_string());
+            Held::Open(document.outline(&uri::file_stem(uri), file, &inheritance))
         };
         if !self.workspace.is_configured() {
             // Nothing says where the agenda files are: use the files that
@@ -6619,14 +6649,9 @@ impl Server {
         match open.get(path) {
             Some(key) => key.parse::<Uri>().ok().map(|uri| {
                 let document = &self.documents[key];
-                let mut outline = Outline::with_inheritance(
-                    &document.parse,
-                    &document.text,
-                    &uri::file_stem(&uri),
-                    &self.workspace.inheritance,
-                );
-                outline.file = Some(path.display().to_string());
-                (uri, Held::Open(Box::new(outline)))
+                let file = Some(path.display().to_string());
+                let outline = document.outline(&uri::file_stem(&uri), file, &self.workspace.inheritance);
+                (uri, Held::Open(outline))
             }),
             None => match (uri::from_path(path), self.workspace.read(path, &self.todo)) {
                 (Some(uri), Some(source)) => Some((uri, Held::Disk(source))),
@@ -6716,7 +6741,7 @@ impl Server {
         if let Some((uri, mut outline, _)) = replaced {
             if let Some(file) = files.iter_mut().find(|(file, _)| file == uri) {
                 outline.file = uri::to_path(uri).map(|path| path.display().to_string());
-                file.1 = Held::Open(Box::new(outline));
+                file.1 = Held::Open(Rc::new(outline));
             }
         }
         let outlines: Vec<(Uri, &Outline)> = files.iter().map(|(uri, held)| (uri.clone(), held.outline())).collect();
