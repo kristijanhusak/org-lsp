@@ -1,0 +1,38 @@
+# Pull requests that update dependencies: the server's crates and the Zed
+# extension's (cargo), the VS Code extension's packages (npm), and the
+# actions the workflows use (pinned by SHA, with the version in a comment).
+# Each week's updates come in one pull request per ecosystem and directory.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directories:
+      - /
+      - /editors/zed
+    schedule:
+      interval: weekly
+    groups:
+      cargo:
+        patterns: ['*']
+
+  - package-ecosystem: npm
+    directory: /editors/vscode
+    schedule:
+      interval: weekly
+    groups:
+      npm:
+        patterns: ['*']
+    ignore:
+      # The types of the oldest VS Code the extension supports
+      # (`engines.vscode`), and of the Node it is built with.
+      - dependency-name: '@types/vscode'
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
