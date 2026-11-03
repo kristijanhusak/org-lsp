@@ -8,10 +8,14 @@
 // An area has:
 //
 //   emacs    what Org does there, each [text, done] (or [text, done, of]
-//            for a count), the parity being the share done;
+//            for a count), the parity being the share done; an entry may
+//            end with the editors it does not work in, `{ helix: 'no' }`,
+//            or works in only in part, `{ zed: 'part' }` (counted half),
+//            each of them 'part' in `editors`;
 //   editors  per editor, 'yes' (all the server does works), 'part' (some
-//            does not, `why` says what and why), or 'no' (with `why`);
-//            left out, an editor has the area as 'yes';
+//            does not, `why` says what and why), or 'no' (with `why`:
+//            nothing of the area works there); left out, an editor has the
+//            area as 'yes';
 //   checks   what to try by hand: `text`, and the command it runs (`cmd`,
 //            its key looked up per editor, `in` the scope of the key when
 //            not Org files), or `keys` per editor; `only` or `not` limit a
@@ -100,27 +104,27 @@ export const AREAS = [
   {
     name: 'Highlighting',
     emacs: [
-      ['Headlines by level, TODO keywords, priorities and tags', true],
+      ['Headlines by level, TODO keywords, priorities and tags', true, { helix: 'part' }],
       ['Emphasis, verbatim and code', true],
-      ['Links shown as their description (`org-link-descriptive`, `#+STARTUP: descriptivelinks` or `literallinks`); a description and a target shown each in a look of its own, as nvim-orgmode has them, where Org gives the whole link `org-link`', true],
-      ['Emphasis markers hidden (`org-hide-emphasis-markers`)', true],
+      ['Links shown as their description (`org-link-descriptive`, `#+STARTUP: descriptivelinks` or `literallinks`); a description and a target shown each in a look of its own, as nvim-orgmode has them, where Org gives the whole link `org-link`', true, { sublime: 'part', zed: 'part', helix: 'part' }],
+      ['Emphasis markers hidden (`org-hide-emphasis-markers`)', true, { sublime: 'no', zed: 'no', helix: 'no' }],
       ['Timestamps, planning and clock lines', true],
       ['Blocks, keywords, drawers, properties and comments', true],
-      ['Code in its language (`org-src-fontify-natively`)', true],
+      ['Code in its language (`org-src-fontify-natively`)', true, { zed: 'part', helix: 'part' }],
       ['Tables; the rows of a header (above the first rule, with rows below it) in a look of their own, as nvim-orgmode has them, where Org colors a header only in the header line of `org-table-header-line-mode` (`org-table-header`)', true],
       ['Lists: bullets, checkboxes, and the terms of description lists in bold (`org-list-dt`)', true],
       ['Footnotes, targets, macros, entities, LaTeX fragments, and LaTeX environments in a look of their own, as nvim-orgmode has them', true],
-      ['Archived subtrees shaded (`org-archived`)', true],
-      ['Radio targets turning their words into links: highlighted, followed, document links', true],
-      ['Entities shown as their characters (`org-pretty-entities`, `#+STARTUP: entitiespretty` or `entitiesplain`): hidden, the character in their place (drawn by the editor where it can, else an inlay hint)', true],
-      ['Entities of one\'s own (`org-entities-user`): parsed, shown, completed and exported as Org\'s', true],
-      ['Timestamps in formats of one\'s own (`org-display-custom-times`, `org-timestamp-custom-formats`, `#+STARTUP: customtime`, `C-c C-x C-t`): the date and time hidden, the custom form in their place as for entities; in exports through Emacs too', true],
-      ['Headline stars as bullets in the colors of their level, the leading ones hidden (org-bullets: `org_bullets_mode`, `org_bullets_bullet_list`); bullets of lists and marks of checkboxes as org-bullets.nvim shows them (`org_bullets_list_bullet`, `org_bullets_checkboxes`)', true],
-      ['Sub- and superscripts raised and lowered (`org-pretty-entities-include-sub-superscripts`, `org-use-sub-superscripts`): where Org raises them, shown in Unicode (`x²`, `H₂O`) in place of the hidden text (drawn by the editor where it can, else an inlay hint) where every character has a raised or lowered form; the others left as they are, as an editor cannot raise text', true],
-      ['Done headlines in `org-headline-done` past their keyword (`org-fontify-done-headline` at its default), complete statistics cookies as done, the title and the information of the document (`org-document-title`, `org-document-info`)', true],
-      ['Headlines past a done or TODO keyword, and the lines of quote and verse blocks, in their own look (`org-fontify-done-headline`, `org-fontify-todo-headline`, `org-fontify-quote-and-verse-blocks`)', true],
-      ['Emphasis in the looks of `org-emphasis-alist` (bold, italic, underline, strike-through, code and verbatim, not colors), or none (`org-fontify-emphasized-text`); keywords such as `#+TITLE:` and the braces of macros hidden (`org-hidden-keywords`, `org-hide-macro-markers`)', true],
-      ['How many looks headline levels take, and past the last the first again or the last for all (`org-n-level-faces`, `org-cycle-level-faces`); a headline\'s look to the edge of the window, for looks with a background (`org-fontify-whole-heading-line`, where the editor can draw it)', true],
+      ['Archived subtrees shaded (`org-archived`)', true, { helix: 'part' }],
+      ['Radio targets turning their words into links: highlighted, followed, document links', true, { helix: 'part' }],
+      ['Entities shown as their characters (`org-pretty-entities`, `#+STARTUP: entitiespretty` or `entitiesplain`): hidden, the character in their place (drawn by the editor where it can, else an inlay hint)', true, { sublime: 'part', zed: 'part', helix: 'no' }],
+      ['Entities of one\'s own (`org-entities-user`): parsed, shown, completed and exported as Org\'s', true, { helix: 'part' }],
+      ['Timestamps in formats of one\'s own (`org-display-custom-times`, `org-timestamp-custom-formats`, `#+STARTUP: customtime`, `C-c C-x C-t`): the date and time hidden, the custom form in their place as for entities; in exports through Emacs too', true, { sublime: 'part', zed: 'part', helix: 'no' }],
+      ['Headline stars as bullets in the colors of their level, the leading ones hidden (org-bullets: `org_bullets_mode`, `org_bullets_bullet_list`); bullets of lists and marks of checkboxes as org-bullets.nvim shows them (`org_bullets_list_bullet`, `org_bullets_checkboxes`)', true, { sublime: 'no', zed: 'no', helix: 'no' }],
+      ['Sub- and superscripts raised and lowered (`org-pretty-entities-include-sub-superscripts`, `org-use-sub-superscripts`): where Org raises them, shown in Unicode (`x²`, `H₂O`) in place of the hidden text (drawn by the editor where it can, else an inlay hint) where every character has a raised or lowered form; the others left as they are, as an editor cannot raise text', true, { sublime: 'part', zed: 'part', helix: 'no' }],
+      ['Done headlines in `org-headline-done` past their keyword (`org-fontify-done-headline` at its default), complete statistics cookies as done, the title and the information of the document (`org-document-title`, `org-document-info`)', true, { helix: 'part' }],
+      ['Headlines past a done or TODO keyword, and the lines of quote and verse blocks, in their own look (`org-fontify-done-headline`, `org-fontify-todo-headline`, `org-fontify-quote-and-verse-blocks`)', true, { helix: 'no' }],
+      ['Emphasis in the looks of `org-emphasis-alist` (bold, italic, underline, strike-through, code and verbatim, not colors), or none (`org-fontify-emphasized-text`); keywords such as `#+TITLE:` and the braces of macros hidden (`org-hidden-keywords`, `org-hide-macro-markers`)', true, { sublime: 'part', zed: 'part', helix: 'no' }],
+      ['How many looks headline levels take, and past the last the first again or the last for all (`org-n-level-faces`, `org-cycle-level-faces`); a headline\'s look to the edge of the window, for looks with a background (`org-fontify-whole-heading-line`, where the editor can draw it)', true, { vim: 'part', sublime: 'part', zed: 'part', helix: 'no' }],
     ],
     editors: {
       vim: ['part', 'A headline\'s line colored to the edge (`org_fontify_whole_heading_line`) is a sign without text, which shows the sign column. A line with a long link wraps as if the link\'s hidden target took room: Vim counts concealed text when it wraps.'],
@@ -161,16 +165,16 @@ export const AREAS = [
   {
     name: 'Folding and visibility',
     emacs: [
-      ['Cycling a subtree (`TAB`): folded, children, subtree', true],
-      ['Cycling the file (`S-TAB`): overview, contents, everything', true],
-      ['Startup visibility (`org_startup_folded`, `#+STARTUP:` `overview`, `content`, `show2levels` …, `showall`, `showeverything`), the `VISIBILITY` property, archived subtrees and drawers folded, `hideblocks`; where Org shows a headline\'s children but not its text, the text shows', true],
-      ['Blank lines after a subtree kept outside its fold (`org-cycle-separator-lines`)', true],
-      ['Archived subtrees left folded (`org-cycle-hide-archived-subtrees`)', true],
-      ['A closed fold shows its first line, then the ellipsis (`org-ellipsis`, `org_ellipsis`)', true],
-      ['Sparse trees (`C-c /`), their matches in archived subtrees left folded unless `org-sparse-tree-open-archived-trees`', true],
+      ['Cycling a subtree (`TAB`): folded, children, subtree', true, { zed: 'no' }],
+      ['Cycling the file (`S-TAB`): overview, contents, everything', true, { neovim: 'part', vim: 'part', zed: 'no' }],
+      ['Startup visibility (`org_startup_folded`, `#+STARTUP:` `overview`, `content`, `show2levels` …, `showall`, `showeverything`), the `VISIBILITY` property, archived subtrees and drawers folded, `hideblocks`; where Org shows a headline\'s children but not its text, the text shows', true, { zed: 'no' }],
+      ['Blank lines after a subtree kept outside its fold (`org-cycle-separator-lines`)', true, { zed: 'no' }],
+      ['Archived subtrees left folded (`org-cycle-hide-archived-subtrees`)', true, { zed: 'no' }],
+      ['A closed fold shows its first line, then the ellipsis (`org-ellipsis`, `org_ellipsis`)', true, { vim: 'part', vscode: 'part', sublime: 'part', zed: 'no' }],
+      ['Sparse trees (`C-c /`), their matches in archived subtrees left folded unless `org-sparse-tree-open-archived-trees`', true, { zed: 'no' }],
       ['Narrowing to a subtree or block (`C-x n s`, `C-x n b`) and the subtree in an indirect buffer (`C-c C-x b`): it in a file of its own, all there is to see there, written back each time it is saved', true],
-      ['Showing the context of the cursor (`org-reveal`, `C-c C-r`): its entry, the next headline, its siblings and its ancestors, the other folds left as they are; `org.reveal.siblings` (`C-u`) each level with its children, `org.reveal.tree` (`C-u C-u`) the parent\'s whole tree', true],
-      ['`TAB` on a new, empty headline or item changing its level (`org-cycle-level-after-item/entry-creation`), and at the start of the file cycling the file (`org-cycle-global-at-bob`); list items folding, as part of the outline or not at all (`org-cycle-include-plain-lists`); headlines folding to a level (`org-cycle-max-level`)', true],
+      ['Showing the context of the cursor (`org-reveal`, `C-c C-r`): its entry, the next headline, its siblings and its ancestors, the other folds left as they are; `org.reveal.siblings` (`C-u`) each level with its children, `org.reveal.tree` (`C-u C-u`) the parent\'s whole tree', true, { zed: 'no' }],
+      ['`TAB` on a new, empty headline or item changing its level (`org-cycle-level-after-item/entry-creation`), and at the start of the file cycling the file (`org-cycle-global-at-bob`); list items folding, as part of the outline or not at all (`org-cycle-include-plain-lists`); headlines folding to a level (`org-cycle-max-level`)', true, { neovim: 'part', vim: 'part', zed: 'no' }],
       ['The other options of cycling (`org-cycle-emulate-tab`, `org-fold-show-context-detail`: the context shown after a jump is always the same, `org-fold-catch-invisible-edits`)', false],
     ],
     editors: {
@@ -209,25 +213,25 @@ export const AREAS = [
       ['Odd levels only, `***` the second (`org-odd-levels-only`, `#+STARTUP: odd`): promoting, demoting and `TAB` on a new headline two stars at a time, the headlines\' faces, `LEVEL` in matches and `%l` in the agenda', true],
       ['Odd levels only where refiling, capturing, archiving and date trees put headlines (`org-get-valid-level`), from the target file\'s `#+STARTUP:`', true],
       ['Converting a file to odd levels and back (`org-convert-to-odd-levels`, `org-convert-to-oddeven-levels`), as the commands `org.levels.odd` and `org.levels.oddeven`', true],
-      ['Inline tasks (`org-inlinetask`), headlines of `org-inlinetask-min-level` stars or more, 15 by default: inserted with their `END` line (`C-c C-x t`, `org-inlinetask-insert-task`, around the selection, in `org-inlinetask-default-state`); promoted and demoted with it (`M-<left>`, `M-<right>`); left out of the outline, of the motion between headings (`C-c C-n`, `C-c C-p`) and of the subtrees promoted and demoted around them; folded to their `END` line; their stars but the last two hidden as leading stars are, the rest in the `org-inlinetask` face; listed by the agenda as Emacs lists them', true],
+      ['Inline tasks (`org-inlinetask`), headlines of `org-inlinetask-min-level` stars or more, 15 by default: inserted with their `END` line (`C-c C-x t`, `org-inlinetask-insert-task`, around the selection, in `org-inlinetask-default-state`); promoted and demoted with it (`M-<left>`, `M-<right>`); left out of the outline, of the motion between headings (`C-c C-n`, `C-c C-p`) and of the subtrees promoted and demoted around them; folded to their `END` line; their stars but the last two hidden as leading stars are, the rest in the `org-inlinetask` face; listed by the agenda as Emacs lists them', true, { helix: 'part' }],
       ['Inline tasks: `M-<up>` and `M-<down>` on one (Emacs drags the element), its text as the parser\'s (`inlinetask` in `org-element`: here the text after a task without `END` line is the task\'s), the first star in `org-warning` with `org-inlinetask-show-first-star` (here no star is hidden then), the `END` line left behind by archiving and refiling (`org-inlinetask-remove-END-maybe`), and the commands Emacs runs on a selection', false],
       ['Shift and the arrows selecting text where Org has nothing to do, or everywhere but on timestamps (`org-support-shift-select`): `always` by default, where Emacs\'s default is `nil`', true],
       ['Moving a subtree up and down', true],
       ['Cutting, copying and pasting subtrees, their level fitted', true],
-      ['Yanking subtrees with `C-y` at the level around them (`org-yank-adjusted-subtrees`)', true],
-      ['Yanked subtrees folded, unless that would hide the text after them (`org-yank-folded-subtrees`); a subtree cut or copied folded is folded again when it is pasted', true],
-      ['`C-k` on a folded headline killing what the fold hides, asking first or refusing (`org-ctrl-k-protect-subtree`)', true],
+      ['Yanking subtrees with `C-y` at the level around them (`org-yank-adjusted-subtrees`)', true, { zed: 'no', helix: 'no' }],
+      ['Yanked subtrees folded, unless that would hide the text after them (`org-yank-folded-subtrees`); a subtree cut or copied folded is folded again when it is pasted', true, { vscode: 'part', zed: 'no', helix: 'no' }],
+      ['`C-k` on a folded headline killing what the fold hides, asking first or refusing (`org-ctrl-k-protect-subtree`)', true, { vscode: 'no', zed: 'no', helix: 'no' }],
       ['Sorting entries (`C-c ^`)', true],
       ['The outline of the file (document symbols)', true],
-      ['Moving between headings (`C-c C-n`, `C-c C-p`, `C-c C-f`, `C-c C-b`, `C-c C-u`)', true],
-      ['Jumping to a heading (`org-goto`, `C-c C-j`, by outline path)', true],
+      ['Moving between headings (`C-c C-n`, `C-c C-p`, `C-c C-f`, `C-c C-b`, `C-c C-u`)', true, { helix: 'no' }],
+      ['Jumping to a heading (`org-goto`, `C-c C-j`, by outline path)', true, { helix: 'no' }],
       ['The outline path of the entry at the cursor in the echo area, with a count the file\'s name first (`org-display-outline-path`, `org.outline.path`; not cut to the window\'s width)', true],
-      ['`C-a`, `C-e` and `C-k` on headlines and items, to the title and the tags (`org-special-ctrl-a/e`, `org-special-ctrl-k`)', true],
+      ['`C-a`, `C-e` and `C-k` on headlines and items, to the title and the tags (`org-special-ctrl-a/e`, `org-special-ctrl-k`)', true, { zed: 'no', helix: 'no' }],
       ['`C-o` opening a line, or in a table inserting a row (`org-open-line`, `org-special-ctrl-o`)', true],
-      ['Turning lines into headings and back (`C-c *`, through Emacs)', true],
-      ['Toggling `COMMENT` (`C-c ;`, through Emacs)', true],
-      ['Cloning a subtree with its dates shifted (`C-c C-x c`, through Emacs)', true],
-      ['Commands on a region, a selection in the editor: the headlines in it promoted, demoted or moved, lines turned into headings or items, checkboxes toggled, the region wrapped in a block, a drawer or emphasis (through Emacs)', true],
+      ['Turning lines into headings and back (`C-c *`, through Emacs)', true, { zed: 'no', helix: 'no' }],
+      ['Toggling `COMMENT` (`C-c ;`, through Emacs)', true, { helix: 'no' }],
+      ['Cloning a subtree with its dates shifted (`C-c C-x c`, through Emacs)', true, { helix: 'no' }],
+      ['Commands on a region, a selection in the editor: the headlines in it promoted, demoted or moved, lines turned into headings or items, checkboxes toggled, the region wrapped in a block, a drawer or emphasis (through Emacs)', true, { zed: 'no' }],
       ['Sparse trees that tell case apart (`org-occur-case-fold-search`), and by a kind of date, cycled with `c` (`org-sparse-tree-default-date-type`)', true],
       ['Sparse trees without their matches highlighted (`org-highlight-sparse-tree-matches`)', true],
       ['The highlights of a sparse tree and the times of `C-c C-x C-d` gone with the next change, or kept, following the text, until `C-c C-c` (`org-remove-highlights-with-change`); those of a sparse tree by tags or a property kept either way, as `org-scan-tags` keeps them', true],
@@ -270,16 +274,16 @@ export const AREAS = [
     name: 'Lists and checkboxes',
     emacs: [
       ['New items, numbered and with checkboxes (`M-RET`, `M-S-RET`)', true],
-      ['`RET` in an item (`org-return`)', true],
-      ['Indenting, outdenting and moving items, with their children', true],
-      ['Cycling bullets (`S-<left>`, `S-<right>`)', true],
+      ['`RET` in an item (`org-return`)', true, { zed: 'no', helix: 'no' }],
+      ['Indenting, outdenting and moving items, with their children', true, { zed: 'part' }],
+      ['Cycling bullets (`S-<left>`, `S-<right>`)', true, { zed: 'no', helix: 'no' }],
       ['Repairing and renumbering a list (`C-c C-c`)', true],
       ['Checkboxes, with their parents and `[1/3]` or `[33%]` cookies', true],
       ['Counting a cookie again with `C-c C-c` on it (`org-update-statistics-cookies`), from the boxes or, on a headline, its children\'s TODO keywords', true],
       ['`C-c C-c` elsewhere on a headline: org-lsp toggles the boxes below it (`org-toggle-checkbox`, as `C-c C-x C-b` does), where Emacs sets the tags (`org-set-tags-command`, `org.tags.set` here)', false],
       ['Sorting items', true],
       ['Moving to the next and previous item', true],
-      ['Turning lines into items and back (`C-c -`, through Emacs)', true],
+      ['Turning lines into items and back (`C-c -`, through Emacs)', true, { helix: 'no' }],
       ['Circular motion between items (`org-list-use-circular-motion`)', true],
       ['Two spaces after chosen bullets, a bullet of their own for indented items, a wider indent for sub-items (`org-list-two-spaces-after-bullet-regexp`, `org-list-demote-modify-bullet`, `org-list-indent-offset`)', true],
       ['Turning off the automatic rules, and cookies counting every box below them (`org-list-automatic-rules`, `org-checkbox-hierarchical-statistics`)', true],
@@ -307,9 +311,9 @@ export const AREAS = [
     emacs: [
       ['Cycling states, and fast selection by key (`TODO(t)`), from a menu or the keys in the prompt alone, or never (`org-use-fast-todo-selection`)', true],
       ['Sequences and types from `#+TODO:` and `org_todo_keywords`', true],
-      ['Several sequences: cycling stays in the entry\'s sequence, and `C-S-<right>`, `C-S-<left>` switch sets', true],
+      ['Several sequences: cycling stays in the entry\'s sequence, and `C-S-<right>`, `C-S-<left>` switch sets', true, { helix: 'part' }],
       ['Keywords given alone read as a sequence or as types (`org-todo-interpretation`)', true],
-      ['Faces of particular keywords and priorities (`org-todo-keyword-faces`, `org-priority-faces`)', true],
+      ['Faces of particular keywords and priorities (`org-todo-keyword-faces`, `org-priority-faces`)', true, { sublime: 'part', zed: 'no', helix: 'no' }],
       ['Logging: `CLOSED:`, the time or a note on a state change (`!`, `@`), `LOG_INTO_DRAWER`', true],
       ['TODO statistics of the parent, counting what `org-provide-todo-statistics` says, children only or the subtree (`org-hierarchical-todo-statistics`); tags set and removed with the state (`org-todo-state-tags-triggers`); `CLOSED:` kept without a keyword (`org-closed-keep-when-no-todo`)', true],
       ['Repeating entries moving to their next date', true],
@@ -361,13 +365,13 @@ export const AREAS = [
   {
     name: 'Tags',
     emacs: [
-      ['Setting tags: fast selection by key, exclusive groups, typed', true],
+      ['Setting tags: fast selection by key, exclusive groups, typed', true, { zed: 'part', helix: 'part' }],
       ['Aligning tags (`org_tags_column`)', true],
       ['Inheritance and `#+FILETAGS:`', true],
       ['Completion', true],
       ['Group tags in searches', true],
       ['A sparse tree by tags', true],
-      ['Faces of particular tags in headlines (`org-tag-faces`)', true],
+      ['Faces of particular tags in headlines (`org-tag-faces`)', true, { sublime: 'no', zed: 'no', helix: 'no' }],
       ['The TODO keywords in the tag selection (`org-fast-tag-selection-include-todo`, a variable Org calls undocumented)', false],
     ],
     editors: {
@@ -388,14 +392,14 @@ export const AREAS = [
   {
     name: 'Properties and column view',
     emacs: [
-      ['Setting and deleting properties, also from the agenda', true],
-      ['Allowed values (`NAME_ALL`) cycled with `S-<left>` and `S-<right>`', true],
-      ['Effort (`C-c C-x e`) and `ORDERED`', true],
+      ['Setting and deleting properties, also from the agenda', true, { zed: 'part', helix: 'part' }],
+      ['Allowed values (`NAME_ALL`) cycled with `S-<left>` and `S-<right>`', true, { zed: 'no', helix: 'no' }],
+      ['Effort (`C-c C-x e`) and `ORDERED`', true, { helix: 'part' }],
       ['Inheritance, special properties and property searches', true],
-      ['Column view (`C-c C-x C-c`, through Emacs): the columns over the headlines, the header, summaries; editing, cycling and the allowed values of a column, moving, narrowing, widening and deleting columns, moving entries', true],
+      ['Column view (`C-c C-x C-c`, through Emacs): the columns over the headlines, the header, summaries; editing, cycling and the allowed values of a column, moving, narrowing, widening and deleting columns, moving entries', true, { sublime: 'no', zed: 'no', helix: 'no' }],
       ['Column view dynamic blocks and summaries (`C-c C-x x`, filled in by Emacs)', true],
       ['Properties written as `org-property-format` says, their values joined as `org-property-separators` says; efforts in the units of `org-duration-units` (once `org-effort-durations`)', true],
-      ['Custom properties hidden and shown (`org-custom-properties`, `org-toggle-custom-properties-visibility`, `org.custom.properties.toggle`): their lines hidden whole, where the editor can hide a line', true],
+      ['Custom properties hidden and shown (`org-custom-properties`, `org-toggle-custom-properties-visibility`, `org.custom.properties.toggle`): their lines hidden whole, where the editor can hide a line', true, { vim: 'no', vscode: 'no', sublime: 'part', zed: 'no', helix: 'no' }],
       ['IDs made as `org-id-method`, `org-id-prefix`, `org-id-ts-format` and `org-id-include-domain` say', true],
       ['IDs looked for where `org-id-track-globally`, `org-id-search-archives`, `org-id-extra-files` and `org-id-locations-file` say; `id:` links completing to `org-id-completion-targets`', true],
     ],
@@ -424,14 +428,14 @@ export const AREAS = [
   {
     name: 'Dates and times',
     emacs: [
-      ['Inserting active and inactive timestamps (`C-c .`, `C-c !`)', true],
+      ['Inserting active and inactive timestamps (`C-c .`, `C-c !`)', true, { helix: 'no' }],
       ['Scheduling and deadlines (`C-c C-s`, `C-c C-d`)', true],
       ['Org\'s date prompt: `+2d`, `fri`, `2/15`, `10:00-11:30` …', true],
-      ['The calendar with the prompt', true],
-      ['The calendar on its own, at the date of the line\'s timestamp (`org-goto-calendar`, `C-c >`)', true],
+      ['The calendar with the prompt', true, { sublime: 'no', zed: 'no', helix: 'no' }],
+      ['The calendar on its own, at the date of the line\'s timestamp (`org-goto-calendar`, `C-c >`)', true, { sublime: 'no', zed: 'no', helix: 'no' }],
       ['Changing the part at the cursor (`S-<up>`, `S-<down>`, the other way with `org-edit-timestamp-down-means-later`), with ranges, repeaters and warnings', true],
       ['Moving a date by days (`S-<left>`, `S-<right>`)', true],
-      ['Removing a scheduled date or a deadline (`C-u C-c C-s`, `C-u C-c C-d`)', true],
+      ['Removing a scheduled date or a deadline (`C-u C-c C-s`, `C-u C-c C-d`)', true, { zed: 'no', helix: 'no' }],
       ['Setting a delay or a warning period (`C-u C-u C-c C-s`, `C-u C-u C-c C-d`)', true],
       ['A day that ends after midnight (`org-extend-today-until`): the agenda\'s today, the date prompt, the times capture puts in and its datetree, `.+` and `++` repeaters', true],
     ],
@@ -484,8 +488,8 @@ export const AREAS = [
       ['Filters by tag, category, effort, regexp and top headline', true],
       ['Filters kept from one view to the next (`org-agenda-persistent-filter`)', true],
       ['Bulk marks and actions', true],
-      ['Follow mode and entry text', true],
-      ['The outline path of the cursor\'s entry as it moves (`org-agenda-show-outline-path`)', true],
+      ['Follow mode and entry text', true, { zed: 'part', helix: 'part' }],
+      ['The outline path of the cursor\'s entry as it moves (`org-agenda-show-outline-path`)', true, { zed: 'no', helix: 'no' }],
       ['Log mode, with or without notes (`org-agenda-log-mode-add-notes`), and the clock report, with a header (`org-agenda-clock-report-header`) and any clock table parameters (`org-agenda-clockreport-parameter-plist`)', true],
       ['Priority cookies highlighted, or the rest of their lines, the highest in bold and the lowest in italic (`org-agenda-fontify-priorities`)', true],
       ['Archives mode; archived trees in every view without it (`org-agenda-skip-archived-trees`)', true],
@@ -496,14 +500,14 @@ export const AREAS = [
       ['Changed lines kept where they are until the agenda is rebuilt, the new date at their end (`org-agenda-change-all-lines`, `org-agenda-show-new-time`)', true],
       ['Lines formatted as Org formats them (`org-agenda-prefix-format` and the rest); `%(…)` in the format run by Emacs on each entry (through Emacs)', true],
       ['The time grid', true],
-      ['Habits (`org-habit`): the consistency graph, `K`', true],
+      ['Habits (`org-habit`): the consistency graph, `K`', true, { sublime: 'part' }],
       ['Groups of org-super-agenda (`org_super_agenda_mode`, `org_super_agenda_groups`): its selectors, automatic groups and options, for each day and each view; not the selectors that run Lisp', true],
       ['Diary sexps (`%%(diary-…)` lines, `<%%(…)>` timestamps): the date functions of `diary-lib` and Org (`diary-anniversary`, `-block`, `-cyclic`, `-date`, `-float`, `org-class` …) with `and`, `or`, `not` and comparisons', true],
       ['Diary sexps calling other Lisp, evaluated by Emacs (`org-diary-sexp-entry`) for each day of the view', true],
-      ['Column view in the agenda (`C-c C-x C-c`, through Emacs): each entry\'s line covered by its columns, the summaries on the date lines and the blocks\' headers; editing, cycling and showing the values of the entries, changed in their files', true],
-      ['Column view as soon as the agenda is made (`org-agenda-view-columns-initially`)', true],
+      ['Column view in the agenda (`C-c C-x C-c`, through Emacs): each entry\'s line covered by its columns, the summaries on the date lines and the blocks\' headers; editing, cycling and showing the values of the entries, changed in their files', true, { sublime: 'no', zed: 'no', helix: 'no' }],
+      ['Column view as soon as the agenda is made (`org-agenda-view-columns-initially`)', true, { sublime: 'no', zed: 'no', helix: 'no' }],
       ['Writing the agenda to a file (`C-x C-w`): `.org` and plain text; in plain text, some lines of each entry\'s text under its line (`org-agenda-add-entry-text-maxlines`)', true],
-      ['Appointment reminders (`org-agenda-to-appt`, through Emacs\'s `appt.el`): today\'s entries with a time, checked each minute, the reminders shown as messages', true],
+      ['Appointment reminders (`org-agenda-to-appt`, through Emacs\'s `appt.el`): today\'s entries with a time, checked each minute, the reminders shown as messages', true, { zed: 'no' }],
     ],
     editors: {
       sublime: ['part', 'Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot. The days of a habit\'s graph take the colors of text, not Org\'s backgrounds: Sublime Text colors a token by its color scheme.'],
@@ -552,11 +556,11 @@ export const AREAS = [
     emacs: [
       ['Clocking in and out, cancelling, going to the clocked entry, or with none the entry clocked last (`org-clock-goto-may-find-recent-task`)', true],
       ['The clock history and clocking in the last entry', true],
-      ['The clock in the mode line', true],
-      ['The time clocked under each headline (`C-c C-x C-d`)', true],
+      ['The clock in the mode line', true, { zed: 'no', helix: 'no' }],
+      ['The time clocked under each headline (`C-c C-x C-d`)', true, { helix: 'no' }],
       ['Clock tables, with every parameter', true],
       ['Durations written as `org-duration-format` says (`1d 2:30`, `26:30`, `1.09d`, `1d2h15min`) and read with the units of `org-duration-units` (days of 8 hours)', true],
-      ['Resolving open clocks and idle time (`C-c C-x C-z`, `org-resolve-clocks`): each clock left running asked about with Emacs\'s prompt and keys (`k`, `K`, `t`, `T`, `g`, `G`, `s`, `S`, `C`, `j`, `J`, `i`, `q`), the minutes or the time asked next; `C-u` for the dangling ones alone; clocking in, in a file or the agenda, resolves first (`org-clock-auto-clock-resolution`), and a clock cut short is offered as the next one\'s start; the keys in the prompt alone with `org-clock-resolve-expert`. A clock found running when the server starts shows as the clock, and `C-c C-x C-o` stops it, but for resolving and clocking in it is dangling, as in an Emacs that has just started, until kept (`k`) or resumed (`org-clock-persist`)', true],
+      ['Resolving open clocks and idle time (`C-c C-x C-z`, `org-resolve-clocks`): each clock left running asked about with Emacs\'s prompt and keys (`k`, `K`, `t`, `T`, `g`, `G`, `s`, `S`, `C`, `j`, `J`, `i`, `q`), the minutes or the time asked next; `C-u` for the dangling ones alone; clocking in, in a file or the agenda, resolves first (`org-clock-auto-clock-resolution`), and a clock cut short is offered as the next one\'s start; the keys in the prompt alone with `org-clock-resolve-expert`. A clock found running when the server starts shows as the clock, and `C-c C-x C-o` stops it, but for resolving and clocking in it is dangling, as in an Emacs that has just started, until kept (`k`) or resumed (`org-clock-persist`)', true, { helix: 'no' }],
       ['Clocking in again on a clock left running (`org-clock-in-resume`)', true],
       ['The running clock and the clock history kept from one session to the next, in Emacs\'s own `org-clock-save.el` (`org-clock-persist`, `org-clock-persist-query-resume`); a kept clock whose `CLOCK:` line was closed since is not clocked in again, and the server never asks before it saves (`org-clock-persist-query-save`)', true],
       ['Clocking from the agenda, the clocked entry highlighted', true],
@@ -651,11 +655,11 @@ export const AREAS = [
       ['Inserting a link to a node (`org-roam-node-insert`), on a selection too', true],
       ['New nodes from `org_roam_capture_templates`: `${title}`, `${slug}`, `${…}` asked for; `file`, `file+head`, `file+olp`, `file+head+olp` and `node` targets; capturing to a node (`org-roam-capture`)', true],
       ['`roam:` links: following them, completing them, replacing them with `id:` links as files are saved', true],
-      ['Aliases, tags and references added and removed (`org-roam-alias-add` …)', true],
+      ['Aliases, tags and references added and removed (`org-roam-alias-add` …)', true, { zed: 'no' }],
       ['A node found by a reference (`org-roam-ref-find`); a file\'s one headline made the file\'s node and back (`org-roam-promote-entire-buffer`, `org-roam-demote-entire-buffer`)', true],
       ['A subtree refiled to a node, or extracted to a file of its own as a node (`org-roam-refile`, `org-roam-extract-subtree`)', true],
       ['The graph of the nodes, all of them or those near the node at the cursor, drawn by Graphviz (`org-roam-graph`)', true],
-      ['The org-roam buffer: backlinks, reflinks and unlinked references (`org_roam_mode_sections`), following the cursor, dedicated buffers', true],
+      ['The org-roam buffer: backlinks, reflinks and unlinked references (`org_roam_mode_sections`), following the cursor, dedicated buffers', true, { zed: 'part' }],
       ['Completing node titles as they are typed (`org-roam-completion-everywhere`)', true],
       ['Daily notes: capturing to and going to a day\'s note, today, tomorrow, yesterday or a date picked in the date prompt\'s calendar, and the next and previous notes (`org-roam-dailies-capture-today`, `org-roam-dailies-goto-date` …)', true],
       ['Daily notes: the days with a note marked in the date prompt\'s calendar, as in every calendar while org-roam is on (`org-roam-dailies-calendar-mark-entries`, `org-roam-dailies-calendar-note`)', true],
@@ -690,19 +694,19 @@ export const AREAS = [
     name: 'A journal (org-journal)',
     emacs: [
       ['A file a day, week, month or year in `org_journal_dir`, an entry for each day and one for each time (`org-journal-new-entry`), today\'s entry only with `C-u`', true],
-      ['An entry for a date asked for, and a TODO entry for a day to come with its timestamp (`org-journal-new-date-entry`, `org-journal-new-scheduled-entry`)', true],
+      ['An entry for a date asked for, and a TODO entry for a day to come with its timestamp (`org-journal-new-date-entry`, `org-journal-new-scheduled-entry`)', true, { zed: 'part' }],
       ['The next and the previous entry, and the file of today (`org-journal-next-entry`, `org-journal-previous-entry`, `org-journal-open-current-journal-file`)', true],
       ['Carrying the items `org_journal_carryover_items` matches over to the new day, with the headlines above them; deleting the entry or file left empty', true],
-      ['The other entries folded (`org_journal_hide_entries_p`)', true],
+      ['The other entries folded (`org_journal_hide_entries_p`)', true, { zed: 'no' }],
       ['The journal\'s files from yesterday on in the agenda (`org_journal_enable_agenda_integration`)', true],
       ['Searching the journal between two days, every day, from today on, and its TODO entries to come (`org-journal-search` …), each result linking to its line', true],
-      ['The entries to come with a timestamp, in a schedule of their own (`org-journal-schedule-view`)', true],
-      ['Moving an entry to come to another day (`org-journal-reschedule-scheduled-entry`)', true],
-      ['The days with an entry marked in the date prompt\'s calendar (`org-journal-mark-entries`)', true],
-      ['The keys org-journal adds to `M-x calendar` (`j r`, `j d`, `[`, `]`, `j n`, `j m`, `j s f` …), in the calendar `org.goto.calendar` opens', true],
+      ['The entries to come with a timestamp, in a schedule of their own (`org-journal-schedule-view`)', true, { zed: 'no' }],
+      ['Moving an entry to come to another day (`org-journal-reschedule-scheduled-entry`)', true, { zed: 'no' }],
+      ['The days with an entry marked in the date prompt\'s calendar (`org-journal-mark-entries`)', true, { sublime: 'no', zed: 'no' }],
+      ['The keys org-journal adds to `M-x calendar` (`j r`, `j d`, `[`, `]`, `j n`, `j m`, `j s f` …), in the calendar `org.goto.calendar` opens', true, { sublime: 'no', zed: 'no' }],
       ['Files encrypted whole (`org-journal-encrypt-journal`)', false],
       ['The file of a day in another window, or in the window of the command (`org-journal-find-file-fn`)', true],
-      ['Following the calendar: `]` and `[` show the entry of the day (`org-journal-follow-mode`)', true],
+      ['Following the calendar: `]` and `[` show the entry of the day (`org-journal-follow-mode`)', true, { sublime: 'no', zed: 'no' }],
       ['Remembering the dates between commands (`org-journal-enable-cache`) is not needed: it only spares Emacs reading the files again, and the days are the same; the server reads the directory each time', true],
     ],
     editors: {
@@ -736,13 +740,13 @@ export const AREAS = [
       ['Archiving to the archive sibling', true],
       ['Toggling the `ARCHIVE` tag', true],
       ['Archive locations, `ARCHIVE` properties, date trees, `ARCHIVE_…` context', true],
-      ['Archiving all done subtrees', true],
+      ['Archiving all done subtrees', true, { zed: 'no', helix: 'no' }],
       ['The archive file saved, or left with its changes in the editor, as `org-archive-subtree-save-file-p` says (from the agenda it is not, by default)', true],
       ['Logging refiles (`org-log-refile`)', true],
       ['Creating parent nodes as the target (`org-refile-allow-creating-parent-nodes`)', true],
       ['Refiling a selection that is not whole subtrees, its first line made a headline (`org-refile-active-region-within-subtree`, through Emacs)', true],
       ['Refiling a region (a selection of whole subtrees)', true],
-      ['Copying (`C-c M-w`), going to a target (`C-u C-c C-w`) and to the last refiled entry (`C-u C-u C-c C-w`)', true],
+      ['Copying (`C-c M-w`), going to a target (`C-u C-c C-w`) and to the last refiled entry (`C-u C-u C-c C-w`)', true, { helix: 'no' }],
       ['`org-refile-target-verify-function` (the function run by Emacs at each headline)', true],
     ],
     editors: {
@@ -764,8 +768,8 @@ export const AREAS = [
     name: 'Links',
     emacs: [
       ['Following links: headlines, targets, custom IDs, files with searches, IDs, URLs, timestamps, tags', true],
-      ['Storing and inserting links, with descriptions, editing the link at the cursor', true],
-      ['IDs created (`org-id-get-create`)', true],
+      ['Storing and inserting links, with descriptions, editing the link at the cursor', true, { helix: 'no' }],
+      ['IDs created (`org-id-get-create`)', true, { zed: 'no', helix: 'no' }],
       ['Completion of file names, headlines and custom IDs in links', true],
       ['Backlinks, hovers and clickable links (beyond Emacs: references, document links)', true],
       ['Link abbreviations (`#+LINK:`, `org-link-abbrev-alist`)', true],
@@ -773,7 +777,7 @@ export const AREAS = [
       ['A region as the search of a stored link, and as the description of a link inserted', true],
       ['Completing `id:` links to entries, which get an ID (`org-id-complete`; Org completes no `help:` links)', true],
       ['Default descriptions from the link type: an `id:` link\'s headline, an `info:` link\'s command', true],
-      ['Moving to the next and previous link (`C-c C-x C-n`, `C-c C-x C-p`)', true],
+      ['Moving to the next and previous link (`C-c C-x C-n`, `C-c C-x C-p`)', true, { helix: 'no' }],
       ['A search by regular expression (`file:x.org::/regexp/`): a sparse tree of its matches (`org-occur`), in the file the link is in', true],
       ['Making a missing headline a link searches for, or looking for its words in the text (`org-link-search-must-match-exact-headline`); `doi:` links at `org-link-doi-server-url`', true],
       ['Following a link, a timestamp or a citation with `RET` (`org-return-follows-link`)', true],
@@ -820,8 +824,8 @@ export const AREAS = [
     emacs: [
       ['Following a reference to its definition and back', true],
       ['Highlighting and checking (`org-lint`)', true],
-      ['Creating a footnote (`C-c C-x f`, through Emacs)', true],
-      ['Renumbering, sorting, normalizing and deleting footnotes (through Emacs)', true],
+      ['Creating a footnote (`C-c C-x f`, through Emacs)', true, { helix: 'no' }],
+      ['Renumbering, sorting, normalizing and deleting footnotes (through Emacs)', true, { helix: 'no' }],
     ],
     editors: {
       helix: ['part', 'Making footnotes and their menu are left out: they are not among Helix\'s code actions. Following them works.'],
@@ -838,21 +842,21 @@ export const AREAS = [
     name: 'Tables',
     emacs: [
       ['Aligning (`C-c C-c`, formatting)', true],
-      ['Moving between fields (`TAB`, `S-TAB`), a row made past the last', true],
+      ['Moving between fields (`TAB`, `S-TAB`), a row made past the last', true, { zed: 'no', helix: 'no' }],
       ['Their options: what counts as a number for right alignment, aligning only on `C-c C-c`, a row before a rule rather than past it, the shrunk columns\' indicator (`org-table-number-regexp`, `org-table-automatic-realign`, `org-table-tab-jumps-over-hlines`, `org-table-shrunk-column-indicator`)', true],
       ['Moving, inserting and deleting rows and columns', true],
-      ['Rules (`C-c -`, `C-c RET`)', true],
+      ['Rules (`C-c -`, `C-c RET`)', true, { helix: 'part' }],
       ['Blanking a field', true],
       ['Sorting rows', true],
       ['The `#+TBLFM:` line following moved columns and rows', true],
       ['Rectangles: cutting, copying and pasting the cells of a selection (through Emacs)', true],
-      ['Copying down (`S-RET`, through Emacs)', true],
+      ['Copying down (`S-RET`, through Emacs)', true, { zed: 'no', helix: 'no' }],
       ['Editing a field in a file of its own (`org-table-edit-field`, through Emacs): put back, the table realigned, each time it is saved', true],
-      ['Shrunk columns (`<5>`): `C-c TAB`, `org-startup-shrink-all-tables` and `#+STARTUP: shrink`; the hidden text concealed where the editor can hide it, `…` drawn in its place or an inlay hint', true],
+      ['Shrunk columns (`<5>`): `C-c TAB`, `org-startup-shrink-all-tables` and `#+STARTUP: shrink`; the hidden text concealed where the editor can hide it, `…` drawn in its place or an inlay hint', true, { sublime: 'part', zed: 'part', helix: 'part' }],
       ['Every table aligned when a file opens (`org-startup-align-all-tables`, `#+STARTUP: align`, `noalign`)', true],
-      ['Creating an empty table (`C-c |`, through Emacs)', true],
+      ['Creating an empty table (`C-c |`, through Emacs)', true, { helix: 'no' }],
       ['Making a table from a region (`C-c |` on a selection, through Emacs)', true],
-      ['Summing (`C-c +`) and field information (`C-c ?`), through Emacs', true],
+      ['Summing (`C-c +`) and field information (`C-c ?`), through Emacs', true, { helix: 'no' }],
       ['Moving the field with the shifted cursor keys (through Emacs)', true],
       ['Importing and exporting tables (`org-table-import`, `org-table-export`, through Emacs)', true],
       ['Plotting with gnuplot as the `#+PLOT:` lines say (`org-plot/gnuplot`, `C-c \" g`, through Emacs with gnuplot.el and gnuplot), and a column of bars in the table (`orgtbl-ascii-plot`, `C-c \" a`, through Emacs)', true],
@@ -888,14 +892,14 @@ export const AREAS = [
       ['Parameters and constants', true],
       ['Calc\'s arithmetic, vectors, dates and durations', true],
       ['Modes and formats (`;%.2f`, `;N`, `;T`)', true],
-      ['Recalculating the line, the table, until stable', true],
+      ['Recalculating the line, the table, until stable', true, { zed: 'part', helix: 'part' }],
       ['Their options: constants for every file, references stopping at rules, columns made past the last, durations\' format, Calc\'s default modes, formulas in fields left as text, no recalculation of `#` lines (`org-table-formula-constants` and the rest, set for Emacs too where it computes)', true],
       ['Formulas in Emacs Lisp (through Emacs)', true],
       ['Remote references (through Emacs)', true],
       ['Units (through Emacs)', true],
       ['Calc\'s fractions, symbolic mode and engineering notation (through Emacs)', true],
       ['The formula editor (`C-c \'`, through Emacs): the table\'s formulas in a file of their own, installed each time it is saved', true],
-      ['The formula debugger (`C-c {`, through Emacs): while it is on, recalculating asks after each formula whether to go on, its substitution history with the question; answered no, what was computed so far stays', true],
+      ['The formula debugger (`C-c {`, through Emacs): while it is on, recalculating asks after each formula whether to go on, its substitution history with the question; answered no, what was computed so far stays', true, { helix: 'no' }],
     ],
     editors: {
       zed: ['part', 'Iterating until the table is stable (`org.table.iterate`) is left out: it has no key in keymap.json and is not among the code actions.'],
@@ -921,14 +925,14 @@ export const AREAS = [
       ['Tangling, with Noweb references, comments and header arguments from properties', true],
       ['Tangling\'s options: extensions by language, the link comments\' format and paths, comments left uncommented, the Org text of comments as it is, the default file mode, deleting files before writing them, Noweb references between other strings (`org-babel-tangle-lang-exts`, `org-babel-tangle-comment-format-beg`, `org-babel-noweb-wrap-start` and the others)', true],
       ['Evaluating a block, a `#+CALL:` line and inline code (through Emacs)', true],
-      ['Evaluating the file\'s and the subtree\'s blocks', true],
-      ['Removing results', true],
+      ['Evaluating the file\'s and the subtree\'s blocks', true, { helix: 'no' }],
+      ['Removing results', true, { helix: 'no' }],
       ['Sessions', true],
       ['Asking before evaluating (`org-confirm-babel-evaluate`)', true],
       ['Editing a block in a file of its own (`C-c \'`, through Emacs): code, example, export and comment blocks, footnote definitions, LaTeX, inline code; each save of the file writes it back and saves the Org file', true],
       ['Tangling\'s Emacs Lisp (evaluated header arguments, `<<block()>>`; through Emacs)', true],
-      ['Detangling (`org-babel-detangle`, through Emacs): the code of a file tangled with `:comments link` put back into the blocks of this file it came from, the file asked for among those this file tangles to', true],
-      ['Moving between blocks (`C-c C-v n`, `C-c C-v p`, `C-c C-v g`, `C-c M-f`, `C-c M-b`; through Emacs)', true],
+      ['Detangling (`org-babel-detangle`, through Emacs): the code of a file tangled with `:comments link` put back into the blocks of this file it came from, the file asked for among those this file tangles to', true, { zed: 'no', helix: 'no' }],
+      ['Moving between blocks (`C-c C-v n`, `C-c C-v p`, `C-c C-v g`, `C-c M-f`, `C-c M-b`; through Emacs)', true, { helix: 'no' }],
       ['The Library of Babel (`C-c C-v i`, through Emacs)', true],
     ],
     editors: {
@@ -961,7 +965,7 @@ export const AREAS = [
       ['Publishing a file, a project, all projects', true],
       ['Forcing publishing', true],
       ['Exporting in the background: every export runs in the background, the editor never waits for it', true],
-      ['Only the visible part (`C-v`): what the editor has folded left out', true],
+      ['Only the visible part (`C-v`): what the editor has folded left out', true, { vscode: 'no' }],
       ['The export stack (`&`): what the exports made, the last first, to show again', true],
       ['Inserting a template (`#`, through Emacs)', true],
     ],
@@ -988,12 +992,12 @@ export const AREAS = [
       ['Keys completed', true],
       ['A key\'s entry on hover, following a key', true],
       ['Unknown keys reported', true],
-      ['Inserting, editing and deleting citations (`C-c C-x @`)', true],
-      ['No processor to insert citations, or one of Org\'s that cannot (`org-cite-insert-processor`)', true],
+      ['Inserting, editing and deleting citations (`C-c C-x @`)', true, { helix: 'no' }],
+      ['No processor to insert citations, or one of Org\'s that cannot (`org-cite-insert-processor`)', true, { helix: 'no' }],
       ['A package\'s processor to insert citations, citar\'s (`org-cite-insert-processor`)', false],
-      ['BibTeX entries as headlines (`ol-bibtex.el`): the entries of the file\'s headlines written to a `.bib` file (`org-bibtex`, `org.bibtex.export`), the entry at the cursor copied as BibTeX (`org-bibtex-export-to-kill-ring`, `org.bibtex.copy`), with the prefix, the type and key properties, the keywords as tags and the fields of any property (`org_bibtex_*`)', true],
-      ['A new BibTeX entry, its type and fields asked for in turn (`org-bibtex-create`, `org-bibtex-create-in-current-entry`), and the fields entries lack (`org-bibtex-check`, `org-bibtex-check-all`); with a count the optional fields too; keys made by `bibtex-generate-autokey` through Emacs (`org_bibtex_autogen_keys`)', true],
-      ['A BibTeX entry pasted as a headline (`org-bibtex-yank`, from the clipboard), and the entries of a BibTeX file imported (`org-bibtex-import-from-file`)', true],
+      ['BibTeX entries as headlines (`ol-bibtex.el`): the entries of the file\'s headlines written to a `.bib` file (`org-bibtex`, `org.bibtex.export`), the entry at the cursor copied as BibTeX (`org-bibtex-export-to-kill-ring`, `org.bibtex.copy`), with the prefix, the type and key properties, the keywords as tags and the fields of any property (`org_bibtex_*`)', true, { zed: 'part', helix: 'no' }],
+      ['A new BibTeX entry, its type and fields asked for in turn (`org-bibtex-create`, `org-bibtex-create-in-current-entry`), and the fields entries lack (`org-bibtex-check`, `org-bibtex-check-all`); with a count the optional fields too; keys made by `bibtex-generate-autokey` through Emacs (`org_bibtex_autogen_keys`)', true, { zed: 'no', helix: 'no' }],
+      ['A BibTeX entry pasted as a headline (`org-bibtex-yank`, from the clipboard), and the entries of a BibTeX file imported (`org-bibtex-import-from-file`)', true, { zed: 'no', helix: 'no' }],
       ['The rest of `ol-bibtex.el`: the help on a field while it is asked for (`*BibTeX Help*`); `org-bibtex-headline-format-function`, a Lisp function (its default, the title, is what a headline gets); searching the agenda files for entries (`org-bibtex-search`); reading an entry in a `.bib` file and storing a link to it (`org-bibtex-read`, `org-bibtex-store-link`): org-lsp serves no BibTeX files', false],
     ],
     editors: {
@@ -1022,14 +1026,14 @@ export const AREAS = [
   {
     name: 'Indentation and formatting',
     emacs: [
-      ['Virtual indentation (`org-indent-mode`, `#+STARTUP: indent`), turned on and off in a file by command (`M-x org-indent-mode`, `org.indent.mode`)', true],
-      ['Hidden leading stars (`org-hide-leading-stars`)', true],
+      ['Virtual indentation (`org-indent-mode`, `#+STARTUP: indent`), turned on and off in a file by command (`M-x org-indent-mode`, `org.indent.mode`)', true, { sublime: 'part', zed: 'part', helix: 'part' }],
+      ['Hidden leading stars (`org-hide-leading-stars`)', true, { sublime: 'no', zed: 'no', helix: 'no' }],
       ['Hard indentation (`org-adapt-indentation`)', true],
-      ['Indenting lines and regions (`org-indent-line`, `org-indent-region`)', true],
+      ['Indenting lines and regions (`org-indent-line`, `org-indent-region`)', true, { sublime: 'part', zed: 'part', helix: 'part' }],
       ['Aligning tables and tags', true],
-      ['Lines a long line wraps into indented (`wrap-prefix`): under the line\'s own indentation, a headline\'s title, an item\'s text (`org-list-item-body-column`), past the prefix of virtual indentation where the editor can repeat it', true],
+      ['Lines a long line wraps into indented (`wrap-prefix`): under the line\'s own indentation, a headline\'s title, an item\'s text (`org-list-item-body-column`), past the prefix of virtual indentation where the editor can repeat it', true, { neovim: 'part', vim: 'part', vscode: 'part', sublime: 'no', zed: 'part', helix: 'part' }],
       ['Other widths of virtual indentation, stars left showing and `org-adapt-indentation` left on with it (`org-indent-indentation-per-level`, `org-indent-mode-turns-on-hiding-stars`, `org-indent-mode-turns-off-org-adapt-indentation`)', true],
-      ['Numbered headlines (`org-num-mode`, `#+STARTUP: num`), as inlay hints, with its options (`org-num-max-level`, `org-num-skip-commented`, `org-num-skip-footnotes`, `org-num-skip-tags`, `org-num-skip-unnumbered`)', true],
+      ['Numbered headlines (`org-num-mode`, `#+STARTUP: num`), as inlay hints, with its options (`org-num-max-level`, `org-num-skip-commented`, `org-num-skip-footnotes`, `org-num-skip-tags`, `org-num-skip-unnumbered`)', true, { zed: 'part', helix: 'part' }],
     ],
     editors: {
       neovim: ['part', 'The lines a long line wraps into line up with its own indentation, a headline\'s title or an item\'s text (\'breakindent\'), without the prefix of virtual indentation before them: Neovim repeats no inline virtual text on them, and \'breakindentopt\' shifts all the lines of a window alike. A line with a long link wraps as if the link\'s hidden target took room: Neovim counts concealed text when it wraps; the org-roam buffer, whose links are long, does not wrap.'],
@@ -1054,12 +1058,12 @@ export const AREAS = [
   {
     name: 'Notes and logging',
     emacs: [
-      ['Notes (`org-add-note`), in the log or the `LOGBOOK` drawer', true],
+      ['Notes (`org-add-note`), in the log or the `LOGBOOK` drawer', true, { helix: 'part' }],
       ['Notes and times on state changes', true],
       ['`LOG_INTO_DRAWER` and the `LOGGING` property', true],
       ['Logging rescheduled dates and deadlines (`org-log-reschedule`, `org-log-redeadline`)', true],
       ['The headings of notes (`org-log-note-headings`), the latest note first or last (`org-log-states-order-reversed`, for clock lines too), notes after drawers (`org-log-state-notes-insert-after-drawers`), `CLOSED:` without the time (`org-log-done-with-time`)', true],
-      ['Late-night changes counted on the day before (`org-use-effective-time`, `org-todo-yesterday`, `org-agenda-todo-yesterday`), or at the last clock-out (`org-use-last-clock-out-time-as-effective-time`)', true],
+      ['Late-night changes counted on the day before (`org-use-effective-time`, `org-todo-yesterday`, `org-agenda-todo-yesterday`), or at the last clock-out (`org-use-last-clock-out-time-as-effective-time`)', true, { zed: 'part' }],
     ],
     editors: {
       zed: ['part', `A note is one line, with no buffer to write it in: ${ZED_TEXT}. Changing a TODO state as if it were yesterday is left out: it has no key in keymap.json and is not among the code actions.`],
@@ -1079,9 +1083,9 @@ export const AREAS = [
     name: 'Completion and editing helpers',
     emacs: [
       ['Completion: TODO keywords, tags, `#+` keywords and `#+STARTUP:` values, blocks, drawers, properties, entities, link targets', true],
-      ['Structure templates (`C-c C-,`, through Emacs)', true],
-      ['Emphasis (`C-c C-x C-f`, through Emacs)', true],
-      ['Inserting a drawer (`C-c C-x d`, through Emacs)', true],
+      ['Structure templates (`C-c C-,`, through Emacs)', true, { helix: 'no' }],
+      ['Emphasis (`C-c C-x C-f`, through Emacs)', true, { helix: 'no' }],
+      ['Inserting a drawer (`C-c C-x d`, through Emacs)', true, { helix: 'no' }],
       ['The version (`org-version`): the server\'s, with the commit it was built from', true],
     ],
     editors: {
@@ -1105,7 +1109,7 @@ export const AREAS = [
       ['The relative timer: starting, inserting its value, pausing and stopping (through Emacs)', true],
       ['Timer items in lists (`C-c C-x -`, through Emacs)', true],
       ['Countdowns (`C-c C-x ;`), the effort taken when there is one (through Emacs)', true],
-      ['The timer in the status line, as in the mode line (`<0:05:23>`, `org-timer-display`)', true],
+      ['The timer in the status line, as in the mode line (`<0:05:23>`, `org-timer-display`)', true, { zed: 'no' }],
       ['Starting with an offset (`C-u`), shifting the timer values of a selection (`C-u C-u`, or the selection alone; through Emacs)', true],
     ],
     editors: {
@@ -1124,7 +1128,7 @@ export const AREAS = [
   {
     name: 'Attachments',
     emacs: [
-      ['Attaching files to an entry (`C-c C-a`): attaching, opening, deleting, synchronizing, the directory set (through Emacs, whose options, such as `org-attach-method` and `org-attach-id-dir`, are set in `emacs_options`); the dispatcher has Org\'s keys but `b`, `O` and `F` (an Emacs buffer, Emacs, Dired), whatever `org-attach-commands` says', true],
+      ['Attaching files to an entry (`C-c C-a`): attaching, opening, deleting, synchronizing, the directory set (through Emacs, whose options, such as `org-attach-method` and `org-attach-id-dir`, are set in `emacs_options`); the dispatcher has Org\'s keys but `b`, `O` and `F` (an Emacs buffer, Emacs, Dired), whatever `org-attach-commands` says', true, { helix: 'no' }],
       ['`attachment:` links (through Emacs)', true],
     ],
     editors: {
@@ -1139,7 +1143,7 @@ export const AREAS = [
   {
     name: 'Encryption',
     emacs: [
-      ['Encrypting and decrypting an entry, and the entries tagged `crypt` (`org-crypt`, through Emacs and GnuPG): for `org-crypt-key` or the `CRYPTKEY` property, or with a passphrase GnuPG\'s pinentry asks for', true],
+      ['Encrypting and decrypting an entry, and the entries tagged `crypt` (`org-crypt`, through Emacs and GnuPG): for `org-crypt-key` or the `CRYPTKEY` property, or with a passphrase GnuPG\'s pinentry asks for', true, { zed: 'no', helix: 'no' }],
       ['Encrypting before saving, with `org-crypt-use-before-save-magic` in the Emacs configuration (LSP\'s `willSaveWaitUntil`, for editors that send it)', true],
     ],
     editors: {
@@ -1183,30 +1187,52 @@ export const AREAS = [
   },
 ];
 
-/** The share of an area's Emacs features done, as a whole percentage. */
-export function parity(area) {
+/** An entry of an area's `emacs`: its text, how much of it is done of
+ * how much, and the editors it works in only in part or not at all. */
+export function feature([text, state, ...rest]) {
+  const gaps = typeof rest.at(-1) === 'object' ? rest.pop() : {};
+  const [done, of] = typeof state === 'number' ? [state, rest[0]] : [state ? 1 : 0, 1];
+  return { text, done, of, count: typeof state === 'number', gaps };
+}
+
+/** How much of `feature` works in the editor `id`, from 0 to its `done`. */
+function doneIn(entry, area, id) {
+  const status = area.editors?.[id]?.[0];
+  if (status === 'no') return 0;
+  const gap = entry.gaps[id];
+  return gap === 'no' ? 0 : gap === 'part' ? entry.done / 2 : entry.done;
+}
+
+/** The share of an area's Emacs features done, as a whole percentage: by
+ * the server, or with `id` what of it works in that editor. */
+export function parity(area, id) {
   let done = 0;
   let total = 0;
-  for (const [, state, of] of area.emacs) {
-    if (typeof state === 'number') {
-      done += state;
-      total += of;
-    } else {
-      done += state ? 1 : 0;
-      total += 1;
-    }
+  for (const entry of area.emacs.map(feature)) {
+    done += id ? doneIn(entry, area, id) : entry.done;
+    total += entry.of;
   }
   return { done, total, percent: Math.round((100 * done) / total) };
 }
 
 /** The parity of all of Org: the mean of the areas', each area counting
- * the same however many features it lists. */
-export function overall() {
-  return Math.round(AREAS.reduce((sum, area) => sum + parity(area).percent, 0) / AREAS.length);
+ * the same however many features it lists; with `id`, in that editor. */
+export function overall(id) {
+  return Math.round(AREAS.reduce((sum, area) => sum + parity(area, id).percent, 0) / AREAS.length);
 }
 
 /** How the editor `id` does with `area`: [status, why]. */
 export function support(area, id) {
   if (parity(area).done === 0) return ['none', ''];
   return area.editors?.[id] ?? ['yes', ''];
+}
+
+// A feature that falls short in an editor is of an area that says why.
+for (const area of AREAS) {
+  for (const entry of area.emacs.map(feature)) {
+    for (const id of Object.keys(entry.gaps)) {
+      if (!EDITORS.some((editor) => editor.id === id)) throw new Error(`${area.name}: no editor ${id}`);
+      if (area.editors?.[id]?.[0] !== 'part') throw new Error(`${area.name}: ${id} falls short of "${entry.text}", but the area is not 'part' for it`);
+    }
+  }
 }

@@ -32,7 +32,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, schemaProperties } from './settings-schema.mjs';
-import { AREAS, EDITORS, overall, parity, support } from './features.mjs';
+import { AREAS, EDITORS, feature, overall, parity, support } from './features.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
@@ -808,11 +808,13 @@ function configSchema() {
 // ----- features, parity and the manual tests (scripts/features.mjs)
 
 const MARK = { yes: '✅', part: '❓', no: '❌', none: '—' };
-/** What the marks of a feature table mean; `parity` is the link to docs/parity.org. */
-const legend = (parity, why = "the editor's page says what and why") =>
-  `✅ all that org-lsp does works there, ❓ some does not (${why}),\n` +
-  '❌ none does, — nothing to support yet. Parity is the share of what\n' +
-  `Emacs Org does in that area that org-lsp does; ${link(parity, 'parity.org')} lists both.`;
+/** What the parities of a feature table mean; `parity` is the link to docs/parity.org. */
+const legend = (parity, editor) =>
+  (editor
+    ? `Parity is the share of what Emacs Org does in that area that works in ${editor}, `
+    : 'Parity is the share of what Emacs Org does in that area that org-lsp does, and that works in each editor; ') +
+  'a feature that works only in part counts half, and all of Org is the mean of the areas. ' +
+  `${link(parity, 'parity.org')} lists the features, and where each editor falls short.`;
 
 /** The anchor GitHub gives a heading, and the CUSTOM_ID it has in
  * docs/parity.org, so that a link finds it in Emacs and on GitHub. */
@@ -995,13 +997,13 @@ function checkKeys(check, editor) {
 /** Every area and every editor: README.org's table. */
 function featureTable() {
   const parityFile = 'file:docs/parity.org';
-  const header = ['Feature', 'Parity', EDITORS.map((editor) => editor.name).join(' / ')];
+  const header = ['Feature', 'org-lsp', ...EDITORS.map((editor) => editor.name)];
   const rows = AREAS.map((area) => [
     link(`${parityFile}::#${slug(area.name)}`, area.name),
     `${parity(area).percent}%`,
-    EDITORS.map((editor) => MARK[support(area, editor.id)[0]]).join(' / '),
+    ...EDITORS.map((editor) => `${parity(area, editor.id).percent}%`),
   ]);
-  rows.push(['*All of Org*', `*${overall()}%*`, '']);
+  rows.push(['*All of Org*', `*${overall()}%*`, ...EDITORS.map((editor) => `*${overall(editor.id)}%*`)]);
   return table(header, rows) + '\n\n' + legend(parityFile);
 }
 
@@ -1009,14 +1011,14 @@ function featureTable() {
 function editorFeatureTable(id) {
   const editor = EDITORS.find((one) => one.id === id);
   const rows = AREAS.map((area) => {
-    const [status, why] = support(area, id);
-    return [link(`file:parity.org::#${slug(area.name)}`, area.name), `${parity(area).percent}%`, MARK[status], org(why)];
+    const [, why] = support(area, id);
+    return [link(`file:parity.org::#${slug(area.name)}`, area.name), `${parity(area, id).percent}%`, org(why)];
   });
-  rows.push(['*All of Org*', `*${overall()}%*`, '', '']);
+  rows.push(['*All of Org*', `*${overall(id)}%*`, '']);
   return (
-    table(['Feature', 'Parity', editor.name, 'What does not work, and why'], rows) +
+    table(['Feature', 'Parity', 'What does not work, and why'], rows) +
     '\n\n' +
-    legend('file:parity.org', 'the last column says what and why') +
+    legend('file:parity.org', editor.name) +
     '\n\n' +
     `${link(`file:../${editor.dir}/TESTING.org`, 'TESTING.org')} lists what to try by hand.`
   );
@@ -1050,9 +1052,12 @@ function parityPage() {
     const { done, total, percent } = parity(area);
     lines.push('', heading(1, area.name), ':PROPERTIES:', `:CUSTOM_ID: ${slug(area.name)}`, ':END:', '');
     lines.push(`${percent}% (${done} of ${total})`, '');
-    for (const [text, state, of] of area.emacs) {
-      const mark = typeof state === 'number' ? (state === of ? '✅' : '❓') : state ? '✅' : '❌';
-      lines.push(`- ${mark} ${org(text)}${typeof state === 'number' ? ` (${state} of ${of})` : ''}`);
+    for (const { text, done, of, count, gaps } of area.emacs.map(feature)) {
+      const mark = done === of ? '✅' : done > 0 ? '❓' : '❌';
+      const names = (gap) => EDITORS.filter((editor) => gaps[editor.id] === gap).map((editor) => editor.name);
+      const short = [['not in', names('no')], ['in part in', names('part')]].filter(([, list]) => list.length > 0);
+      const where = short.map(([words, list]) => `${words} ${list.join(', ')}`).join('; ');
+      lines.push(`- ${mark} ${org(text)}${count ? ` (${done} of ${of})` : ''}${where ? ` /(${where})/` : ''}`);
     }
     const short = EDITORS.map((editor) => [editor, ...support(area, editor.id)]).filter(([, status]) => status === 'part' || status === 'no');
     if (short.length > 0) {
