@@ -5883,6 +5883,123 @@ fn archives_subtrees() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
+/// Unlike Emacs, an archive file the file names outside its directory,
+/// hidden, or not named as Org files are asks first (`Archive to FILE?`):
+/// no writes nothing, yes archives there, and a yes to one file is not
+/// one to another. The bulk action `$` asks the same, and goes on with
+/// the entries left.
+#[test]
+fn asks_before_archiving_outside_the_file_s_directory() {
+    let root = workspace("archive-ask");
+    let outside = workspace("archive-ask-outside");
+    let keys = outside.join("authorized_keys");
+    let mut options = clock();
+    options["org_agenda_files"] = json!([root.display().to_string()]);
+    let mut client = Client::editor(options, None);
+    let work = format!("file://{}/work.org", root.display());
+    let original = format!(
+        "* TODO Keys\n:PROPERTIES:\n:ARCHIVE: {}::\n:END:\nkey line\n\
+         * TODO Hidden\n:PROPERTIES:\n:ARCHIVE: .old/done.org::\n:END:\n\
+         * TODO Text\n:PROPERTIES:\n:ARCHIVE: notes.txt::\n:END:\n\
+         * TODO Below\n:PROPERTIES:\n:ARCHIVE: old/done.org::\n:END:\n",
+        keys.display()
+    );
+    let mut text = original.clone();
+    client.open(&work, &text);
+    // A path as the question shows it: `~` for the home directory.
+    let shown = |path: &std::path::Path| {
+        let home = std::env::var_os("HOME").map(std::path::PathBuf::from);
+        match home.as_deref().and_then(|home| path.strip_prefix(home).ok()) {
+            Some(rest) => format!("~/{}", rest.display()),
+            None => path.display().to_string(),
+        }
+    };
+    let ask = |client: &mut Client, line: u32, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": work }, "position": { "line": line, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result = client
+            .request("workspace/executeCommand", json!({ "command": "org.archive.subtree", "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let asked = ask(&mut client, 0, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], format!("Archive to {}? ", shown(&keys)));
+    let question = asked["input"]["context"].clone();
+    assert_eq!(question["step"], "archive-to");
+    assert_eq!(question["targets"], json!([keys.display().to_string()]));
+    // No: nothing is written.
+    let mut answer = question.clone();
+    answer["input"] = json!("n");
+    assert_eq!(ask(&mut client, 0, answer), Err("Abort".to_string()));
+    assert!(!keys.exists());
+    assert!(!client.received.iter().any(|request| request.method == "workspace/applyEdit"));
+    // A yes to that file is not one to another entry's.
+    let mut answer = question.clone();
+    answer["input"] = json!("y");
+    let other = ask(&mut client, 5, answer.clone()).unwrap();
+    assert_eq!(other["input"]["prompt"], format!("Archive to {}? ", shown(&root.join(".old/done.org"))));
+    assert!(!root.join(".old").exists());
+    let text_file = ask(&mut client, 10, json!({})).unwrap();
+    assert!(text_file["input"]["prompt"].as_str().unwrap().ends_with("/notes.txt? "), "{text_file}");
+    // Yes: archived there.
+    let result = run_edit(&mut client, "org.archive.subtree", &work, (0, 0), answer, &mut text);
+    assert_eq!(result["message"], format!("Subtree archived in file: {}", keys.display()), "{result}");
+    assert!(std::fs::read_to_string(&keys).unwrap().contains("* TODO Keys\n"));
+    assert!(!text.contains("Keys"));
+    // Below the file's directory, named as Org files are: not asked.
+    let line = text.lines().position(|line| line == "* TODO Below").unwrap() as u32;
+    let result = run_edit(&mut client, "org.archive.subtree", &work, (line, 0), json!({}), &mut text);
+    assert!(result["message"].as_str().unwrap().starts_with("Subtree archived in file: "), "{result}");
+    assert!(root.join("old/done.org").exists());
+
+    // `$` on marked entries: asked once for the file, then done.
+    std::fs::remove_file(&keys).unwrap();
+    let mut text = original.clone();
+    std::fs::write(root.join("tasks.org"), &text).unwrap();
+    let tasks = format!("file://{}/tasks.org", root.display());
+    client.open(&tasks, &text);
+    client.command("org.agenda.todos", VIEW, 0);
+    let view = client.show_view();
+    let line = view.lines().position(|line| line.contains("Keys") && line.contains("tasks")).unwrap() as u32;
+    client.command("org.agenda.bulk.mark", VIEW, line);
+    let bulk = |client: &mut Client, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result = client.request(
+            "workspace/executeCommand",
+            json!({ "command": "org.agenda.bulk.action", "arguments": [context] }),
+        );
+        client.settle();
+        result
+    };
+    let menu = bulk(&mut client, json!({})).unwrap();
+    let asked =
+        bulk(&mut client, json!({ "step": "action", "input": "$", "answers": menu["input"]["context"]["answers"] }))
+            .unwrap();
+    assert_eq!(asked["input"]["prompt"], format!("Archive to {}? ", shown(&keys)));
+    let mut answer = asked["input"]["context"].clone();
+    answer["input"] = json!("n");
+    assert_eq!(bulk(&mut client, answer.clone()), Err("Abort".to_string()));
+    assert!(!keys.exists());
+    answer["input"] = json!("y");
+    let done = bulk(&mut client, answer).unwrap();
+    assert_eq!(done["message"], "Acted on 1 entries");
+    assert!(std::fs::read_to_string(&keys).unwrap().contains("* TODO Keys\n"));
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").unwrap();
+    let (_, edits) = edits_of(edit);
+    text = apply(&text, &edits);
+    assert!(!text.contains("Keys"), "{text}");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+    std::fs::remove_dir_all(outside).unwrap();
+}
+
 /// From the agenda, a new archive file is made by the edit (a `create`
 /// resource operation) and left unsaved, when the client can make files.
 #[test]

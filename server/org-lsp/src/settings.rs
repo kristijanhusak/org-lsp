@@ -1471,7 +1471,9 @@ pub const SETTINGS: &[Setting] = &[
         "Where archived subtrees go: a file, `::`, and a headline under which they go (they go to the end of the \
          file without one). `%s` is the name of the file the subtree is in; an empty file part is that file. \
          `datetree/` as the headline files them under year, month and day, by when they were closed. An \
-         `ARCHIVE` property of the entry or a parent, or a `#+ARCHIVE:` line, says otherwise.",
+         `ARCHIVE` property of the entry or a parent, or a `#+ARCHIVE:` line, says otherwise; unlike Emacs, a \
+         file they name outside the file's directory, hidden, or not named `*.org` or `*_archive` is asked \
+         about first (`Archive to FILE?`).",
     ),
     setting(
         "org_archive_reversed_order",

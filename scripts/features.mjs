@@ -765,7 +765,7 @@ export const AREAS = [
       ['Archiving a subtree to its archive file', true],
       ['Archiving to the archive sibling', true],
       ['Toggling the `ARCHIVE` tag', true],
-      ['Archive locations, `ARCHIVE` properties, date trees, `ARCHIVE_…` context', true],
+      ['Archive locations, `ARCHIVE` properties, date trees, `ARCHIVE_…` context; unlike Emacs, an archive file the file names (`#+ARCHIVE:`, an `ARCHIVE` property) outside the file\'s directory, hidden, or not named `*.org` or `*_archive` is asked about first (`Archive to FILE?`), from the agenda\'s bulk action too', true],
       ['Archiving all done subtrees', true, { zed: 'no', helix: 'no' }],
       ['The archive file saved, or left with its changes in the editor, as `org-archive-subtree-save-file-p` says (from the agenda it is not, by default)', true],
       ['Logging refiles (`org-log-refile`)', true],
