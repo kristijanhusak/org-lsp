@@ -2825,9 +2825,28 @@ fn runs_shell_links() {
     let asked = open(&mut client, 3, json!({})).unwrap();
     assert_eq!(asked["input"]["prompt"], "Execute echo hi; pwd in shell? ");
     let step = asked["input"]["context"].clone();
-    let refused = open(&mut client, 3, json!({ "input": "n", "step": step["step"], "answers": step["answers"] }));
-    assert_eq!(refused, Err("Abort".to_string()));
-    let ran = open(&mut client, 3, json!({ "input": "y", "step": step["step"], "answers": step["answers"] })).unwrap();
+    assert_eq!(step["confirm"], "echo hi; pwd");
+    // The answer comes back with the question's context, as editors send it.
+    let answer = |input: &str| {
+        let mut context = step.clone();
+        context["input"] = json!(input);
+        context
+    };
+    assert_eq!(open(&mut client, 3, answer("n")), Err("Abort".to_string()));
+    // The link changed between the question and the answer: the yes was
+    // to the other command, which is not run either.
+    let changed = text.replace("echo hi", "echo bye");
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri, "version": 2 }, "contentChanges": [{ "text": changed }] }),
+    );
+    assert_eq!(open(&mut client, 3, answer("n")), Err("Abort".to_string()));
+    assert_eq!(open(&mut client, 3, answer("y")), Err("The link changed after the question: not executed".to_string()));
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri, "version": 3 }, "contentChanges": [{ "text": text }] }),
+    );
+    let ran = open(&mut client, 3, answer("y")).unwrap();
     assert_eq!(ran["message"], "Executing echo hi; pwd");
     let canonical = std::fs::canonicalize(&directory).unwrap();
     assert_eq!(said(&mut client), format!("hi\n{}", canonical.display()));
@@ -2868,12 +2887,23 @@ fn evaluates_elisp_links() {
     client.open(uri, "[[elisp:(+ 1 2)]] [[elisp:(concat \"a\" \"b\")]] [[elisp:(error \"Boom\")]] [[help:car]]\n");
     let asked = open_at(&mut client, uri, 3, json!({})).unwrap();
     assert_eq!(asked["input"]["prompt"], "Execute (+ 1 2) as Elisp? ");
-    let step = asked["input"]["context"].clone();
-    let answer = |input: &str| json!({ "input": input, "step": step["step"], "answers": step["answers"] });
-    assert_eq!(open_at(&mut client, uri, 3, answer("n")), Err("Abort".to_string()));
-    assert_eq!(open_at(&mut client, uri, 3, answer("y")).unwrap()["message"], "(+ 1 2) => 3");
-    assert_eq!(open_at(&mut client, uri, 20, answer("y")).unwrap()["message"], "(concat \"a\" \"b\") => ab");
-    assert_eq!(open_at(&mut client, uri, 50, answer("y")), Err("Boom".to_string()));
+    // The answer comes back with the question's context, as editors send it.
+    let answer = |asked: &Value, input: &str| {
+        let mut context = asked["input"]["context"].clone();
+        context["input"] = json!(input);
+        context
+    };
+    assert_eq!(open_at(&mut client, uri, 3, answer(&asked, "n")), Err("Abort".to_string()));
+    assert_eq!(open_at(&mut client, uri, 3, answer(&asked, "y")).unwrap()["message"], "(+ 1 2) => 3");
+    // A yes to one form does not evaluate another.
+    assert_eq!(
+        open_at(&mut client, uri, 20, answer(&asked, "y")),
+        Err("The link changed after the question: not executed".to_string())
+    );
+    let asked = open_at(&mut client, uri, 20, json!({})).unwrap();
+    assert_eq!(open_at(&mut client, uri, 20, answer(&asked, "y")).unwrap()["message"], "(concat \"a\" \"b\") => ab");
+    let asked = open_at(&mut client, uri, 50, json!({})).unwrap();
+    assert_eq!(open_at(&mut client, uri, 50, answer(&asked, "y")), Err("Boom".to_string()));
     assert_eq!(open_at(&mut client, uri, 75, json!({})), Err("Links of type \"help\" are not supported".to_string()));
     client.shutdown();
 }
