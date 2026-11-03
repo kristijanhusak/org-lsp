@@ -739,6 +739,7 @@ fn the_dispatcher_asks_which_view() {
         json!([
             { "key": "a", "label": "Agenda for the current week or day" },
             { "key": "t", "label": "List of all TODO entries" },
+            { "key": "T", "label": "Entries with special TODO kwd" },
             { "key": "m", "label": "Match a TAGS/PROP/TODO query" },
             { "key": "M", "label": "Like m, but only TODO entries" },
             { "key": "s", "label": "Search for keywords" },
@@ -1208,8 +1209,8 @@ fn runs_custom_agenda_commands() {
     let asked = run(&mut client, "org.agenda.dispatch", json!({})).unwrap();
     let keys: Vec<&str> =
         asked["input"]["choices"].as_array().unwrap().iter().map(|choice| choice["key"].as_str().unwrap()).collect();
-    assert_eq!(keys, ["a", "t", "m", "M", "s", "S", "#", "x"]);
-    assert_eq!(asked["input"]["choices"][7]["label"], "+Mine");
+    assert_eq!(keys, ["a", "t", "T", "m", "M", "s", "S", "#", "x"]);
+    assert_eq!(asked["input"]["choices"][8]["label"], "+Mine");
     let asked = run(&mut client, "org.agenda.dispatch", json!({ "input": "x" })).unwrap();
     assert_eq!(asked["input"]["choices"], json!([{ "key": "b", "label": "Day and office" }]));
     assert_eq!(asked["input"]["context"], json!({ "keys": "x" }));
@@ -1245,6 +1246,45 @@ fn runs_custom_agenda_commands() {
     let text = client.view_text(VIEW);
     assert!(text.starts_with("Headlines with TAGS match: office\n"), "{text}");
     assert!(text.contains("Write report"));
+    client.shutdown();
+}
+
+/// `T` in the agenda menu: `org-todo-list` with `C-u`, the entries with
+/// the keywords asked for (`KWD1|KWD2`), every open one for none.
+#[test]
+fn lists_the_entries_with_the_keywords_asked_for() {
+    let mut client = Client::editor(clock(), None);
+    client.open(
+        "file:///org/home.org",
+        "#+TODO: TODO WAIT | DONE\n* TODO Water plants\n* WAIT Hear back\n* DONE Buy milk\n",
+    );
+    let run = |client: &mut Client, command: &str, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let asked = run(&mut client, "org.agenda.dispatch", json!({ "input": "T" })).unwrap();
+    assert_eq!(
+        (asked["input"]["kind"].as_str(), asked["input"]["prompt"].as_str()),
+        (Some("text"), Some("Keyword (or KWD1|KWD2|...)"))
+    );
+    assert_eq!(asked["input"]["context"], json!({ "keys": "T", "ask": "keyword" }));
+    run(&mut client, "org.agenda.dispatch", json!({ "keys": "T", "ask": "keyword", "input": "WAIT" })).unwrap();
+    let text = client.view_text(VIEW);
+    assert!(text.starts_with("Global list of TODO items of type: WAIT\n"), "{text}");
+    assert!(text.contains("Hear back") && !text.contains("Water plants"), "{text}");
+    run(&mut client, "org.agenda.dispatch", json!({ "keys": "T", "ask": "keyword", "input": "TODO|WAIT" })).unwrap();
+    let text = client.view_text(VIEW);
+    assert!(text.contains("Hear back") && text.contains("Water plants"), "{text}");
+    // `r` builds the same list again.
+    run(&mut client, "org.agenda.redo", json!({})).unwrap();
+    assert_eq!(client.view_text(VIEW), text);
+    run(&mut client, "org.agenda.dispatch", json!({ "keys": "T", "ask": "keyword", "input": "" })).unwrap();
+    assert!(client.view_text(VIEW).starts_with("Global list of TODO items of type: ALL\n"));
     client.shutdown();
 }
 

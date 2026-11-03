@@ -1379,6 +1379,7 @@ describe('The agenda', () => {
       'Press key for agenda command',
       '[a] Agenda for the current week or day',
       '[t] List of all TODO entries',
+      '[T] Entries with special TODO kwd',
       '[m] Match a TAGS/PROP/TODO query',
       '[M] Like m, but only TODO entries',
       '[s] Search for keywords',

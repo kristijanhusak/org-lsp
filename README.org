@@ -106,27 +106,27 @@ does not work there and why.
 
 | Feature | org-lsp | Neovim | Vim | VS Code | Sublime Text | Zed | Helix |
 |---+---+---+---+---+---+---+---|
-| [[file:docs/parity.org::#highlighting][Highlighting]] | 100% | 100% | 98% | 100% | 76% | 74% | 45% |
-| [[file:docs/parity.org::#folding-and-visibility][Folding and visibility]] | 91% | 82% | 77% | 86% | 86% | 9% | 0% |
-| [[file:docs/parity.org::#headings-and-structure][Headings and structure]] | 96% | 96% | 96% | 91% | 96% | 74% | 61% |
-| [[file:docs/parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 93% | 93% | 93% | 93% | 93% | 77% | 73% |
+| [[file:docs/parity.org::#highlighting][Highlighting]] | 95% | 95% | 93% | 95% | 73% | 70% | 43% |
+| [[file:docs/parity.org::#folding-and-visibility][Folding and visibility]] | 83% | 75% | 71% | 79% | 79% | 8% | 0% |
+| [[file:docs/parity.org::#headings-and-structure][Headings and structure]] | 84% | 84% | 84% | 79% | 84% | 65% | 53% |
+| [[file:docs/parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 74% | 74% | 74% | 74% | 74% | 61% | 58% |
 | [[file:docs/parity.org::#todo-keywords][TODO keywords]] | 100% | 100% | 100% | 100% | 97% | 93% | 90% |
 | [[file:docs/parity.org::#priorities][Priorities]] | 100% | 100% | 100% | 100% | 100% | 100% | 100% |
-| [[file:docs/parity.org::#tags][Tags]] | 88% | 88% | 88% | 88% | 75% | 69% | 69% |
-| [[file:docs/parity.org::#properties-and-column-view][Properties and column view]] | 100% | 100% | 90% | 90% | 85% | 65% | 60% |
-| [[file:docs/parity.org::#dates-and-times][Dates and times]] | 100% | 100% | 100% | 100% | 80% | 70% | 60% |
-| [[file:docs/parity.org::#agenda][Agenda]] | 97% | 97% | 97% | 97% | 91% | 86% | 88% |
-| [[file:docs/parity.org::#clocking][Clocking]] | 100% | 100% | 100% | 100% | 100% | 93% | 79% |
-| [[file:docs/parity.org::#capture][Capture]] | 100% | 100% | 100% | 100% | 100% | 100% | 100% |
+| [[file:docs/parity.org::#tags][Tags]] | 78% | 78% | 78% | 78% | 67% | 61% | 61% |
+| [[file:docs/parity.org::#properties-and-column-view][Properties and column view]] | 91% | 91% | 82% | 82% | 77% | 59% | 55% |
+| [[file:docs/parity.org::#dates-and-times][Dates and times]] | 91% | 91% | 91% | 91% | 73% | 64% | 55% |
+| [[file:docs/parity.org::#agenda][Agenda]] | 84% | 84% | 84% | 84% | 79% | 74% | 77% |
+| [[file:docs/parity.org::#clocking][Clocking]] | 78% | 78% | 78% | 78% | 78% | 72% | 61% |
+| [[file:docs/parity.org::#capture][Capture]] | 92% | 92% | 92% | 92% | 92% | 92% | 92% |
 | [[file:docs/parity.org::#org-protocol][org-protocol]] | 86% | 86% | 86% | 86% | 86% | 86% | 86% |
 | [[file:docs/parity.org::#notes-org-roam][Notes (org-roam)]] | 94% | 94% | 94% | 94% | 94% | 84% | 0% |
 | [[file:docs/parity.org::#a-journal-org-journal][A journal (org-journal)]] | 93% | 93% | 93% | 93% | 73% | 50% | 0% |
 | [[file:docs/parity.org::#refile-and-archive][Refile and archive]] | 100% | 100% | 100% | 100% | 100% | 92% | 85% |
 | [[file:docs/parity.org::#links][Links]] | 96% | 96% | 96% | 96% | 96% | 92% | 83% |
-| [[file:docs/parity.org::#footnotes][Footnotes]] | 100% | 100% | 100% | 100% | 100% | 100% | 50% |
-| [[file:docs/parity.org::#tables][Tables]] | 100% | 100% | 100% | 100% | 97% | 87% | 74% |
+| [[file:docs/parity.org::#footnotes][Footnotes]] | 80% | 80% | 80% | 80% | 80% | 80% | 40% |
+| [[file:docs/parity.org::#tables][Tables]] | 86% | 86% | 86% | 86% | 84% | 75% | 64% |
 | [[file:docs/parity.org::#table-formulas][Table formulas]] | 100% | 100% | 100% | 100% | 100% | 96% | 88% |
-| [[file:docs/parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | 100% | 100% | 100% | 100% | 92% | 67% |
+| [[file:docs/parity.org::#code-blocks-babel][Code blocks (Babel)]] | 92% | 92% | 92% | 92% | 92% | 85% | 62% |
 | [[file:docs/parity.org::#export-and-publishing][Export and publishing]] | 100% | 100% | 100% | 89% | 100% | 100% | 0% |
 | [[file:docs/parity.org::#citations][Citations]] | 82% | 82% | 82% | 82% | 82% | 59% | 36% |
 | [[file:docs/parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | 100% | 100% | 100% | 100% | 100% | 100% |
@@ -136,8 +136,8 @@ does not work there and why.
 | [[file:docs/parity.org::#timers][Timers]] | 100% | 100% | 100% | 100% | 100% | 80% | 0% |
 | [[file:docs/parity.org::#attachments][Attachments]] | 100% | 100% | 100% | 100% | 100% | 100% | 50% |
 | [[file:docs/parity.org::#encryption][Encryption]] | 100% | 100% | 100% | 100% | 100% | 50% | 50% |
-| [[file:docs/parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | 100% | 0% | 100% | 100% | 0% | 0% |
-| *All of Org* | *97%* | *97%* | *93%* | *96%* | *93%* | *78%* | *58%* |
+| [[file:docs/parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 83% | 83% | 0% | 83% | 83% | 0% | 0% |
+| *All of Org* | *92%* | *91%* | *88%* | *91%* | *87%* | *74%* | *54%* |
 
 Parity is the share of what Emacs Org does in that area that org-lsp does, and that works in each editor; a feature that works only in part counts half, and all of Org is the mean of the areas. [[file:docs/parity.org][parity.org]] lists the features, and where each editor falls short.
 
