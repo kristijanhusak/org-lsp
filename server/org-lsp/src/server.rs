@@ -275,6 +275,17 @@ enum EmacsJob {
 /// document's version when open, and its text.
 type SentFiles = Vec<(Uri, Option<i32>, String)>;
 
+/// Which files' diary sexps Emacs evaluates: those of the agenda files
+/// `org_agenda_files` names (and the journal's), not a file that is one
+/// only because it is open or in the workspace folder. The files whose
+/// sexps were left out, and those the user was told of.
+#[derive(Default)]
+struct SexpFiles {
+    trusted: HashSet<PathBuf>,
+    skipped: std::collections::BTreeSet<PathBuf>,
+    told: HashSet<PathBuf>,
+}
+
 /// The `%(…)` of `org-agenda-prefix-format` on the lines of the view being
 /// built: what Emacs made of them, those it was asked and that were
 /// used, and those it has yet to evaluate.
@@ -1104,6 +1115,9 @@ struct Server {
     agenda: AgendaConfig,
     /// The `%(…)` of the prefix formats, shared with `agenda`'s evaluator.
     prefix_forms: std::sync::Arc<std::sync::Mutex<PrefixForms>>,
+    /// The files whose diary sexps Emacs may evaluate, shared with
+    /// `agenda`'s evaluator of them.
+    sexp_files: std::sync::Arc<std::sync::Mutex<SexpFiles>>,
     /// Why the last of them could not be evaluated, which was said once:
     /// the agenda is built again as files change.
     prefix_failed: Option<String>,
@@ -1738,9 +1752,25 @@ pub fn run(connection: Connection) -> Result<()> {
     });
     let mut agenda = options.agenda_config();
     // The diary sexps the agenda cannot read, read by Emacs
-    // (`org-diary-sexp-entry`).
+    // (`org-diary-sexp-entry`): only those of the agenda files the
+    // configuration names. Emacs evaluates the sexps of `org-agenda-files`
+    // only; here a file that is open would be one too, without the agenda
+    // files set, and its Lisp would run when any agenda is built.
     let caller = emacs.caller();
+    let sexp_files = std::sync::Arc::new(std::sync::Mutex::new(SexpFiles::default()));
+    let checked = sexp_files.clone();
     agenda.diary = org_core::agenda::diary::Outside(Some(std::sync::Arc::new(move |sexp, entry, day, place| {
+        {
+            let file = place.file.as_deref().map(|file| {
+                let path = PathBuf::from(file);
+                std::fs::canonicalize(&path).unwrap_or(path)
+            })?;
+            let mut files = checked.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+            if !files.trusted.contains(&file) {
+                files.skipped.insert(file);
+                return None;
+            }
+        }
         let date = org_core::date::Date::from_day(day);
         let params = json!({
             "sexp": sexp,
@@ -1846,6 +1876,7 @@ pub fn run(connection: Connection) -> Result<()> {
         todo,
         agenda,
         prefix_forms,
+        sexp_files,
         prefix_failed: None,
         agenda_options: options.agenda.clone(),
         edit_settings: options.edit_settings(),
@@ -6305,7 +6336,9 @@ impl Server {
                     Some((uri.clone(), open(&self.documents[key], &uri)))
                 })
                 .collect();
-            return self.with_journal_files(files);
+            let files = self.with_journal_files(files);
+            self.trust_sexps_of(&files, false);
+            return files;
         }
         // Open documents by path, through links: the client may spell a
         // URI differently, or reach the file by another link.
@@ -6329,7 +6362,46 @@ impl Server {
         if self.agenda_archives == ArchivesMode::Files {
             files = self.with_archive_files(files, &open);
         }
+        // The files of the workspace folders, without `org_agenda_files`,
+        // are the folder's, which may be anyone's.
+        self.trust_sexps_of(&files, self.workspace.names_files());
         files
+    }
+
+    /// Let Emacs evaluate the diary sexps of the agenda `files` when the
+    /// configuration names them (`all`), else of the journal's only.
+    fn trust_sexps_of(&self, files: &[(Uri, Held)], all: bool) {
+        let journal = self.journal.clone();
+        let trusted: HashSet<PathBuf> = files
+            .iter()
+            .filter_map(|(uri, _)| uri::to_path(uri))
+            .filter(|path| all || journal.as_ref().is_some_and(|journal| is_journal(path, journal)))
+            .map(|path| std::fs::canonicalize(&path).unwrap_or(path))
+            .collect();
+        self.sexp_files().trusted = trusted;
+    }
+
+    fn sexp_files(&self) -> std::sync::MutexGuard<'_, SexpFiles> {
+        self.sexp_files.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    /// Say once of each file whose Lisp diary sexps were left out, the
+    /// first time they are.
+    fn tell_skipped_sexps(&mut self) {
+        let new: Vec<PathBuf> = {
+            let mut files = self.sexp_files();
+            let skipped = std::mem::take(&mut files.skipped);
+            skipped.into_iter().filter(|file| files.told.insert(file.clone())).collect()
+        };
+        for file in new {
+            self.show_message(
+                MessageType::INFO,
+                format!(
+                    "Lisp diary sexps in {} not evaluated: it is no file of org_agenda_files",
+                    abbreviate_path(&file)
+                ),
+            );
+        }
     }
 
     /// `org-journal-enable-agenda-integration`: the journal's files of
@@ -6523,6 +6595,7 @@ impl Server {
         if let Some((forms, all)) = wanted {
             self.ask_prefixes(forms, all, replaced_text.as_ref());
         }
+        self.tell_skipped_sexps();
         self.dim_blocked(&mut view);
         view
     }

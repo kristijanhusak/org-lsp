@@ -3226,7 +3226,8 @@ fn refiles_the_subtrees_selected() {
 }
 
 /// A diary sexp the agenda cannot read is Emacs's to evaluate
-/// (`org-diary-sexp-entry`), for each day of the view.
+/// (`org-diary-sexp-entry`), for each day of the view, in a file of
+/// `org_agenda_files`.
 #[test]
 fn diary_sexps_go_to_emacs() {
     let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
@@ -3239,12 +3240,16 @@ fn diary_sexps_go_to_emacs() {
     if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
         options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
     }
+    let directory = std::env::temp_dir().join(format!("org-lsp-diary-sexps-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let path = directory.join("diary.org");
+    let text = "* Days\n%%(cl-evenp (calendar-extract-day date)) Even day\n%%(error \"boom\") Never\n";
+    std::fs::write(&path, text).unwrap();
+    options["org_agenda_files"] = json!([path.display().to_string()]);
+    let diary = format!("file://{}", path.display());
     let mut client = Client::editor(options, None);
-    client.open(
-        "file:///org/diary.org",
-        "* Days\n%%(cl-evenp (calendar-extract-day date)) Even day\n%%(error \"boom\") Never\n",
-    );
-    client.command("org.agenda.list", "file:///org/diary.org", 0);
+    client.open(&diary, text);
+    client.command("org.agenda.list", &diary, 0);
     let text = client.view_text(VIEW);
     let even: Vec<&str> = text.lines().filter(|line| line.contains("Even day")).collect();
     // Monday 18 to Sunday 24: the 18th, 20th, 22nd and 24th.
@@ -3261,12 +3266,84 @@ fn diary_sexps_go_to_emacs() {
             .collect()
     };
     client.wait_until(|client| !said(client).is_empty());
-    client.command("org.agenda.list", "file:///org/diary.org", 0);
+    client.command("org.agenda.list", &diary, 0);
     client.settle();
     let said = said(&client);
     assert_eq!(said.len(), 1, "{said:?}");
-    assert!(said[0].starts_with("Bad sexp at line 3 in /org/diary.org: (let ((entry Never)"), "{said:?}");
+    let bad = format!("Bad sexp at line 3 in {}: (let ((entry Never)", path.display());
+    assert!(said[0].starts_with(&bad), "{said:?}");
     client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+/// Unlike Emacs, which has no agenda without `org-agenda-files`, a file that
+/// is an agenda file only because it is open (or in the workspace folder)
+/// has its Lisp diary sexps left out, not sent to Emacs, and the agenda
+/// says so once; the native ones are read as before.
+#[test]
+fn diary_sexps_of_files_merely_open_are_not_evaluated() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("diary_sexps_of_files_merely_open_are_not_evaluated: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-diary-open-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let marker = directory.join("ran");
+    let path = directory.join("notes.org");
+    let text = format!(
+        "* Days\n%%(progn (write-region \"\" nil {:?}) t) Lisp ran\n%%(diary-float t 1 1) Native\n",
+        marker.display().to_string()
+    );
+    std::fs::write(&path, &text).unwrap();
+    let uri = format!("file://{}", path.display());
+    let said = |client: &Client| -> Vec<String> {
+        client
+            .notifications
+            .iter()
+            .filter(|notification| notification.method == "window/showMessage")
+            .filter_map(|notification| notification.params["message"].as_str().map(str::to_string))
+            .collect()
+    };
+    let mut options = clock();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
+    }
+    // Open, no agenda files.
+    let mut client = Client::editor(options.clone(), None);
+    client.open(&uri, &text);
+    client.command("org.agenda.list", &uri, 0);
+    let view = client.view_text(VIEW);
+    assert!(!view.contains("Lisp ran"), "{view}");
+    assert!(!marker.exists());
+    let told = format!(
+        "Lisp diary sexps in {} not evaluated: it is no file of org_agenda_files",
+        std::fs::canonicalize(&path).unwrap().display()
+    );
+    assert_eq!(said(&client), std::slice::from_ref(&told));
+    // Said once.
+    client.command("org.agenda.list", &uri, 0);
+    client.settle();
+    assert_eq!(said(&client), [told]);
+    client.shutdown();
+    // In the workspace folder, without `org_agenda_files`: the same.
+    let mut client = Client::editor(options.clone(), Some(&format!("file://{}", directory.display())));
+    client.command("org.agenda.list", &uri, 0);
+    assert!(!client.view_text(VIEW).contains("Lisp ran"));
+    assert!(!marker.exists());
+    client.shutdown();
+    // Named in `org_agenda_files`: Emacs evaluates it.
+    options["org_agenda_files"] = json!([path.display().to_string()]);
+    let mut client = Client::editor(options, None);
+    client.open(&uri, &text);
+    client.command("org.agenda.list", &uri, 0);
+    let view = client.view_text(VIEW);
+    assert!(view.contains("Lisp ran"), "{view}");
+    assert!(marker.exists());
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
 }
 
 /// The `%(…)` of `org-agenda-prefix-format` are Emacs's to evaluate, in

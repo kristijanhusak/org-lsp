@@ -8,7 +8,9 @@ short example in its own syntax and points here for the rest.
 
 Nothing has to be set. Without configuration the agenda is built from the
 Org files of the workspace (or the ones that are open), and every option
-is Org's default.
+is Org's default. Their diary sexps that call Lisp are then left out (see
+[[#org_agenda_files][~org_agenda_files~]]): Emacs evaluates those of the files ~org_agenda_files~
+names only.
 
 * The server's options
 :PROPERTIES:
@@ -3866,7 +3868,10 @@ Files, directories and glob patterns (~*~, ~?~, ~**~) the agenda is built
 from. =~/= is the home directory, and a directory stands for the Org files
 directly in it. When empty, the agenda is built from the Org files under the
 workspace folders (hidden directories, ~node_modules~ and ~target~ left out),
-or else from the Org files that are open.
+or else from the Org files that are open; unlike Emacs, the diary sexps of
+those files that call Lisp (beyond the date functions org-lsp reads itself)
+are then not evaluated, and the agenda says so once for each file: only those
+of the files named here (and the journal's) are.
 
 - Org's option :: ~org-agenda-files~
 - Type :: string[]

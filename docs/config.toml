@@ -956,7 +956,11 @@ org_habit_show_done_always_green = false
 # from. `~/` is the home directory, and a directory stands for the Org files
 # directly in it. When empty, the agenda is built from the Org files under the
 # workspace folders (hidden directories, `node_modules` and `target` left
-# out), or else from the Org files that are open. (org-agenda-files)
+# out), or else from the Org files that are open; unlike Emacs, the diary
+# sexps of those files that call Lisp (beyond the date functions org-lsp reads
+# itself) are then not evaluated, and the agenda says so once for each file:
+# only those of the files named here (and the journal's) are.
+# (org-agenda-files)
 org_agenda_files = []
 
 # Which files of a directory in `org_agenda_files` are agenda files: an Emacs
