@@ -708,6 +708,23 @@ impl Emphasis {
     pub const NONE: Emphasis = Emphasis { ty: None, modifiers: 0 };
 }
 
+/// The edit that turns the tokens `before` into `after`, as
+/// `semanticTokens/full/delta` gives it: the tokens between those the
+/// two start and end with, in the numbers of their encoding (five to a
+/// token). None when they are the same.
+pub fn token_edits(before: &[SemanticToken], after: &[SemanticToken]) -> Vec<lsp_types::SemanticTokensEdit> {
+    let start = before.iter().zip(after).take_while(|(a, b)| a == b).count();
+    let end = before[start..].iter().rev().zip(after[start..].iter().rev()).take_while(|(a, b)| a == b).count();
+    if start == before.len() && start == after.len() {
+        return Vec::new();
+    }
+    vec![lsp_types::SemanticTokensEdit {
+        start: 5 * start as u32,
+        delete_count: 5 * (before.len() - start - end) as u32,
+        data: Some(after[start..after.len() - end].to_vec()),
+    }]
+}
+
 /// All tokens of a document, in order.
 pub fn tokens(root: &SyntaxNode, todo: &TodoKeywords, conceal: Conceal) -> Vec<Token> {
     tokens_with(root, todo, conceal, Fontify::default())
@@ -715,7 +732,22 @@ pub fn tokens(root: &SyntaxNode, todo: &TodoKeywords, conceal: Conceal) -> Vec<T
 
 /// [`tokens`], headlines and blocks shown as `fontify` says.
 pub fn tokens_with(root: &SyntaxNode, todo: &TodoKeywords, conceal: Conceal, fontify: Fontify) -> Vec<Token> {
-    let mut walker = Walker { todo, conceal, fontify, out: Vec::new(), around: 0 };
+    tokens_within(root, todo, conceal, fontify, None)
+}
+
+/// [`tokens_with`] of the elements and objects that reach `within`, or
+/// touch it: those of a range (`semanticTokens/range`), without walking
+/// the rest of the document. Its tokens are those of the whole
+/// document; a token that goes on past it, made of pieces of several
+/// elements in the same look, stops where the elements left out start.
+pub fn tokens_within(
+    root: &SyntaxNode,
+    todo: &TodoKeywords,
+    conceal: Conceal,
+    fontify: Fontify,
+    within: Option<TextRange>,
+) -> Vec<Token> {
+    let mut walker = Walker { todo, conceal, fontify, out: Vec::new(), around: 0, within };
     walker.children(root, Style::PLAIN);
     walker.out
 }
@@ -902,6 +934,8 @@ struct Walker<'a> {
     /// other objects inside it take its look on top of their own, as
     /// Org's faces compose.
     around: u32,
+    /// Where the tokens are wanted (`tokens_within`).
+    within: Option<TextRange>,
 }
 
 impl Walker<'_> {
@@ -922,6 +956,10 @@ impl Walker<'_> {
 
     fn children(&mut self, node: &SyntaxNode, style: Style) {
         for child in node.children_with_tokens() {
+            let range = child.text_range();
+            if self.within.is_some_and(|within| range.end() < within.start() || range.start() > within.end()) {
+                continue;
+            }
             self.element(node, child, style);
         }
     }
@@ -2181,6 +2219,88 @@ mod tests {
                 token(12, 14, TokenType::Tag, 0),
             ]
         );
+    }
+
+    /// The tokens of some lines, from what reaches them alone, are the
+    /// document's on those lines; and the edits between two sets of
+    /// tokens turn the first into the second.
+    #[test]
+    fn tokens_of_a_range_are_the_documents() {
+        // Each piece where it is: line, column, length, type, modifiers.
+        let absolute = |data: &[SemanticToken]| {
+            let (mut line, mut column) = (0, 0);
+            data.iter()
+                .map(|token| {
+                    line += token.delta_line;
+                    column = if token.delta_line == 0 { column + token.delta_start } else { token.delta_start };
+                    (line, column, token.length, token.token_type, token.token_modifiers_bitset)
+                })
+                .collect::<Vec<_>>()
+        };
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests");
+        let mut files: Vec<std::path::PathBuf> = std::fs::read_dir(root.join("fixtures"))
+            .unwrap()
+            .chain(std::fs::read_dir(root.join("e2e/highlight")).unwrap())
+            .map(|entry| entry.unwrap().path())
+            .filter(|path| path.extension().is_some_and(|extension| extension == "org"))
+            .collect();
+        files.sort();
+        assert!(files.len() > 10);
+        let todo = TodoKeywords::default();
+        let mut previous: Vec<SemanticToken> = Vec::new();
+        for file in files {
+            let text = std::fs::read_to_string(&file).unwrap();
+            let parse = org_syntax::parse(&text, &todo);
+            let index = LineIndex::new(&text);
+            let shown = Fontify {
+                done_headline: true,
+                todo_headline: true,
+                quote_and_verse: true,
+                hide_macro_markers: true,
+                ..Fontify::default()
+            };
+            let hidden = Conceal { links: true, emphasis: true };
+            let lines = index.line_count() as u32;
+            for (conceal, fontify, size) in [
+                (Conceal::default(), Fontify::default(), 1),
+                (Conceal::default(), Fontify::default(), 3),
+                (hidden, shown, 1),
+                (hidden, shown, 10),
+            ] {
+                let all = tokens_with(&parse.syntax(), parse.todo_keywords(), conceal, fontify);
+                for first in 0..lines {
+                    let last = (first + size).min(lines);
+                    let range =
+                        lsp_types::Range::new(lsp_types::Position::new(first, 0), lsp_types::Position::new(last, 0));
+                    let only = index.text_range(&text, range, Encoding::Utf16);
+                    let within = tokens_within(&parse.syntax(), parse.todo_keywords(), conceal, fontify, Some(only));
+                    let on_lines = |data: Vec<SemanticToken>| {
+                        absolute(&data).into_iter().filter(|piece| (first..last).contains(&piece.0)).collect::<Vec<_>>()
+                    };
+                    assert_eq!(
+                        on_lines(encode(&within, &text, &index, Encoding::Utf16, Some(only))),
+                        on_lines(encode(&all, &text, &index, Encoding::Utf16, Some(only))),
+                        "{} lines {first}..{last}",
+                        file.display()
+                    );
+                }
+            }
+            let all = tokens_with(&parse.syntax(), parse.todo_keywords(), Conceal::default(), Fontify::default());
+            let data = encode(&all, &text, &index, Encoding::Utf16, None);
+            let mut edited: Vec<u32> = previous.iter().flat_map(token_numbers).collect();
+            for edit in token_edits(&previous, &data) {
+                let (start, count) = (edit.start as usize, edit.delete_count as usize);
+                let numbers = edit.data.unwrap_or_default().iter().flat_map(token_numbers).collect::<Vec<_>>();
+                edited.splice(start..start + count, numbers);
+            }
+            assert_eq!(edited, data.iter().flat_map(token_numbers).collect::<Vec<_>>(), "{}", file.display());
+            assert!(token_edits(&data, &data).is_empty());
+            previous = data;
+        }
+    }
+
+    fn token_numbers(token: &SemanticToken) -> [u32; 5] {
+        [token.delta_line, token.delta_start, token.length, token.token_type, token.token_modifiers_bitset]
     }
 
     /// The code blocks of `text`, as `kind name "code"`.

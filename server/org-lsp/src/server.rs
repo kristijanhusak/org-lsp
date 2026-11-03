@@ -146,6 +146,9 @@ struct Client {
     images: bool,
     /// The client rereads semantic tokens when asked.
     tokens_refresh: bool,
+    /// The client asks for the tokens that changed since those it has
+    /// (`semanticTokens/full/delta`).
+    tokens_delta: bool,
     /// The client asks for inlay hints again when told to.
     inlay_refresh: bool,
     /// Ask with `window/showMessageRequest` (`message_prompts`).
@@ -1282,6 +1285,10 @@ struct Server {
     heading_lines: HashMap<String, Vec<(usize, usize)>>,
     /// The documents last sent with code in `org-lsp/codeBlocks`.
     code_blocks_sent: HashSet<String>,
+    /// The tokens last sent of each document, with their result ID, and
+    /// the last ID (`tokens_kept`).
+    tokens_sent: HashMap<String, (String, Vec<lsp_types::SemanticToken>)>,
+    tokens_result: u64,
     /// What each document was last sent in `org-lsp/syntax`.
     syntax_sent: HashMap<String, Value>,
     /// The documents last sent with something in `org-lsp/display`.
@@ -1663,6 +1670,10 @@ pub fn run(connection: Connection) -> Result<()> {
         hidden_lines: raw_params.pointer("/capabilities/experimental/orgHiddenLines").and_then(Value::as_bool)
             == Some(true)
             || options.hidden_lines == Some(true),
+        tokens_delta: raw_params
+            .pointer("/capabilities/textDocument/semanticTokens/requests/full/delta")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
         tokens_refresh: raw_params
             .pointer("/capabilities/workspace/semanticTokens/refreshSupport")
             .and_then(Value::as_bool)
@@ -1729,15 +1740,7 @@ pub fn run(connection: Connection) -> Result<()> {
     // writes and reads, as Emacs's variables are.
     org_core::duration::set(options.durations());
     let result = InitializeResult {
-        capabilities: capabilities(
-            client.encoding,
-            true,
-            client.command_actions,
-            client.standard_tokens,
-            &faces,
-            options.journal().as_ref(),
-            &options.ellipsis(),
-        ),
+        capabilities: capabilities(&client, true, &faces, options.journal().as_ref(), &options.ellipsis()),
         server_info: Some(ServerInfo {
             name: "org-lsp".to_string(),
             version: Some(env!("ORG_LSP_VERSION").to_string()),
@@ -1961,6 +1964,8 @@ pub fn run(connection: Connection) -> Result<()> {
         virtually_indented: HashSet::new(),
         heading_lines: HashMap::new(),
         code_blocks_sent: HashSet::new(),
+        tokens_sent: HashMap::new(),
+        tokens_result: 0,
         syntax_sent: HashMap::new(),
         displayed: HashSet::new(),
         cite_global: options.cite_global_bibliography.clone().unwrap_or_default(),
@@ -2827,10 +2832,8 @@ fn journal_directory(journal: Option<&crate::config::JournalSettings>) -> Value 
 }
 
 fn capabilities(
-    encoding: Encoding,
+    client: &Client,
     inlay_hints: bool,
-    cursor: bool,
-    standard_tokens: bool,
     faces: &Value,
     journal: Option<&crate::config::JournalSettings>,
     ellipsis: &str,
@@ -2838,6 +2841,7 @@ fn capabilities(
     // `orgJournal`: the journal's directory, whose files are Org files
     // without the name saying so (`org-journal-is-journal`).
     let journal = journal_directory(journal);
+    let (encoding, cursor) = (client.encoding, client.command_actions);
     ServerCapabilities {
         position_encoding: Some(encoding.kind()),
         text_document_sync: Some(TextDocumentSyncCapability::Options(TextDocumentSyncOptions {
@@ -2850,8 +2854,13 @@ fn capabilities(
         })),
         semantic_tokens_provider: Some(SemanticTokensServerCapabilities::SemanticTokensOptions(
             SemanticTokensOptions {
-                legend: if standard_tokens { highlight::standard::legend() } else { highlight::legend() },
-                full: Some(SemanticTokensFullOptions::Bool(true)),
+                legend: if client.standard_tokens { highlight::standard::legend() } else { highlight::legend() },
+                // The tokens that changed, to a client that asks for them.
+                full: Some(if client.tokens_delta {
+                    SemanticTokensFullOptions::Delta { delta: Some(true) }
+                } else {
+                    SemanticTokensFullOptions::Bool(true)
+                }),
                 range: Some(true),
                 ..Default::default()
             },
@@ -3736,6 +3745,7 @@ impl Server {
         dispatch! {
             SemanticTokensFullRequest => semantic_tokens_full,
             SemanticTokensRangeRequest => semantic_tokens_range,
+            lsp_types::request::SemanticTokensFullDeltaRequest => semantic_tokens_delta,
             FoldingRangeRequest => folding_ranges,
             DocumentSymbolRequest => document_symbols,
             CodeActionRequest => code_actions,
@@ -4119,6 +4129,7 @@ impl Server {
                 self.indent_mode.remove(params.text_document.uri.as_str());
                 self.heading_lines.remove(params.text_document.uri.as_str());
                 self.code_blocks_sent.remove(params.text_document.uri.as_str());
+                self.tokens_sent.remove(params.text_document.uri.as_str());
                 self.syntax_sent.remove(params.text_document.uri.as_str());
                 self.custom_properties_hidden.remove(params.text_document.uri.as_str());
                 self.displayed.remove(params.text_document.uri.as_str());
@@ -4158,12 +4169,8 @@ impl Server {
         let document = self.document(uri)?;
         let (conceal, _, _) = self.display_of(&document.text);
         let fontify = self.fontify_of(&document.text);
-        let tokens = highlight::tokens_with(&document.syntax(), document.parse.todo_keywords(), conceal, fontify);
-        let tokens =
-            if self.edit_settings.todo.lists.checkbox_rule { tokens } else { highlight::without_cookies(tokens) };
         let radio: Vec<(usize, usize)> =
             org_core::radio::links(&document.text, &document.parse).iter().map(|link| (link.start, link.end)).collect();
-        let tokens = highlight::with_radio_links(tokens, &radio);
         // `org-pretty-entities`: an entity hidden, its character an inlay
         // hint in its place; so are the shrunk fields of tables. A client
         // that shows them itself (`org-lsp/display`) hides them itself.
@@ -4176,8 +4183,26 @@ impl Server {
                 .collect()
         };
         hidden.sort_unstable();
-        let tokens = if hidden.is_empty() { tokens } else { highlight::with_hidden(tokens, &hidden) };
         let only = range.map(|range| document.index.text_range(&document.text, range, encoding));
+        // For a range, the tokens of what reaches it alone, and of the
+        // radio links and hidden text that reach it, which take the look
+        // of the tokens under them.
+        let within = only.map(|only| {
+            radio.iter().chain(&hidden).fold(only, |within, (start, end)| {
+                let (start, end) = (org_syntax::TextSize::new(*start as u32), org_syntax::TextSize::new(*end as u32));
+                if end < within.start() || start > within.end() {
+                    within
+                } else {
+                    org_syntax::TextRange::new(within.start().min(start), within.end().max(end))
+                }
+            })
+        });
+        let tokens =
+            highlight::tokens_within(&document.syntax(), document.parse.todo_keywords(), conceal, fontify, within);
+        let tokens =
+            if self.edit_settings.todo.lists.checkbox_rule { tokens } else { highlight::without_cookies(tokens) };
+        let tokens = highlight::with_radio_links(tokens, &radio);
+        let tokens = if hidden.is_empty() { tokens } else { highlight::with_hidden(tokens, &hidden) };
         let data = highlight::encode(&tokens, &document.text, &document.index, encoding, only);
         Some(self.client_tokens(data))
     }
@@ -4367,7 +4392,42 @@ impl Server {
     }
 
     fn semantic_tokens_full(&mut self, params: SemanticTokensParams) -> Option<SemanticTokens> {
-        self.semantic_tokens(&params.text_document.uri, None)
+        let tokens = self.semantic_tokens(&params.text_document.uri, None)?;
+        Some(self.tokens_kept(&params.text_document.uri, tokens))
+    }
+
+    /// The tokens of a document as edits of those the client has, which
+    /// the result it names says (`semanticTokens/full/delta`); all of
+    /// them when the server no longer has those.
+    fn semantic_tokens_delta(
+        &mut self,
+        params: lsp_types::SemanticTokensDeltaParams,
+    ) -> Option<lsp_types::SemanticTokensFullDeltaResult> {
+        let uri = &params.text_document.uri;
+        let tokens = self.semantic_tokens(uri, None)?;
+        let before = self.tokens_sent.remove(uri.as_str()).filter(|(id, _)| *id == params.previous_result_id);
+        let Some((_, before)) = before else {
+            return Some(lsp_types::SemanticTokensFullDeltaResult::Tokens(self.tokens_kept(uri, tokens)));
+        };
+        let edits = highlight::token_edits(&before, &tokens.data);
+        let kept = self.tokens_kept(uri, tokens);
+        Some(lsp_types::SemanticTokensFullDeltaResult::TokensDelta(lsp_types::SemanticTokensDelta {
+            result_id: kept.result_id,
+            edits,
+        }))
+    }
+
+    /// `tokens`, kept with a result ID for a client that asks for the
+    /// tokens that changed since (`tokens_delta`).
+    fn tokens_kept(&mut self, uri: &Uri, mut tokens: SemanticTokens) -> SemanticTokens {
+        if !self.client.tokens_delta {
+            return tokens;
+        }
+        self.tokens_result += 1;
+        let id = self.tokens_result.to_string();
+        tokens.result_id = Some(id.clone());
+        self.tokens_sent.insert(uri.as_str().to_string(), (id, tokens.data.clone()));
+        tokens
     }
 
     fn semantic_tokens_range(&mut self, params: SemanticTokensRangeParams) -> Option<SemanticTokens> {
