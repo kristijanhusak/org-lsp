@@ -121,6 +121,21 @@ def search_path() -> str:
     return os.pathsep.join([os.environ.get('PATH', '')] + extra)
 
 
+def on_path(name: str, path: str):
+    """The program `name` in a directory of `path`, as an absolute path.
+    Never one in the current directory, which Windows (and `shutil.which`
+    there) looks in first, nor in an empty or relative entry, which stand
+    for it."""
+    for directory in path.split(os.pathsep):
+        directory = directory.strip('"')
+        if not directory or not os.path.isabs(directory):
+            continue
+        candidate = os.path.join(directory, name)
+        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    return None
+
+
 def checkout_build():
     """The server built in the checkout this package is linked from
     (`editors/sublime/LSP-org`), if there is one."""
@@ -145,7 +160,7 @@ def server_path(storage: str):
     command = settings().get('command') or ['org-lsp']
     if command[0] != 'org-lsp':
         return os.path.expanduser(command[0])
-    found = shutil.which('org-lsp', path=search_path()) or checkout_build()
+    found = on_path(executable(), search_path()) or checkout_build()
     if found:
         return found
     downloaded = downloaded_path(storage)
