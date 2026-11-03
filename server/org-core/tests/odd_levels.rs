@@ -24,9 +24,9 @@ fn valid_levels_are_odd() {
 
 #[test]
 fn startup_words_turn_it_on_and_off() {
-    assert!(odd_levels("#+STARTUP: odd\n", false));
-    assert!(!odd_levels("#+STARTUP: odd oddeven\n", true));
-    assert!(odd_levels("* A\n", true));
+    assert!(odd_levels("#+STARTUP: odd\n", &org_syntax::TodoKeywords::default(), false));
+    assert!(!odd_levels("#+STARTUP: odd oddeven\n", &org_syntax::TodoKeywords::default(), true));
+    assert!(odd_levels("* A\n", &org_syntax::TodoKeywords::default(), true));
 }
 
 #[test]

@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 
 use lsp_types::FoldingRange;
+use org_syntax::TodoKeywords;
 use org_syntax::{ast::Headline, SyntaxKind::*, SyntaxNode};
 
 use crate::line_index::LineIndex;
@@ -190,9 +191,10 @@ pub fn startup_folds(
     index: &LineIndex,
     folding: impl Into<Folding>,
     options: &Startup,
+    keywords: &TodoKeywords,
 ) -> Vec<FoldingRange> {
     let mut startup = options.clone();
-    for word in org_core::text::startup_words(text) {
+    for word in org_core::text::startup_words(text, keywords) {
         match word.to_ascii_lowercase().as_str() {
             folded @ ("overview" | "fold" | "content" | "show2levels" | "show3levels" | "show4levels"
             | "show5levels" | "showall" | "nofold" | "showeverything") => startup.folded = folded.to_string(),
@@ -320,7 +322,7 @@ mod tests {
         let parse = org_syntax::parse(text, &TodoKeywords::default());
         let index = LineIndex::new(text);
         let options = Startup { folded: folded.to_string(), ..Startup::default() };
-        startup_folds(&parse.syntax(), text, &index, SEPARATOR_LINES, &options)
+        startup_folds(&parse.syntax(), text, &index, SEPARATOR_LINES, &options, parse.todo_keywords())
             .into_iter()
             .map(|range| (range.start_line, range.end_line))
             .collect()

@@ -267,8 +267,7 @@ fn location_spec(text: &str, heading: Option<usize>, keywords: &TodoKeywords, de
         }
         entry = outline.entries[at].parent;
     }
-    let root = parse.syntax();
-    let property = keyword_values(&root, "PROPERTY").into_iter().rev().find_map(|value| {
+    let property = keyword_values(&parse, "PROPERTY").into_iter().rev().find_map(|value| {
         let value = value.trim();
         let rest = value.strip_prefix("ARCHIVE")?;
         rest.starts_with([' ', '\t']).then(|| rest.trim().to_string())
@@ -276,7 +275,7 @@ fn location_spec(text: &str, heading: Option<usize>, keywords: &TodoKeywords, de
     if let Some(value) = property {
         return value;
     }
-    keyword_values(&root, "ARCHIVE").into_iter().next().unwrap_or_else(|| default.to_string())
+    keyword_values(&parse, "ARCHIVE").into_iter().next().unwrap_or_else(|| default.to_string())
 }
 
 /// `org-archive--compute-location`
@@ -300,8 +299,8 @@ fn compute_location(spec: &str, context: &Context) -> Result<Location, Refusal> 
 /// of `ARCHIVE` properties, each once. Whether they exist is the caller's
 /// to check; a location that is not one is left out.
 pub fn archive_files(text: &str, keywords: &TodoKeywords, context: &Context, default: &str) -> Vec<PathBuf> {
-    let root = org_syntax::parse(text, keywords).syntax();
-    let mut specs = vec![keyword_values(&root, "ARCHIVE").into_iter().next().unwrap_or_else(|| default.to_string())];
+    let parse = org_syntax::parse(text, keywords);
+    let mut specs = vec![keyword_values(&parse, "ARCHIVE").into_iter().next().unwrap_or_else(|| default.to_string())];
     // `:ARCHIVE:` lines in property drawers.
     let mut in_drawer = false;
     for line in text.lines() {

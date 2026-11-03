@@ -273,8 +273,7 @@ pub fn scan_with(
 
 impl Reader<'_> {
     fn scan(&self) -> Result<FileData, String> {
-        let root = self.parse.syntax();
-        let titles = crate::outline::keyword_values(&root, "TITLE");
+        let titles = crate::outline::keyword_values(self.parse, "TITLE");
         let title = crate::refile::link_display_format(&titles.join(" "));
         let mut rows = Vec::new();
         // `org-roam-db-insert-file-node`: the file's own node, when the
@@ -485,7 +484,7 @@ impl Reader<'_> {
     fn links(&self) -> Vec<(usize, usize, String, String)> {
         let root = self.parse.syntax();
         let mut out: Vec<(usize, usize, String, String)> = Vec::new();
-        let abbreviations = crate::open::abbreviations(self.text, &[]);
+        let abbreviations = crate::open::abbreviations(self.text, self.parse.todo_keywords(), &[]);
         for node in root.descendants() {
             let is_link = |node: &SyntaxNode| {
                 matches!(node.kind(), SyntaxKind::LINK | SyntaxKind::PLAIN_LINK | SyntaxKind::ANGLE_LINK)

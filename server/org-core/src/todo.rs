@@ -439,7 +439,7 @@ type LogState = (String, Option<Logging>, Option<Logging>);
 
 impl Log {
     /// The settings, with the `#+STARTUP:` words of `text` after them.
-    fn new(settings: &Settings, text: &str) -> Log {
+    fn new(settings: &Settings, text: &str, keywords: &TodoKeywords) -> Log {
         let mut log = Log {
             done: settings.log_done,
             repeat: settings.log_repeat,
@@ -450,7 +450,7 @@ impl Log {
             reversed: settings.states_order_reversed,
             states: None,
         };
-        for word in crate::text::startup_words(text) {
+        for word in crate::text::startup_words(text, keywords) {
             match word {
                 "logdrawer" => log.into_drawer = Some("LOGBOOK".to_string()),
                 "nologdrawer" => log.into_drawer = None,
@@ -645,7 +645,7 @@ fn repeater_parts(stamp: &str) -> Option<(Option<char>, i64, char)> {
 
 impl<'a> Editor<'a> {
     pub(crate) fn new(text: &str, keywords: &'a TodoKeywords, settings: &'a Settings, now: DateTime) -> Editor<'a> {
-        let log = Log::new(settings, text);
+        let log = Log::new(settings, text, keywords);
         Editor {
             text: text.to_string(),
             keywords,
@@ -2001,7 +2001,7 @@ pub fn add_note(
 /// `org-log-redeadline`, with the file's `#+STARTUP:` words
 /// (`logreschedule`, `lognoteredeadline`…) after them.
 pub fn planning_logging(settings: &Settings, text: &str, change: PlanningChange) -> Option<Logging> {
-    let log = Log::new(settings, text);
+    let log = Log::new(settings, text, &TodoKeywords::default());
     if change.is_deadline() {
         log.redeadline
     } else {
@@ -2034,15 +2034,15 @@ pub fn entry_blocked(text: &str, keywords: &TodoKeywords, offset: usize, setting
 /// What refiling to `text` logs: `org-log-refile`, with the file's
 /// `#+STARTUP:` words (`logrefile`, `lognoterefile`, `nologrefile`).
 pub fn refile_logging(settings: &Settings, text: &str) -> Option<Logging> {
-    Log::new(settings, text).refile
+    Log::new(settings, text, &TodoKeywords::default()).refile
 }
 
 /// `org-store-log-note` for the entry at byte `offset` just refiled:
 /// `Refiled on [now]`, with the text `note` (empty for a time only).
 /// `org-log-note-clock-out` for the file `text`: `setting`, unless its
 /// `#+STARTUP:` says `lognoteclock-out` or `nolognoteclock-out`.
-pub fn note_clock_out(setting: bool, text: &str) -> bool {
-    crate::text::startup_words(text).into_iter().fold(setting, |on, word| match word {
+pub fn note_clock_out(setting: bool, text: &str, keywords: &TodoKeywords) -> bool {
+    crate::text::startup_words(text, keywords).into_iter().fold(setting, |on, word| match word {
         "lognoteclock-out" => true,
         "nolognoteclock-out" => false,
         _ => on,
@@ -2416,8 +2416,8 @@ mod tests {
             note(&item, "x", &headed),
             format!("* TODO a\n:LOGBOOK:\n{line}\n- Stopped at [2026-05-18 Mon 10:30] \\\\\n  x\n:END:\n- item\n")
         );
-        assert!(note_clock_out(false, "#+STARTUP: lognoteclock-out\n"));
-        assert!(!note_clock_out(true, "#+STARTUP: nolognoteclock-out\n"));
+        assert!(note_clock_out(false, "#+STARTUP: lognoteclock-out\n", &TodoKeywords::default()));
+        assert!(!note_clock_out(true, "#+STARTUP: nolognoteclock-out\n", &TodoKeywords::default()));
     }
 
     #[test]

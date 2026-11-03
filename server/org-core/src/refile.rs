@@ -109,7 +109,7 @@ pub fn heading_text(text: &str, offset: usize, keywords: &TodoKeywords) -> Strin
 
 /// The file's title (`org-get-title`): its `#+TITLE:` lines, joined.
 pub fn file_title(parse: &org_syntax::Parse) -> Option<String> {
-    let titles = crate::outline::keyword_values(&parse.syntax(), "TITLE");
+    let titles = crate::outline::keyword_values(parse, "TITLE");
     (!titles.is_empty()).then(|| titles.join(" "))
 }
 

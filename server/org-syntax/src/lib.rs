@@ -25,7 +25,7 @@ mod lists;
 mod objects;
 mod parser;
 
-pub use config::{Interpretation, Logging, TodoKeywords};
+pub use config::{Interpretation, Logging, Setting, TodoKeywords};
 use parser::headline_level;
 
 /// The names of the entities Org knows (`org-entities`), sorted.
@@ -129,7 +129,8 @@ pub fn parse_objects(text: &str) -> SyntaxNode {
 /// Parse `text`. `default_todo` applies unless the document declares its own
 /// keywords with `#+TODO:` lines.
 pub fn parse(text: &str, default_todo: &TodoKeywords) -> Parse {
-    let declared = TodoKeywords::from_document(text);
+    // `#+TODO:` lines of the setup files count as the document's own.
+    let declared = TodoKeywords::declared(text, default_todo.setup());
     let default = declared.is_none();
     let todo = declared.unwrap_or_else(|| default_todo.clone());
     let green = parser::parse(text, &todo);
@@ -147,8 +148,9 @@ impl Parse {
     /// whole of `new` is parsed. Either way the tree is the one [`parse`]
     /// gives.
     pub fn edit(&self, old: &str, start: usize, end: usize, new: &str, default_todo: &TodoKeywords) -> Parse {
-        // Other default keywords than the ones it was parsed with.
-        if self.default && self.todo != *default_todo {
+        // Other default keywords than the ones it was parsed with, or
+        // other setup files' settings.
+        if (self.default && self.todo != *default_todo) || self.todo.setup() != default_todo.setup() {
             return parse(new, default_todo);
         }
         self.edit_in_place(old, start, end, new).unwrap_or_else(|| parse(new, default_todo))

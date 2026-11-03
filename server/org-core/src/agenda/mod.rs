@@ -454,7 +454,7 @@ pub fn tag_groups(files: &[&Outline], config: &Config) -> Vec<(String, Vec<Strin
     };
     let mut groups: Vec<(String, Vec<String>)> = Vec::new();
     for outline in files {
-        let alist = crate::tags::current_alist(&outline.text, &settings);
+        let alist = crate::tags::current_alist(&outline.text, &outline.todo, &settings);
         for (key, members) in crate::tags::alist_to_groups(&alist) {
             match groups.iter_mut().find(|(known, _)| *known == key) {
                 Some((_, old)) => {
@@ -1009,7 +1009,7 @@ impl Builder<'_> {
                 // `org-log-states-order-reversed`, as the file's
                 // `#+STARTUP:` may set it.
                 let mut reversed = settings.states_order_reversed;
-                for word in crate::text::startup_words(&outline.text) {
+                for word in crate::text::startup_words(&outline.text, &outline.todo) {
                     match word {
                         "logstatesreversed" => reversed = true,
                         "nologstatesreversed" => reversed = false,

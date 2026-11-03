@@ -229,10 +229,11 @@ mod line_end_tests {
 }
 
 /// The words of the file's `#+STARTUP:` lines, as `org-collect-keywords`
-/// finds them: keywords, so not lines inside a block whose contents Org
-/// does not parse (source, example, export, comment and verse blocks).
-pub fn startup_words(text: &str) -> Vec<&str> {
-    let mut words = Vec::new();
+/// finds them, those of its setup files (`#+SETUPFILE:`, in `keywords`)
+/// first: keywords, so not lines inside a block whose contents Org does
+/// not parse (source, example, export, comment and verse blocks).
+pub fn startup_words<'a>(text: &'a str, keywords: &'a org_syntax::TodoKeywords) -> Vec<&'a str> {
+    let mut words: Vec<&str> = keywords.setup_values("STARTUP").flat_map(str::split_whitespace).collect();
     // The line that ends the block the line is in (`#+end_src`), written
     // once for the block, not for each of its lines.
     let mut inside: Option<String> = None;
@@ -269,7 +270,10 @@ mod startup_tests {
     fn startup_words_are_keywords_only() {
         let text = "#+STARTUP: overview indent\n#+begin_example\n#+STARTUP: showall\n#+end_example\n\
                     #+BEGIN_SRC org\n#+startup: noindent\n#+END_SRC\n#+begin_quote\n#+STARTUP: hidestars\n#+end_quote\n";
-        assert_eq!(super::startup_words(text), ["overview", "indent", "hidestars"]);
+        assert_eq!(
+            super::startup_words(text, &org_syntax::TodoKeywords::default()),
+            ["overview", "indent", "hidestars"]
+        );
     }
 }
 

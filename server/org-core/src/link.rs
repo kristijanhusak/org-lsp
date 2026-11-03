@@ -558,7 +558,7 @@ fn id_link(
     let mut link = format!("id:{id}");
     let mut description = if before_first_heading(current, id_location) {
         let parse = org_syntax::parse(current, &context.keywords);
-        let titles = crate::outline::keyword_values(&parse.syntax(), "TITLE");
+        let titles = crate::outline::keyword_values(&parse, "TITLE");
         Some(titles.into_iter().next().unwrap_or_else(|| {
             Path::new(file.path).file_name().map_or(String::new(), |name| name.to_string_lossy().into_owned())
         }))

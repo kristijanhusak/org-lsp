@@ -142,7 +142,7 @@ pub fn at_point_calling(
     call: Option<CallAbbreviation>,
     settings: &Settings,
 ) -> Result<Open, String> {
-    let abbreviations = Abbreviations { list: abbreviations(text, global), call, settings };
+    let abbreviations = Abbreviations { list: abbreviations(text, parse.todo_keywords(), global), call, settings };
     // A word a radio target makes a link: to the target, when it is there
     // as written.
     // The link takes the blanks after it in.
@@ -300,7 +300,8 @@ fn is_link(node: &SyntaxNode) -> bool {
 /// The links of a text: bracket, angle and plain links, in order.
 /// `global` is `org-link-abbrev-alist`.
 pub fn links(text: &str, parse: &Parse, global: &[(String, String)], settings: &Settings) -> Vec<Link> {
-    let abbreviations = Abbreviations { list: abbreviations(text, global), call: None, settings };
+    let abbreviations =
+        Abbreviations { list: abbreviations(text, parse.todo_keywords(), global), call: None, settings };
     let mut links: Vec<Link> =
         parse.syntax().descendants().filter(is_link).map(|node| link_of(&node, text, parse, &abbreviations)).collect();
     // And the words radio targets make links.
@@ -326,20 +327,30 @@ pub fn link_at(
 ) -> Option<Link> {
     let token = token_at(&parse.syntax(), offset)?;
     let node = token.parent_ancestors().find(is_link)?;
-    Some(link_of(&node, text, parse, &Abbreviations { list: abbreviations(text, global), call: None, settings }))
+    Some(link_of(
+        &node,
+        text,
+        parse,
+        &Abbreviations { list: abbreviations(text, parse.todo_keywords(), global), call: None, settings },
+    ))
 }
 
-/// The link abbreviations of `text`: its `#+LINK:` lines, the last first
+/// The link abbreviations of `text`: the `#+LINK:` lines of its setup
+/// files (`#+SETUPFILE:`, in `keywords`) and its own, the last first
 /// (`org-link-abbrev-alist-local`), then `global`.
-pub fn abbreviations(text: &str, global: &[(String, String)]) -> Vec<(String, String)> {
+pub fn abbreviations(
+    text: &str,
+    keywords: &org_syntax::TodoKeywords,
+    global: &[(String, String)],
+) -> Vec<(String, String)> {
     static LINK_LINE: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r#"(?im)^[ \t]*#\+LINK:[ \t]*(.*?)[ \t]*$"#).expect("a valid regex"));
     static QUOTED: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"\A"(.+[^\\])"[ \t]+(.+)"#).expect("a valid regex"));
     static PLAIN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A(\S+)[ \t]+(.+)").expect("a valid regex"));
-    let mut local: Vec<(String, String)> = LINK_LINE
-        .captures_iter(text)
-        .filter_map(|line| {
-            let value = line.get(1).map_or("", |found| found.as_str());
+    let mut local: Vec<(String, String)> = keywords
+        .setup_values("LINK")
+        .chain(LINK_LINE.captures_iter(text).map(|line| line.get(1).map_or("", |found| found.as_str())))
+        .filter_map(|value| {
             QUOTED
                 .captures(value)
                 .or_else(|| PLAIN.captures(value))
@@ -568,7 +579,7 @@ pub fn internal_path(
     let token = token_at(&parse.syntax(), offset)?;
     let node = token.parent_ancestors().find(is_link).filter(|node| node.kind() == SyntaxKind::LINK)?;
     let (raw, _) = raw_link(&node);
-    let raw = expand_abbreviation(&raw, &abbreviations(text, global)).unwrap_or(raw);
+    let raw = expand_abbreviation(&raw, &abbreviations(text, parse.todo_keywords(), global)).unwrap_or(raw);
     let typed = link_type(&raw).is_some() || raw.starts_with("roam:") || man_path(&raw, true, settings).is_some();
     if typed || raw.starts_with('/') || raw.starts_with('~') || raw.starts_with("./") || raw.starts_with("../") {
         return None;

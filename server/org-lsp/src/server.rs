@@ -60,7 +60,9 @@ mod remote_images;
 pub(crate) mod roam;
 use crate::views::{self, EntryRef, Query, View, ViewLine};
 use crate::workspace::{Source, Workspace};
-use crate::{actions, cli, commands, completion, custom, faces, folding, highlight, manifest, port, symbols, uri};
+use crate::{
+    actions, cli, commands, completion, custom, faces, folding, highlight, manifest, port, setup, symbols, uri,
+};
 
 type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 
@@ -2316,8 +2318,8 @@ fn prompt_label(choice: &Value) -> String {
 }
 
 /// The words of a file's `#+STARTUP:` lines, lowercased, in order.
-fn startup_words(text: &str) -> Vec<String> {
-    org_core::text::startup_words(text).into_iter().map(str::to_ascii_lowercase).collect()
+fn startup_words(text: &str, keywords: &TodoKeywords) -> Vec<String> {
+    org_core::text::startup_words(text, keywords).into_iter().map(str::to_ascii_lowercase).collect()
 }
 
 /// The key of the `column`th column of what column view shows.
@@ -3766,10 +3768,11 @@ impl Server {
                 }
                 let key = document.uri.as_str().to_string();
                 self.remember_start_file(&document.uri);
-                self.shrink_at_startup(&key, &document.text);
-                let aligned = self.align_at_startup(&document.text);
+                let todo = self.keywords_for(&document.uri, &document.text);
+                self.shrink_at_startup(&key, &document.text, &todo);
+                let aligned = self.align_at_startup(&document.text, &todo);
                 let (uri, version, opened) = (document.uri.clone(), document.version, document.text.clone());
-                self.documents.insert(key.clone(), Document::new(document.text, document.version, &self.todo));
+                self.documents.insert(key.clone(), Document::new(document.text, document.version, &todo));
                 if let Some(aligned) = aligned {
                     self.startup_aligned.insert(key.clone(), aligned.clone());
                     let edits = self.text_edits(&opened, &aligned);
@@ -3832,13 +3835,20 @@ impl Server {
                 let changed_lines = changed_lines(&params.content_changes);
                 // The same text again (ALE sends it as a new version).
                 let mut same_text = false;
-                if let Some(document) = self.documents.get_mut(key) {
+                let uri = params.text_document.uri.clone();
+                let todo = self.documents.get(key).map(|document| self.keywords_for(&uri, &document.text));
+                if let (Some(document), Some(todo)) = (self.documents.get_mut(key), todo) {
                     let changes = document.apply(
                         params.content_changes,
                         params.text_document.version,
                         self.client.encoding,
-                        &self.todo,
+                        &todo,
                     );
+                    // A `#+SETUPFILE:` line changed: the settings it reads.
+                    let fresh = setup::settings(uri::to_path(&uri).as_deref(), &document.text);
+                    if fresh.as_slice() != todo.setup() {
+                        document.parse = org_syntax::parse(&document.text, &self.todo.clone().with_setup(fresh));
+                    }
                     same_text = changes.iter().all(|change| change.start == change.end && change.length == 0);
                     // The agenda's entries in this file follow the text,
                     // until the agenda is built again: a command on one of
@@ -3875,7 +3885,8 @@ impl Server {
                 if aligned.is_some() && self.startup_aligned.get(key) == aligned {
                     self.startup_aligned.remove(key);
                     let text = aligned.cloned().unwrap_or_default();
-                    self.shrink_at_startup(key, &text);
+                    let keywords = self.keywords_of_text(&text);
+                    self.shrink_at_startup(key, &text, &keywords);
                 }
                 self.sync_clock(key);
                 // Column view follows the text.
@@ -4028,7 +4039,7 @@ impl Server {
     /// How the headlines and blocks of a document with `text` show: the
     /// options, with its `#+STARTUP: odd` and its inline tasks.
     fn fontify_of(&self, text: &str) -> highlight::Fontify {
-        let odd_levels = org_core::structure::odd_levels(text, self.odd_levels);
+        let odd_levels = org_core::structure::odd_levels(text, &self.keywords_of_text(text), self.odd_levels);
         highlight::Fontify { odd_levels, inlinetask: org_core::inlinetask::min_stars(odd_levels), ..self.fontify }
     }
 
@@ -4145,7 +4156,7 @@ impl Server {
     fn display_of(&self, text: &str) -> (highlight::Conceal, bool, Option<bool>) {
         let mut conceal = self.conceal;
         let mut pretty = self.pretty_entities;
-        for word in startup_words(text) {
+        for word in startup_words(text, &self.keywords_of_text(text)) {
             match word.as_str() {
                 "descriptivelinks" => conceal.links = true,
                 "literallinks" => conceal.links = false,
@@ -4161,7 +4172,8 @@ impl Server {
     /// formats: `org_display_custom_times` or `#+STARTUP: customtime`,
     /// turned the other way by `org-toggle-timestamp-overlays`.
     fn custom_times_in(&self, key: &str, text: &str) -> bool {
-        let on = self.custom_times || startup_words(text).iter().any(|word| word == "customtime");
+        let on = self.custom_times
+            || startup_words(text, &self.keywords_of_text(text)).iter().any(|word| word == "customtime");
         on != self.custom_times_toggled.contains(key)
     }
 
@@ -4269,6 +4281,7 @@ impl Server {
             &document.index,
             self.cycle.folding,
             &self.startup,
+            document.parse.todo_keywords(),
         );
         Some(json!({ "folds": folds }))
     }
@@ -5044,7 +5057,7 @@ impl Server {
         let mut tags: Vec<String> = self
             .agenda_files()
             .iter()
-            .flat_map(|(_, held)| org_core::tags::global_tags(&held.outline().text, &settings))
+            .flat_map(|(_, held)| org_core::tags::global_tags(&held.outline().text, &held.outline().todo, &settings))
             .collect();
         tags.sort();
         tags.dedup();
@@ -5202,7 +5215,7 @@ impl Server {
                 Held::Open(outline) => {
                     let parse = match self.document(&uri).filter(|document| document.text == outline.text) {
                         Some(document) => document.parse.clone(),
-                        None => org_syntax::parse(&outline.text, &self.todo),
+                        None => org_syntax::parse(&outline.text, &self.keywords_for(&uri, &outline.text)),
                     };
                     (uri, outline.text.clone(), parse)
                 }
@@ -5278,7 +5291,7 @@ impl Server {
         let canonical = std::fs::canonicalize(&target_path).ok();
         let same =
             |path: &Path| path == target_path || (canonical.is_some() && std::fs::canonicalize(path).ok() == canonical);
-        let target_parse = org_syntax::parse(target_text, &self.todo);
+        let target_parse = org_syntax::parse(target_text, &self.keywords_for(target, target_text));
         let id = {
             let outline = Outline::new(&target_parse, target_text, &uri::file_stem(target));
             outline.entry_at(heading).and_then(|entry| outline.entry_property(Some(entry), "ID", false))
@@ -5476,7 +5489,7 @@ impl Server {
                     return None;
                 }
                 let (_, target) = self.file_text(&path)?;
-                let parse = org_syntax::parse(&target, &self.todo);
+                let parse = org_syntax::parse(&target, &self.keywords_at(Some(&path), &target));
                 let offset =
                     open::search_in_file_with(&target, Some(&parse), search, self.open_settings.exact_headline).ok()?;
                 (target, offset)
@@ -5542,7 +5555,7 @@ impl Server {
             let offset = document.index.offset(&document.text, context.position, self.client.encoding);
             (uri.clone(), document.text.clone(), offset)
         };
-        let parse = org_syntax::parse(&text, &self.todo);
+        let parse = org_syntax::parse(&text, &self.keywords_for(&uri, &text));
         // Answering whether to make a missing headline, the link picked
         // among the entry's, if one was, is in `answers`.
         // So is it when answering whether to run a `shell:` link's command.
@@ -5777,7 +5790,7 @@ impl Server {
                     return None;
                 }
                 let (_, text) = self.file_text(&path)?;
-                let parse = org_syntax::parse(&text, &self.todo);
+                let parse = org_syntax::parse(&text, &self.keywords_at(Some(&path), &text));
                 let exact = open::ExactHeadline::QueryToCreate;
                 open::search_in_file_with(&text, Some(&parse), search, exact).is_err().then(|| (path, search.clone()))
             }
@@ -5808,7 +5821,7 @@ impl Server {
             return Ok(json!({ "input": input }));
         }
         let (target, text) = self.file_text(path).ok_or("Cannot read the file")?;
-        let parse = org_syntax::parse(&text, &self.todo);
+        let parse = org_syntax::parse(&text, &self.keywords_at(Some(path), &text));
         if !matches!(context.input.as_deref(), Some("y" | "Y" | "yes")) {
             let missing = open::search_in_file_with(&text, Some(&parse), search, open::ExactHeadline::Yes);
             return Err(missing.err().unwrap_or_else(|| "Abort".to_string()).into());
@@ -5965,7 +5978,7 @@ impl Server {
                 };
                 let (target, text) = self.file_text(&path).ok_or_else(|| format!("Cannot read {}", path.display()))?;
                 let org = path.extension().is_some_and(|extension| extension == "org" || extension == "org_archive");
-                let parse = org.then(|| org_syntax::parse(&text, &self.todo));
+                let parse = org.then(|| org_syntax::parse(&text, &self.keywords_at(Some(&path), &text)));
                 // A BibTeX file is searched for the entry of a key, as
                 // `ol-bibtex.el` searches it.
                 let offset = if path.extension().is_some_and(|extension| extension == "bib") {
@@ -6111,7 +6124,8 @@ impl Server {
     /// Where the entry with this `ID` is in the file `path`, read again.
     fn id_in_file(&self, id: &str, path: &Path) -> Option<(Uri, usize)> {
         let (target, text) = self.file_text(path)?;
-        open::find_id(&org_syntax::parse(&text, &self.todo), id).map(|offset| (target, offset))
+        open::find_id(&org_syntax::parse(&text, &self.keywords_at(Some(path), &text)), id)
+            .map(|offset| (target, offset))
     }
 
     /// [`Server::find_id`] past the file of the link. `open_ids` are the
@@ -6188,6 +6202,33 @@ impl Server {
     }
 
     // ----- agenda files
+
+    /// The TODO keywords of the open document of `text`, with the settings
+    /// of its setup files; the options' for a text no document has. For
+    /// what is given a text, not the document it is the text of.
+    fn keywords_of_text(&self, text: &str) -> TodoKeywords {
+        self.documents
+            .values()
+            .find(|document| document.text.len() == text.len() && document.text == text)
+            .map_or_else(|| self.todo.clone(), |document| document.parse.todo_keywords().clone())
+    }
+
+    /// The TODO keywords of the file at `uri`, whose text is `text`, with
+    /// the settings of its setup files (`#+SETUPFILE:`).
+    fn keywords_for(&self, uri: &Uri, text: &str) -> TodoKeywords {
+        self.keywords_at(uri::to_path(uri).as_deref(), text)
+    }
+
+    /// The TODO keywords of the file at `path` (none for a buffer of no
+    /// file), whose text is `text`, with the settings of its setup files.
+    fn keywords_at(&self, path: Option<&Path>, text: &str) -> TodoKeywords {
+        let settings = setup::settings(path, text);
+        if settings.is_empty() {
+            self.todo.clone()
+        } else {
+            self.todo.clone().with_setup(settings)
+        }
+    }
 
     /// The text, positions, tree and outline of the file at `uri`: from
     /// the editor when it is open there, from disk otherwise.
@@ -9232,7 +9273,7 @@ impl Server {
         let settings = self.edit_settings.tags.clone();
         let mut keys: Vec<(String, char)> = Vec::new();
         for (_, held) in self.agenda_files() {
-            for entry in org_core::tags::current_alist(&held.outline().text, &settings) {
+            for entry in org_core::tags::current_alist(&held.outline().text, &held.outline().todo, &settings) {
                 if let org_core::tags::TagEntry::Tag(tag, Some(key)) = entry {
                     if !keys.iter().any(|(known, own)| *known == tag || *own == key) {
                         keys.push((tag, key));
@@ -10612,7 +10653,7 @@ impl Server {
                     None => return Ok(Value::Null),
                 }
             }
-            let abbreviations = open::abbreviations(&text, &self.link_abbreviations);
+            let abbreviations = open::abbreviations(&text, &self.keywords_of_text(&text), &self.link_abbreviations);
             // What `id:` links complete to and are described by: this file,
             // and the files with IDs (`org-id-files`), read only when an
             // `id:` link is being inserted.
@@ -10639,7 +10680,7 @@ impl Server {
                         return None;
                     }
                     let version = this.document(&other).map(|document| document.version);
-                    let parse = org_syntax::parse(&text, &this.todo);
+                    let parse = org_syntax::parse(&text, &this.keywords_at(Some(path), &text));
                     others.push((other, version, text, parse));
                     index_of.insert(canonical, others.len());
                     Some(others.len())
@@ -10677,7 +10718,7 @@ impl Server {
                 Some(RefileTarget { files: RefileFiles::Current, .. }) | None => OutlinePath::Yes,
                 Some(_) => OutlinePath::File,
             };
-            let parse = org_syntax::parse(&text, &self.todo);
+            let parse = org_syntax::parse(&text, &self.keywords_for(&uri, &text));
             let keywords = parse.todo_keywords().clone();
             let names: Vec<String> =
                 std::iter::once(&uri).chain(others.iter().map(|(other, ..)| other)).map(uri::file_name).collect();
@@ -11758,7 +11799,7 @@ impl Server {
                 .into_iter()
                 .flatten()
                 .collect();
-            Ok::<_, Refusal>((tags::table(text, &settings, &others), tags::local_tags(line), inherited))
+            Ok::<_, Refusal>((tags::table(text, &outline.todo, &settings, &others), tags::local_tags(line), inherited))
         });
         let (table, own, inherited) = found.ok_or("Cannot read the file of this entry")??;
         let set = |server: &mut Self, chosen: Vec<String>| {
@@ -12578,9 +12619,9 @@ impl Server {
 
     /// `org-startup-align-all-tables` (`#+STARTUP: align`): the text of a
     /// file opened with its tables aligned, when that changes it.
-    fn align_at_startup(&self, text: &str) -> Option<String> {
+    fn align_at_startup(&self, text: &str, keywords: &TodoKeywords) -> Option<String> {
         let mut align = self.startup_align;
-        for word in startup_words(text) {
+        for word in startup_words(text, keywords) {
             match word.as_str() {
                 "align" => align = true,
                 "noalign" => align = false,
@@ -12590,16 +12631,15 @@ impl Server {
         if !align {
             return None;
         }
-        let keywords = TodoKeywords::from_document(text).unwrap_or_else(|| self.todo.clone());
         let alignment = &self.edit_settings.todo.table.formulas.alignment;
-        Some(org_core::format::align_tables(text, &keywords, alignment)).filter(|aligned| aligned != text)
+        Some(org_core::format::align_tables(text, keywords, alignment)).filter(|aligned| aligned != text)
     }
 
     /// `org-startup-shrink-all-tables` (`#+STARTUP: shrink`): the columns
     /// with a width cookie shrunk when a file opens.
-    fn shrink_at_startup(&mut self, key: &str, text: &str) {
+    fn shrink_at_startup(&mut self, key: &str, text: &str, keywords: &TodoKeywords) {
         let mut shrink = self.startup_shrink;
-        for word in startup_words(text) {
+        for word in startup_words(text, keywords) {
             match word.as_str() {
                 "shrink" => shrink = true,
                 "noshrink" => shrink = false,
@@ -14081,7 +14121,7 @@ impl Server {
         let parse = document.parse.clone();
         if startup {
             let mut on = if latex { self.startup_latex_preview } else { self.startup_link_previews };
-            for word in startup_words(&text) {
+            for word in startup_words(&text, &self.keywords_of_text(&text)) {
                 match (latex, word.as_str()) {
                     (false, "inlineimages" | "linkpreviews") | (true, "latexpreview") => on = true,
                     (false, "noinlineimages" | "nolinkpreviews") | (true, "nolatexpreview") => on = false,
@@ -16119,7 +16159,13 @@ impl Server {
     /// How the document `key` shows: as the options and its `#+STARTUP:`
     /// say, unless `org.indent.mode` turned `org-indent-mode` there.
     fn display_at(&self, key: &str) -> org_core::indent::Display {
-        org_core::indent::Display { mode: self.indent_mode.get(key).copied(), ..self.display }
+        // What the `#+STARTUP:` lines of its setup files say.
+        let setup = self
+            .documents
+            .get(key)
+            .map(|document| org_core::indent::startup("", document.parse.todo_keywords()))
+            .unwrap_or_default();
+        org_core::indent::Display { mode: self.indent_mode.get(key).copied(), setup, ..self.display }
     }
 
     /// How `text` shows: as the open document of that text where
@@ -16154,7 +16200,7 @@ impl Server {
             tags_column: self.refile.2.tags_column,
             indent: self.indent_in(text),
             allow_promoting_top_level: self.allow_promoting_top_level,
-            odd_levels: org_core::structure::odd_levels(text, self.odd_levels),
+            odd_levels: org_core::structure::odd_levels(text, &self.keywords_of_text(text), self.odd_levels),
         }
     }
 
@@ -16223,11 +16269,14 @@ impl Server {
     /// say (the last wins), else `org-startup-numerated`.
     fn numerated(&self, uri: &Uri, text: &str) -> bool {
         self.num_mode.get(uri.as_str()).copied().unwrap_or_else(|| {
-            org_core::text::startup_words(text).into_iter().fold(self.startup_numerated, |on, word| match word {
-                "num" => true,
-                "nonum" => false,
-                _ => on,
-            })
+            org_core::text::startup_words(text, &self.keywords_of_text(text)).into_iter().fold(
+                self.startup_numerated,
+                |on, word| match word {
+                    "num" => true,
+                    "nonum" => false,
+                    _ => on,
+                },
+            )
         })
     }
 
@@ -16585,7 +16634,11 @@ impl Server {
                     self.clock_out_time = Some(now);
                     // `org-log-note-clock-out`, unless the line went.
                     let closed = out.text[line..].lines().next().unwrap_or("").to_string();
-                    let note = org_core::todo::note_clock_out(self.edit_settings.todo.note_clock_out, &text);
+                    let note = org_core::todo::note_clock_out(
+                        self.edit_settings.todo.note_clock_out,
+                        &text,
+                        &self.keywords_of_text(&text),
+                    );
                     if note && closed.trim_start().starts_with("CLOCK:") && closed.contains("=>") {
                         clock_note = Some(closed);
                     }

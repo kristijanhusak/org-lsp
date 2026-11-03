@@ -218,7 +218,7 @@ pub fn clock_in(
 
     // `org-log-states-order-reversed`, as `#+STARTUP:` may set it.
     let mut reversed = settings.states_order_reversed;
-    for word in crate::text::startup_words(text) {
+    for word in crate::text::startup_words(text, keywords) {
         match word {
             "logstatesreversed" => reversed = true,
             "nologstatesreversed" => reversed = false,
