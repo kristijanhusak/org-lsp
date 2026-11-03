@@ -78,6 +78,30 @@ The server also reads [[file:configuration.org::#the-shared-configuration-file][
 else: [[file:configuration.org::#zed][Zed's settings for Org]] and [[file:configuration.org::#every-option-at-its-default][every option of the server]] with its
 default.
 
+* Security
+
+Zed merges a project's own settings, ~.zed/settings.json~ in the folder
+opened, over yours, and the extension passes the server what Zed gives it
+for that folder. A repository you clone can therefore set any of the
+server's options, as your own settings can, among them options that name
+programs the server runs or that turn its questions off:
+
+- [[file:configuration.org::#emacs][emacs]], [[file:configuration.org::#emacs_config][emacs_config]] and ~emacs_options~ :: which Emacs runs, the Lisp it
+  loads, and any Org option it is given (~org-confirm-babel-evaluate~ among
+  them);
+- [[file:configuration.org::#org_file_apps][org_file_apps]] :: the shell commands that open files;
+- [[file:configuration.org::#org_link_shell_skip_confirm_regexp][org_link_shell_skip_confirm_regexp]] :: ~"."~ runs every ~shell:~ link
+  without asking;
+- [[file:configuration.org::#notification_command][notification_command]], ~org_protocol_editor~ :: programs run for
+  reminders and for ~org-protocol~ captures;
+- ~command_script~, ~config_file~ :: where the server writes its agenda
+  script, and which configuration file it reads.
+
+The extension cannot tell a project's settings from yours: Zed's
+extension API gives it the settings of the folder, merged. Look at a
+cloned repository's ~.zed/settings.json~ before you open it in Zed, as you
+would at its build scripts.
+
 * Using it
 
 In Org files the commands are in the code actions (*editor: toggle code
