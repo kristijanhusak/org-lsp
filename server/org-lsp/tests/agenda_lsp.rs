@@ -2971,6 +2971,29 @@ fn follows_info_links_to_the_web() {
     client.shutdown();
 }
 
+/// An `info:` link names an installed manual: a file, `*manpages*` (whose
+/// nodes `info` gives `man`) and what would be an option are refused, as
+/// `man:` links are, and `info` is not run.
+#[test]
+fn refuses_info_links_to_files_and_man_pages() {
+    let mut client = Client::editor(clock(), None);
+    let uri = "file:///org/a.org";
+    let text = "[[info:/etc/hostname]] [[info:../x.info#Top]] [[info:*manpages*#ls]] [[info:org#-x]]\n";
+    client.open(uri, text);
+    let not_files = |file: &str| Err(format!("An info: link names manuals, not files: {file}"));
+    assert_eq!(open_at(&mut client, uri, 3, json!({})), not_files("/etc/hostname"));
+    assert_eq!(open_at(&mut client, uri, 26, json!({})), not_files("../x.info"));
+    assert_eq!(
+        open_at(&mut client, uri, 50, json!({})),
+        Err("An info: link names manuals, not man pages: *manpages*".to_string())
+    );
+    assert_eq!(
+        open_at(&mut client, uri, 75, json!({})),
+        Err("An info: link names manuals and nodes, not options: -x".to_string())
+    );
+    client.shutdown();
+}
+
 /// `org-ctags` in `org-modules`: a link goes to the tag of the `TAGS` file
 /// of its directory; else, asked, the tags table is made again by
 /// `org_ctags_path_to_ctags` and looked in again, or a topic appended.

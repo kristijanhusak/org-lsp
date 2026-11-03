@@ -106,6 +106,22 @@ pub fn info_file_node(path: &str) -> (String, String) {
     (file.unwrap_or_else(|| "dir".to_string()), node.unwrap_or_else(|| "Top".to_string()))
 }
 
+/// Why the file and node of an `info:` link are not given to `info`: the
+/// file is a path (`info:/etc/hostname` would show any file as a
+/// manual), or `*manpages*`, whose nodes `info` hands to `man`; or one of
+/// them starts with `-`, as an option does. Emacs's Info reads them all;
+/// org-lsp follows a link to an installed manual only.
+pub fn info_refused(file: &str, node: &str) -> Option<String> {
+    if file.eq_ignore_ascii_case("*manpages*") {
+        return Some(format!("An info: link names manuals, not man pages: {file}"));
+    }
+    if file.contains(['/', '\\']) || file.starts_with(['.', '~']) {
+        return Some(format!("An info: link names manuals, not files: {file}"));
+    }
+    let option = [file, node].into_iter().find(|word| word.starts_with('-'))?;
+    Some(format!("An info: link names manuals and nodes, not options: {option}"))
+}
+
 /// `org-info-emacs-documents`: the manuals of Emacs on the web.
 pub const EMACS_DOCUMENTS: &[&str] = &[
     "ada-mode",
@@ -280,6 +296,30 @@ mod tests {
             Some("A man: link names pages, not files: /etc/hostname".to_string())
         );
         assert!(man_refused(&man_arguments("1 ./notes")).is_some());
+    }
+
+    #[test]
+    fn info_links_name_manuals_only() {
+        let refused = |link: &str| {
+            let (file, node) = info_file_node(link);
+            info_refused(&file, &node)
+        };
+        for link in ["org#Tags", "emacs", "", "libc#Signal Handling", "org#Top-level", "elisp#(elisp)Lists"] {
+            assert_eq!(refused(link), None, "{link}");
+        }
+        assert_eq!(refused("/etc/hostname"), Some("An info: link names manuals, not files: /etc/hostname".to_string()));
+        assert!(refused("../notes.info#Top").is_some());
+        assert!(refused("~/x.info").is_some());
+        assert!(refused("a\\b").is_some());
+        assert_eq!(
+            refused("*manpages*#ls"),
+            Some("An info: link names manuals, not man pages: *manpages*".to_string())
+        );
+        assert_eq!(
+            refused("org#--output=x"),
+            Some("An info: link names manuals and nodes, not options: --output=x".to_string())
+        );
+        assert!(refused("-d#x").is_some());
     }
 
     #[test]
