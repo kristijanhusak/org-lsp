@@ -379,6 +379,41 @@ emacs_config = '''
 
 Emacs asks before it evaluates code, and the editor shows the question.
 
+*** What runs without a question
+:PROPERTIES:
+:CUSTOM_ID: what-runs-without-a-question
+:END:
+
+As in Emacs, some of a file's text is code that runs, without a question,
+when you use a command on the file. Look at a file that is not yours before
+you do:
+
+- ~#+MACRO:~ with ~(eval …)~, Babel's ~:var x=(…)~ :: evaluated by Emacs
+  when the file is exported (~org-confirm-babel-evaluate~ asks about code
+  blocks, not about these).
+- A clock table's ~:formatter~ :: called by Emacs when dynamic blocks are
+  updated (~org.dblock.update~).
+- Lisp formulas of a table (~'(…)~ in ~#+TBLFM:~) :: evaluated by Emacs when
+  the table is recalculated (~org.table.recalculate~ and the like).
+- ~#+PLOT:~ lines :: their ~set:~ options go to gnuplot as they are, which
+  can run programs, when the table is plotted (~org.plot.gnuplot~).
+- Links with ~org-ctags~ in ~org_modules~ :: making the tags table again
+  (asked first) runs [[#org_ctags_path_to_ctags][~org_ctags_path_to_ctags~]] in the link's
+  directory, which reads that directory's own ctags configuration
+  (~.ctags.d/~).
+
+The settings that name programs ([[#emacs][~emacs~]], [[#emacs_config][~emacs_config~]],
+[[#emacs_config_file][~emacs_config_file~]], [[#org_file_apps][~org_file_apps~]], [[#org_man_command][~org_man_command~]],
+[[#notification_command][~notification_command~]], [[#org_roam_graph_executable][~org_roam_graph_executable~]],
+[[#org_roam_graph_viewer][~org_roam_graph_viewer~]], [[#org_ctags_path_to_ctags][~org_ctags_path_to_ctags~]]) or switch off a
+question ([[#org_link_shell_skip_confirm_regexp][~org_link_shell_skip_confirm_regexp~]], ~org-confirm-babel-evaluate~
+in ~emacs_options~, [[#org_resource_download_policy][~org_resource_download_policy~]],
+[[#org_safe_remote_resources][~org_safe_remote_resources~]]) should come from your own configuration
+only: the shared configuration file, or your editor's user settings. Not
+from a project's settings (VS Code's ~.vscode/settings.json~, Helix's
+~.helix/languages.toml~, Zed's ~.zed/settings.json~), which come with a
+folder that may be someone else's.
+
 ** When something is wrong
 :PROPERTIES:
 :CUSTOM_ID: when-something-is-wrong
