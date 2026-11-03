@@ -3602,6 +3602,76 @@ fn opens_files_as_org_file_apps_says() {
     client.shutdown();
 }
 
+/// Unlike Emacs, a file the system's application would run (`file+sys:`,
+/// `C-u C-u`) is asked about first: a script or program by its name, or a
+/// file that may be executed. No opens nothing, yes opens it, and a yes to
+/// one file is not one to another. Other files open at once.
+#[test]
+fn asks_before_the_system_opens_a_program() {
+    let directory = workspace("system-programs");
+    let file = directory.join("links.org");
+    std::fs::write(directory.join("paper.pdf"), "pdf").unwrap();
+    std::fs::write(directory.join("setup.bat"), "echo").unwrap();
+    std::fs::write(directory.join("tool"), "#!/bin/sh\n").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(directory.join("tool"), std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let text = "[[file+sys:setup.bat]] [[file+sys:paper.pdf]] [[file:tool]] [[file+sys:Run.SH]]\n";
+    std::fs::write(&file, text).unwrap();
+    let mut client = Client::editor(clock(), None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, text);
+    let open = |client: &mut Client, character: u32, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": character } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let shown = |client: &Client| {
+        client
+            .received
+            .iter()
+            .find(|request| request.method == "window/showDocument")
+            .map(|request| request.params["uri"].as_str().unwrap().to_string())
+    };
+    let named = |name: &str| directory.join(name).display().to_string();
+    let asked = open(&mut client, 3, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], format!("Open {} with the system, which may run it? ", named("setup.bat")));
+    assert_eq!(asked["input"]["context"]["program"], named("setup.bat"));
+    assert_eq!(shown(&client), None);
+    let mut answer = asked["input"]["context"].clone();
+    answer["input"] = json!("n");
+    assert_eq!(open(&mut client, 3, answer.clone()), Err("Abort".to_string()));
+    assert_eq!(shown(&client), None);
+    answer["input"] = json!("y");
+    open(&mut client, 3, answer.clone()).unwrap();
+    assert_eq!(shown(&client), Some(format!("file://{}", named("setup.bat"))));
+    // The yes to that file is not one to another.
+    assert_eq!(open(&mut client, 70, answer), Err("The link changed after the question: not opened".to_string()));
+    assert_eq!(shown(&client), None);
+    // Not a program: opened at once.
+    open(&mut client, 26, json!({})).unwrap();
+    assert_eq!(shown(&client), Some(format!("file://{}", named("paper.pdf"))));
+    // `C-u C-u` on a file that may be executed.
+    #[cfg(unix)]
+    {
+        let asked = open(&mut client, 50, json!({ "count": 16 })).unwrap();
+        assert_eq!(asked["input"]["prompt"], format!("Open {} with the system, which may run it? ", named("tool")));
+        // In the editor, with `C-u`: not asked.
+        open(&mut client, 50, json!({ "count": 4 })).unwrap();
+        assert_eq!(shown(&client), Some(format!("file://{}", named("tool"))));
+    }
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
 /// `org-open-non-existing-files`: a file that is not there is given to
 /// its program all the same.
 #[test]
