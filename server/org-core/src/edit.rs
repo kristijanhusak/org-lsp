@@ -165,7 +165,7 @@ pub struct Call {
 /// The priorities a document declares with `#+PRIORITIES:`. Only the
 /// first such line counts.
 pub fn document_priorities(parse: &Parse) -> Option<Priorities> {
-    Priorities::from_keyword(keyword_values(&parse.syntax(), "PRIORITIES").first()?)
+    Priorities::from_keyword(keyword_values(parse, "PRIORITIES").first()?)
 }
 
 /// `org-support-shift-select`: where the shifted cursor keys select text,
@@ -445,15 +445,20 @@ pub fn run(
             let outline = crate::outline::Outline::new(parse, text, "");
             let entry = outline.entry_at(offset);
             let property = |name: &str| outline.entry_property(entry, name, true);
+            // The `#+CONSTANTS:` of the setup files (`#+SETUPFILE:`), which
+            // the file's own come before and the options' after.
+            let mut formulas = settings.todo.table.formulas.clone();
+            let setup = tblfm::constant_values(parse.todo_keywords().setup_values("CONSTANTS"));
+            formulas.constants = setup.into_iter().chain(formulas.constants).collect();
             // A Windows file's lines, without their `\r`s and with them
             // again after.
             let crlf = crate::text::crlf(text);
             let recalculated = if crlf {
                 let (lf, offset) = crate::text::to_lf(text, offset);
-                tblfm::recalculate(&lf, offset, *mode, &property, &settings.todo.table.formulas)
+                tblfm::recalculate(&lf, offset, *mode, &property, &formulas)
                     .map(|done| tblfm::Recalculated { text: crate::text::from_lf(&done.text, 0).0, ..done })
             } else {
-                tblfm::recalculate(text, offset, *mode, &property, &settings.todo.table.formulas)
+                tblfm::recalculate(text, offset, *mode, &property, &formulas)
             };
             match recalculated {
                 Ok(recalculated) => Ok(Outcome {

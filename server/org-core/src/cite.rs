@@ -238,7 +238,7 @@ pub fn bibliography_files(keywords: &[String], globals: &[String]) -> Vec<String
 /// The values of the `#+BIBLIOGRAPHY:` keywords of a document.
 pub fn bibliography_keywords(text: &str, keywords: &org_syntax::TodoKeywords) -> Vec<String> {
     let parse = org_syntax::parse(text, keywords);
-    crate::outline::keyword_values(&parse.syntax(), "BIBLIOGRAPHY")
+    crate::outline::keyword_values(&parse, "BIBLIOGRAPHY")
 }
 
 /// `org-strip-quotes`

@@ -551,8 +551,7 @@ pub fn names(text: &str, specials: bool, defaults: bool, columns: bool, context:
         found.extend(DEFAULT.iter().map(|name| name.to_string()));
     }
     let parse = org_syntax::parse(text, &context.keywords);
-    let root = parse.syntax();
-    for value in keyword_values(&root, "PROPERTY") {
+    for value in keyword_values(&parse, "PROPERTY") {
         if let Some(name) = value.split_whitespace().next() {
             found.push(name.to_string());
         }

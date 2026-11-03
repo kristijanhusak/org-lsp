@@ -1,6 +1,7 @@
 //! Parse configuration: the TODO keywords that are valid in a document.
 
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 /// Whether a state change is recorded, as the keyword's definition asks:
 /// `WAIT(w@/!)` records a note on entering and a time on leaving.
@@ -46,7 +47,15 @@ pub struct TodoKeywords {
     keywords: Vec<Keyword>,
     /// Where each keyword is in `keywords`: looked up for every headline.
     index: BTreeMap<String, usize>,
+    /// The in-buffer settings of the document's setup files
+    /// (`#+SETUPFILE:`), read before its own: what Emacs's
+    /// `org-collect-keywords` finds there. They ride with the keywords,
+    /// which every parse of the document is given.
+    setup: Arc<[Setting]>,
 }
+
+/// A keyword line of a setup file: its key, upper case, and its value.
+pub type Setting = (String, String);
 
 impl Default for TodoKeywords {
     fn default() -> Self {
@@ -91,7 +100,7 @@ impl TodoKeywords {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let mut out = TodoKeywords { keywords: Vec::new(), index: BTreeMap::new() };
+        let mut out = TodoKeywords { keywords: Vec::new(), index: BTreeMap::new(), setup: Arc::from([]) };
         out.push_sequence(Interpretation::Sequence, words);
         out
     }
@@ -103,7 +112,7 @@ impl TodoKeywords {
         W: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let mut out = TodoKeywords { keywords: Vec::new(), index: BTreeMap::new() };
+        let mut out = TodoKeywords { keywords: Vec::new(), index: BTreeMap::new(), setup: Arc::from([]) };
         for (interpretation, words) in sequences {
             out.push_sequence(interpretation, words);
         }
@@ -145,28 +154,57 @@ impl TodoKeywords {
     /// Keywords declared in the document itself (`#+TODO:`, `#+SEQ_TODO:`,
     /// `#+TYP_TODO:`), or `None` when the document declares none.
     pub fn from_document(text: &str) -> Option<Self> {
-        let mut out = TodoKeywords { keywords: Vec::new(), index: BTreeMap::new() };
+        TodoKeywords::declared(text, &[])
+    }
+
+    /// Keywords declared in the setup files' `settings`, then in the
+    /// document itself, as `org-set-regexps-and-options` gathers them; or
+    /// `None` when neither declares any. They keep `settings`.
+    pub fn declared(text: &str, settings: &[Setting]) -> Option<Self> {
+        let mut out = TodoKeywords { keywords: Vec::new(), index: BTreeMap::new(), setup: Arc::from(settings) };
         let mut found = false;
+        let mut declare = |key: &str, value: &str| {
+            if !["TODO", "SEQ_TODO", "TYP_TODO"].iter().any(|k| key.eq_ignore_ascii_case(k)) {
+                return;
+            }
+            let words: Vec<&str> = value.split_whitespace().collect();
+            if words.iter().all(|w| *w == "|") {
+                return;
+            }
+            found = true;
+            let interpretation =
+                if key.eq_ignore_ascii_case("TYP_TODO") { Interpretation::Type } else { Interpretation::Sequence };
+            out.push_sequence(interpretation, words);
+        };
+        for (key, value) in settings {
+            declare(key, value);
+        }
         for line in text.lines() {
             let line = line.trim_start();
             if !line.starts_with("#+") {
                 continue;
             }
             let Some(colon) = line.find(':') else { continue };
-            let key = &line[2..colon];
-            if !["TODO", "SEQ_TODO", "TYP_TODO"].iter().any(|k| key.eq_ignore_ascii_case(k)) {
-                continue;
-            }
-            let words: Vec<&str> = line[colon + 1..].split_whitespace().collect();
-            if words.iter().all(|w| *w == "|") {
-                continue;
-            }
-            found = true;
-            let interpretation =
-                if key.eq_ignore_ascii_case("TYP_TODO") { Interpretation::Type } else { Interpretation::Sequence };
-            out.push_sequence(interpretation, words);
+            declare(&line[2..colon], &line[colon + 1..]);
         }
         found.then_some(out)
+    }
+
+    /// These keywords with the settings of the document's setup files.
+    pub fn with_setup(mut self, settings: Vec<Setting>) -> Self {
+        self.setup = Arc::from(settings);
+        self
+    }
+
+    /// The settings of the document's setup files (`#+SETUPFILE:`), in
+    /// the order Org reads them.
+    pub fn setup(&self) -> &[Setting] {
+        &self.setup
+    }
+
+    /// The values the setup files give the keyword `key`, in order.
+    pub fn setup_values<'a>(&'a self, key: &'a str) -> impl Iterator<Item = &'a str> + 'a {
+        self.setup.iter().filter(move |(name, _)| name.eq_ignore_ascii_case(key)).map(|(_, value)| value.as_str())
     }
 
     pub fn is_empty(&self) -> bool {
@@ -396,6 +434,17 @@ mod tests {
         assert_eq!(kw.previous(None), Some("DONE"));
         assert_eq!(kw.previous(Some("TODO")), None);
         assert_eq!(kw.previous(Some("DONE")), Some("NEXT"));
+    }
+
+    #[test]
+    fn setup_files_declare_keywords_before_the_document() {
+        let settings = vec![("TODO".to_string(), "FOO | BAR".to_string())];
+        let alone = TodoKeywords::declared("* a\n", &settings).unwrap();
+        assert_eq!(alone.names().collect::<Vec<_>>(), ["FOO", "BAR"]);
+        assert_eq!(alone.setup(), settings.as_slice());
+        let both = TodoKeywords::declared("#+TODO: NEXT | DONE\n", &settings).unwrap();
+        assert_eq!(both.names().collect::<Vec<_>>(), ["FOO", "BAR", "NEXT", "DONE"]);
+        assert!(TodoKeywords::declared("* a\n", &[]).is_none());
     }
 
     #[test]

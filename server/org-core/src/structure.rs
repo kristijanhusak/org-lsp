@@ -44,9 +44,9 @@ pub fn odd_levels_default() -> bool {
 
 /// `org-odd-levels-only` in `text`: its `#+STARTUP:` words `odd` and
 /// `oddeven`, the last one counting, else `default`.
-pub fn odd_levels(text: &str, default: bool) -> bool {
+pub fn odd_levels(text: &str, keywords: &TodoKeywords, default: bool) -> bool {
     let mut odd = default;
-    for word in crate::text::startup_words(text) {
+    for word in crate::text::startup_words(text, keywords) {
         match word.to_ascii_lowercase().as_str() {
             "odd" => odd = true,
             "oddeven" => odd = false,
@@ -58,7 +58,7 @@ pub fn odd_levels(text: &str, default: bool) -> bool {
 
 /// `org-odd-levels-only` in `text`, else as the options set it.
 pub fn odd_levels_in(text: &str) -> bool {
-    odd_levels(text, odd_levels_default())
+    odd_levels(text, &TodoKeywords::default(), odd_levels_default())
 }
 
 /// `org-get-valid-level`: the level `change` levels from `level`, with

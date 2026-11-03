@@ -207,13 +207,16 @@ pub fn alist_to_groups(alist: &[TagEntry]) -> Vec<(String, Vec<String>)> {
     groups
 }
 
-/// `org-current-tag-alist`: the file's `#+TAGS:` lines, or else
-/// `org-tag-alist`, with `org-tag-persistent-alist` before them.
-pub fn current_alist(text: &str, settings: &Settings) -> Vec<TagEntry> {
+/// `org-current-tag-alist`: the `#+TAGS:` lines of the file's setup files
+/// (`#+SETUPFILE:`, in `keywords`) and its own, or else `org-tag-alist`,
+/// with `org-tag-persistent-alist` before them.
+pub fn current_alist(text: &str, keywords: &org_syntax::TodoKeywords, settings: &Settings) -> Vec<TagEntry> {
     static TAGS: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"(?mi)^[ \t]*#\+TAGS:[ \t]*(.*?)[ \t]*$").expect("the keyword regexp is valid"));
-    let lines: Vec<&str> =
-        TAGS.captures_iter(text).map(|found| found.get(1).map_or("", |value| value.as_str())).collect();
+    let lines: Vec<&str> = keywords
+        .setup_values("TAGS")
+        .chain(TAGS.captures_iter(text).map(|found| found.get(1).map_or("", |value| value.as_str())))
+        .collect();
     let local = if lines.is_empty() { settings.alist.clone() } else { tag_string_to_alist(&lines.join("\n")) };
     add_to_alist(&settings.persistent, &local)
 }
@@ -248,9 +251,17 @@ pub fn buffer_tags(text: &str) -> Vec<String> {
 
 /// What a file adds to `org-global-tags-completion-table`: its tags
 /// (`org-get-buffer-tags`) and those of `org-current-tag-alist`.
-pub fn global_tags(text: &str, settings: &Settings) -> Vec<String> {
+pub fn global_tags(text: &str, keywords: &org_syntax::TodoKeywords, settings: &Settings) -> Vec<String> {
     let mut tags = buffer_tags(text);
-    for entry in current_alist(text, settings) {
+    // The `#+FILETAGS:` of its setup files.
+    for value in keywords.setup_values("FILETAGS") {
+        for tag in value.split([' ', '\t', ':']).filter(|tag| !tag.is_empty()) {
+            if !tags.iter().any(|known| known == tag) {
+                tags.push(tag.to_string());
+            }
+        }
+    }
+    for entry in current_alist(text, keywords, settings) {
         if let TagEntry::Tag(tag, _) = entry {
             if !tags.contains(&tag) {
                 tags.push(tag);
@@ -276,8 +287,8 @@ pub fn local_tags(headline: &str) -> Vec<String> {
 /// The table `org-set-tags-command` offers: the current one, or else the
 /// tags of the file, then `others` (the agenda files' tags, with
 /// `org-complete-tags-always-offer-all-agenda-tags`) it does not have.
-pub fn table(text: &str, settings: &Settings, others: &[String]) -> Vec<TagEntry> {
-    let current = current_alist(text, settings);
+pub fn table(text: &str, keywords: &org_syntax::TodoKeywords, settings: &Settings, others: &[String]) -> Vec<TagEntry> {
+    let current = current_alist(text, keywords, settings);
     let local = if current.is_empty() {
         buffer_tags(text).into_iter().map(|tag| TagEntry::Tag(tag, None)).collect()
     } else {
