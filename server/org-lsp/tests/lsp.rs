@@ -1618,6 +1618,77 @@ fn tangles_the_file() {
     std::fs::remove_dir_all(directory).unwrap();
 }
 
+/// Unlike Emacs, tangling to a file outside the file's directory, or with
+/// a mode that is setuid, setgid or writable by all, asks first, once for
+/// all of them: no writes nothing, yes writes them, and a yes to some
+/// files is not one to others.
+#[test]
+fn asks_before_tangling_outside_the_file_s_directory() {
+    let directory = std::env::temp_dir().join(format!("org-lsp-tangle-ask-{}", std::process::id()));
+    let outside = std::env::temp_dir().join(format!("org-lsp-tangle-ask-outside-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    let _ = std::fs::remove_dir_all(&outside);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("notes.org");
+    let profile = outside.join(".profile");
+    let text = format!(
+        "#+begin_src sh :tangle ../{}/.profile :mkdirp yes :tangle-mode o755\necho one\n#+end_src\n\
+         #+begin_src sh :tangle bin/run.sh :mkdirp yes :tangle-mode o777\necho two\n#+end_src\n\
+         #+begin_src sh :tangle here.sh\necho three\n#+end_src\n",
+        outside.file_name().unwrap().to_string_lossy()
+    );
+    std::fs::write(&file, &text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let mut client = Client::start(json!({}), Value::Null);
+    client.open(&uri, &text);
+    let tangle = |client: &mut Client, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 0, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.raw_request("workspace/executeCommand", json!({ "command": "org.babel.tangle", "arguments": [context] }))
+    };
+    let shown = |path: &std::path::Path| {
+        let home = std::env::var_os("HOME").map(std::path::PathBuf::from);
+        match home.as_deref().and_then(|home| path.strip_prefix(home).ok()) {
+            Some(rest) => format!("~/{}", rest.display()),
+            None => path.display().to_string(),
+        }
+    };
+    let asked = tangle(&mut client, json!({})).response_result.unwrap();
+    assert_eq!(
+        asked["input"]["prompt"],
+        format!(
+            "Tangle to {}, {} (mode 777, writable by all)? ",
+            shown(&profile),
+            shown(&directory.join("bin/run.sh"))
+        )
+    );
+    assert_eq!(asked["input"]["context"]["step"], "tangle");
+    // No: nothing is written, not even the file inside.
+    let mut answer = asked["input"]["context"].clone();
+    answer["input"] = json!("n");
+    let refused = tangle(&mut client, answer.clone());
+    assert_eq!(refused.response_result.unwrap_err().message, "Abort");
+    assert!(!profile.exists() && !directory.join("here.sh").exists() && !directory.join("bin").exists());
+    // A yes to other files asks again.
+    let mut other = answer.clone();
+    other["input"] = json!("y");
+    other["tangled"] = json!([format!("{} 755", profile.display())]);
+    let again = tangle(&mut client, other).response_result.unwrap();
+    assert_eq!(again["input"]["prompt"], asked["input"]["prompt"]);
+    assert!(!profile.exists());
+    // Yes: written, with their modes.
+    answer["input"] = json!("y");
+    let result = tangle(&mut client, answer).response_result.unwrap();
+    assert_eq!(result["message"], "Tangled 3 code blocks from notes.org");
+    assert_eq!(std::fs::read_to_string(&profile).unwrap(), "echo one\n");
+    assert_eq!(std::fs::read_to_string(directory.join("here.sh")).unwrap(), "echo three\n");
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+    std::fs::remove_dir_all(outside).unwrap();
+}
+
 /// M-RET, M-S-RET, C-RET and C-S-RET: the result carries the edit and the
 /// cursor, as with RET.
 #[test]

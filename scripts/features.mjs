@@ -952,7 +952,7 @@ export const AREAS = [
   {
     name: 'Code blocks (Babel)',
     emacs: [
-      ['Tangling, with Noweb references, comments and header arguments from properties', true],
+      ['Tangling, with Noweb references, comments and header arguments from properties; unlike Emacs, files outside the Org file\'s directory, or given a mode that is setuid, setgid or writable by all, are asked about first, once for all of them (`Tangle to FILES?`), but not when Emacs tangles', true],
       ['Tangling\'s options: extensions by language, the link comments\' format and paths, comments left uncommented, the Org text of comments as it is, the default file mode, deleting files before writing them, Noweb references between other strings (`org-babel-tangle-lang-exts`, `org-babel-tangle-comment-format-beg`, `org-babel-noweb-wrap-start` and the others)', true],
       ['Evaluating a block, a `#+CALL:` line and inline code (through Emacs)', true],
       ['Evaluating the file\'s and the subtree\'s blocks', true, { helix: 'no' }],
