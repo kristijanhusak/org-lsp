@@ -21,7 +21,11 @@ The agenda files and options are those of the shared configuration file
 (~~/.config/org-lsp/config.toml~, see [[file:configuration.org][Configuration]]): set
 ~org_agenda_files~ there, and ~org-lsp config~ shows what is read. They are
 read again at each call. With no ~org_agenda_files~, the agenda is built
-from the Org files under the directory the server runs in.
+from the Org files under the directory the server runs in. A file found in
+a directory (that one, or one ~org_agenda_files~ names) that is a link to a
+file outside it is left out, as a link in someone else's folder could lead
+to any of your files; a file ~org_agenda_files~ names is taken wherever it
+leads.
 
 #+begin_src toml
 org_agenda_files = ["~/org"]
@@ -272,7 +276,8 @@ templates, ~refile~ the files of ~org_refile_targets~ too, ~archive~
 only the agenda files and their archive files (that of
 ~org_archive_location~, and those an agenda file names with ~#+ARCHIVE~ or
 an ~ARCHIVE~ property when they are in the directory of an agenda file or
-below), and ~delete_entry~ only the agenda files. What needs
+below, once links are followed, named ~*.org~ or ~*_archive~ and with no
+hidden directory or name), and ~delete_entry~ only the agenda files. What needs
 Emacs or the editor is refused: a template with ~%(…)~ or a ~function~
 target, a ~clock~ target or ~clock_in~, as there is no clock, and
 refiling while ~org_refile_target_verify_function~ is set (both

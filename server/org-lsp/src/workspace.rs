@@ -208,6 +208,39 @@ impl Workspace {
         files
     }
 
+    /// Where the agenda files are looked for, as configured rather than as
+    /// links lead: the directories `org_agenda_files` names (for a glob
+    /// pattern, the directory before its first wildcard), or the workspace
+    /// folders without it; and the files it names.
+    pub fn roots(&self) -> (Vec<PathBuf>, Vec<PathBuf>) {
+        let (mut directories, mut files) = (Vec::new(), Vec::new());
+        if self.patterns.is_empty() {
+            directories.extend(self.folders.iter().cloned());
+        }
+        for pattern in &self.patterns {
+            let normalized = pattern.replace('\\', "/");
+            let parts: Vec<&str> = normalized.split('/').collect();
+            let fixed = parts.iter().take_while(|part| !has_wildcard(part)).count();
+            if fixed == parts.len() {
+                for path in self.expand(pattern) {
+                    if path.is_dir() {
+                        directories.push(path);
+                    } else if path.is_file() {
+                        files.push(path);
+                    }
+                }
+                continue;
+            }
+            let base = match parts[..fixed].join("/") {
+                prefix if prefix.is_empty() && normalized.starts_with('/') => "/".to_string(),
+                prefix if prefix.is_empty() => ".".to_string(),
+                prefix => format!("{prefix}/"),
+            };
+            directories.extend(self.expand(&base).into_iter().filter(|path| path.is_dir()));
+        }
+        (directories, files)
+    }
+
     /// The files `org_agenda_files` names that are not there: each entry
     /// without wildcards that names nothing, as a path.
     pub fn missing(&self) -> Vec<PathBuf> {
@@ -366,6 +399,27 @@ mod tests {
             std::os::unix::fs::symlink(&root, root.join("sub/up")).unwrap();
             assert_eq!(files(vec![at("**/*.org")], vec![]), ["a.org", "sub/c.org", "sub/deep/d.org"]);
         }
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    /// Where the agenda files are looked for: the folders, or the
+    /// directories and files `org_agenda_files` names, a glob pattern's
+    /// directory before its first wildcard.
+    #[test]
+    fn tells_where_agenda_files_are_looked_for() {
+        let root = tree("roots");
+        let at = |pattern: &str| format!("{}/{pattern}", root.display());
+        let roots = |patterns: Vec<String>, folders: Vec<PathBuf>| {
+            let (directories, files) = Workspace::new(patterns, folders).roots();
+            (names(&root, directories), names(&root, files))
+        };
+        let nothing: Vec<String> = Vec::new();
+        assert_eq!(roots(vec![], vec![root.join("sub")]), (vec!["sub".to_string()], nothing.clone()));
+        let (directories, files) = roots(vec![at("sub"), at("a.org"), at("missing.org")], vec![]);
+        assert_eq!((directories, files), (vec!["sub".to_string()], vec!["a.org".to_string()]));
+        assert_eq!(roots(vec![at("sub/**/*.org"), at("*/c.org")], vec![]).0, ["sub", ""]);
+        assert_eq!(roots(vec!["sub/*.org".to_string()], vec![root.clone()]).0, ["sub"]);
+        assert_eq!(roots(vec!["*.org".to_string()], vec![root.clone()]), (vec![String::new()], nothing));
         std::fs::remove_dir_all(root).unwrap();
     }
 

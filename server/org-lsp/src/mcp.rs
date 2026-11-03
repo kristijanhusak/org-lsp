@@ -450,13 +450,29 @@ pub(crate) fn agenda_paths(options: &Options, folder: Option<&Path>) -> Vec<Path
 
 /// [`agenda_paths`] as they are at `now`.
 pub(crate) fn agenda_paths_at(options: &Options, folder: Option<&Path>, now: DateTime) -> Vec<PathBuf> {
-    let mut paths = workspace(options, folder).files();
+    let workspace = workspace(options, folder);
+    let mut paths = workspace.files();
+    // A file found in a directory (the folder, one `org_agenda_files`
+    // names) that is a link to a file outside it is left out: a link in a
+    // folder of someone else's (a cloned repository) would otherwise make
+    // any file of the user's one to read and change. A file named in
+    // `org_agenda_files` is the user's choice, wherever it leads.
+    let (directories, named) = workspace.roots();
+    let directories: Vec<PathBuf> = directories.iter().map(|directory| canonical(directory)).collect();
+    let named: Vec<PathBuf> = named.iter().map(|file| canonical(file)).collect();
+    paths.retain(|path| {
+        let real = canonical(path);
+        named.contains(&real) || directories.iter().any(|directory| real.starts_with(directory))
+    });
     // `org-journal-enable-agenda-integration`: the journal's files of
     // today and the days to come in place of the others, as the server has.
     if let Some(journal) = options.journal() {
         if let Some((directory, names)) = crate::server::journal_agenda_files(&journal, now) {
             paths.retain(|path| !crate::server::is_journal(path, &journal));
-            paths.extend(names.iter().map(|name| directory.join(name)));
+            let inside = canonical(&directory);
+            paths.extend(
+                names.iter().map(|name| directory.join(name)).filter(|path| resolved(path).starts_with(&inside)),
+            );
         }
     }
     paths
