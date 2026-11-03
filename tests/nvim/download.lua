@@ -81,6 +81,20 @@ vim.cmd('runtime plugin/org-lsp.lua')
 local org_lsp = require('org-lsp')
 eq(org_lsp.server_command(), nil, 'no server is found before the download')
 
+-- A server in the current directory is never taken, as Windows would
+-- take it for a bare name, even with `.` or an empty entry in PATH.
+local here = vim.fn.tempname()
+vim.fn.mkdir(here, 'p')
+vim.uv.fs_copyfile(server, vim.fs.joinpath(here, 'org-lsp'))
+local path, cwd = vim.env.PATH, vim.fn.getcwd()
+vim.cmd.cd(here)
+vim.env.PATH = '.::' .. path
+eq(org_lsp.server_command(), nil, 'no server is taken from the current directory')
+vim.env.PATH = here .. ':' .. path
+eq(org_lsp.server_command(), { vim.fs.joinpath(here, 'org-lsp') }, 'a server on PATH is taken by its absolute path')
+vim.env.PATH = path
+vim.cmd.cd(cwd)
+
 -- 1. Opening an Org file downloads the server and starts it.
 local file = vim.fn.tempname() .. '.org'
 vim.fn.writefile({ '* TODO Task' }, file)

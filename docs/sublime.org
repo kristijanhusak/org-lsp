@@ -40,7 +40,10 @@ The server needs nothing more. The package starts the first of:
    nightly build for the nightly package, ~v0.2.0~ for version 0.2.0),
    downloaded into a folder of that release in Sublime Text's ~Package
    Storage/LSP-org~; a package updated to another release downloads its
-   own, and the old server goes.
+   own, and the old server goes. The archive is checked against the
+   release's ~SHA256SUMS~, as ~scripts/install.sh~ checks it: one that
+   does not match is not installed. A release without ~SHA256SUMS~ is
+   installed unchecked, which the console says.
 
 /Org: Download the latest server/ fetches that release's server again and
 restarts the server.

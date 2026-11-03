@@ -6981,7 +6981,19 @@ impl Server {
         if !self.client.command_actions || self.port.is_some() {
             return;
         }
-        match port::open(self.port_sender.clone()) {
+        // The port's socket goes beside the script, in a directory only
+        // the user may enter.
+        let directory = self
+            .client
+            .command_script
+            .as_ref()
+            .and_then(|script| script.parent().map(Path::to_path_buf))
+            .or_else(|| crate::protocol::state_directory(&|name| std::env::var(name).ok()));
+        let Some(directory) = directory else {
+            self.show_message(MessageType::ERROR, "Cannot open the command port: no state directory".to_string());
+            return;
+        };
+        match port::open(&directory, self.port_sender.clone()) {
             Ok(port) => {
                 let taken = self.client.command_script.as_ref().is_some_and(|script| port.answered_elsewhere(script));
                 self.port = Some(port);

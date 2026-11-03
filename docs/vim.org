@@ -54,7 +54,12 @@ plugin; a server that runs already is replaced when Vim starts again.
 ~'release': 'v0.2.0'~ in ~g:org_lsp~ picks a release whatever the checkout
 is, ~'release': 'nightly'~ the nightly build, and ~'download': 0~ turns the download off. A release that needs a
 GitHub login, as one of a private repository, is downloaded with the GitHub
-CLI (~gh~) when it is installed and logged in.
+CLI (~gh~) when it is installed and logged in. The archive is checked
+against the release's ~SHA256SUMS~ before it is unpacked, as
+~scripts/install.sh~ checks it: one that does not match is not installed.
+A release without ~SHA256SUMS~ is installed unchecked, with a warning. The
+checksum is Vim's ~sha256()~ where it takes a Blob, else ~sha256sum~,
+~shasum~ or, on Windows, ~certutil~.
 
 To build the server instead (with [[https://rustup.rs][cargo]]), set
 ~'do': 'cargo build --release -p org-lsp'~. The plugin takes the server

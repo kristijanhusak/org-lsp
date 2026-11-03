@@ -166,6 +166,22 @@ function! s:open_external() abort
 endfunction
 call s:test('opens URLs with ? and # outside Vim', function('s:open_external'))
 
+" A face's colors are only colors: a value that is not one sets nothing
+" and runs nothing; Emacs's `dark green` is Vim's `darkgreen`.
+function! s:face_colors() abort
+  let ran = s:work . '/face-ran'
+  call org_lsp#choice_line({'key': 'x', 'label': 'XBAD', 'highlight': 'todoKeyword',
+        \ 'face': {'foreground': 'red | call writefile([], ' . string(ran) . ')', 'background': '#0000ff', 'bold': v:true}})
+  call assert_false(filereadable(ran), 'the color ran a command')
+  call assert_equal('', synIDattr(hlID('OrgLspTodoFace_XBAD'), 'fg#', 'gui'))
+  call assert_equal('#0000ff', synIDattr(hlID('OrgLspTodoFace_XBAD'), 'bg#', 'gui'))
+  call assert_equal('1', synIDattr(hlID('OrgLspTodoFace_XBAD'), 'bold', 'gui'))
+  call org_lsp#choice_line({'key': 'g', 'label': 'XGREEN', 'highlight': 'todoKeyword', 'face': {'foreground': 'dark green'}})
+  call assert_equal('darkgreen', synIDattr(hlID('OrgLspTodoFace_XGREEN'), 'fg', 'gui'))
+  call assert_notequal('', synIDattr(hlID('OrgLspTodoFace_XGREEN'), 'fg', 'cterm'))
+endfunction
+call s:test('takes only colors from faces', function('s:face_colors'))
+
 function! s:folds() abort
   call s:until('folds', {-> !empty(get(b:, 'org_lsp_folds', []))})
   call cursor(2, 1)
