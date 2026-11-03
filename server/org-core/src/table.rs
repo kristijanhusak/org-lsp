@@ -579,12 +579,14 @@ impl Buffer<'_> {
             return;
         }
         let mut n = n as i64;
+        // The end of the line, found again only when the line changes: a
+        // line of many columns is looked over once.
+        let mut eol = self.eol();
         loop {
             n -= 1;
             if n <= -1 {
                 break;
             }
-            let eol = self.eol();
             if self.search_forward("|", eol) {
                 continue;
             }
@@ -595,6 +597,7 @@ impl Buffer<'_> {
             let back = self.text[self.bol()..self.point].rfind('|').map_or(self.bol(), |bar| self.bol() + bar + 1);
             self.point = back;
             self.insert(" | ");
+            eol = self.eol();
         }
         if force && !self.text[self.point..self.eol()].contains('|') {
             let eol = self.eol();
