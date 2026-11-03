@@ -471,6 +471,29 @@ let g:org_lsp = {'mappings': {'org': 0}}   " nothing in Org files
 let g:org_lsp = {'mappings': 0}            " nothing anywhere
 #+end_src
 
+To set only your own keys, give ~'disable_all': 1~: none of the default
+keys are set, neither the server's nor the plugin's own (~<Tab>~, ~q~), and
+the commands listed in ~mappings~ get the keys given there:
+
+#+begin_src vim
+let g:org_lsp = {
+      \ 'mappings': {
+      \   'disable_all': 1,
+      \   'org': {'org.todo': '<C-t>', 'org.checkbox.toggle': '<C-Space>', 'cycle': '<Tab>'},
+      \   'global': {'org.agenda.dispatch': '<Leader>a'},
+      \ },
+      \ }
+#+end_src
+
+To keep the default keys under another prefix than ~<Leader>o~, give it as
+~prefix~: with ~'prefix': '<LocalLeader>o'~ the agenda is ~<LocalLeader>oa~
+and scheduling ~<LocalLeader>ois~. Only the keys that start with
+~<Leader>o~ change; the keys given in ~mappings~ are set as they are.
+
+#+begin_src vim
+let g:org_lsp = {'mappings': {'prefix': '<LocalLeader>o'}}
+#+end_src
+
 ** From the command line
 
 ~:Org~ runs a command by its name without the ~org.~ prefix, with
