@@ -99,6 +99,69 @@ local function run(cmd, callback)
   end)
 end
 
+--- The release's `SHA256SUMS` into `file`, as `scripts/install.sh` gets
+--- them. `callback` gets what went wrong, or nil and whether the release
+--- has them: one without them (not found, or not there in a `file://`
+--- release) is not checked; any other failure stops the download.
+---@param release string
+---@param file string
+---@param callback fun(err: string|nil, found: boolean|nil)
+local function fetch_sums(release, file, callback)
+  local url = ('%s/%s/SHA256SUMS'):format(M.base_url, release)
+  local cmd = { 'curl', '--fail', '--silent', '--show-error', '--location', '--retry', '2' }
+  vim.list_extend(cmd, { '--write-out', '%{http_code}', '--output', file, url })
+  vim.system(cmd, { text = true }, function(result)
+    if result.code == 0 then
+      return callback(nil, true)
+    end
+    os.remove(file)
+    -- 22: an HTTP error, here 404; 37: no such file (`file://`).
+    local missing = result.code == 22 and vim.trim(result.stdout or '') == '404' or result.code == 37
+    if not missing then
+      return callback(('could not download SHA256SUMS from the %s release (%s): %s'):format(release, url, vim.trim(result.stderr or '')))
+    end
+    -- A private repository's files need GitHub's login, which `gh` has;
+    -- without it, they are not found.
+    if vim.startswith(url, 'https://github.com/') and vim.fn.executable('gh') == 1 then
+      local dir = vim.fs.dirname(file)
+      return run({ 'gh', 'release', 'download', release, '--repo', REPOSITORY, '--pattern', 'SHA256SUMS', '--dir', dir, '--clobber' }, function(err)
+        callback(nil, err == nil)
+      end)
+    end
+    callback(nil, false)
+  end)
+end
+
+--- Check the archive `file` (named `name` in the release) against the
+--- release's `SHA256SUMS` in `sums`: what is wrong with it, or nil. Runs on
+--- the main loop (`sha256()`).
+---@param file string
+---@param name string
+---@param sums string
+---@param release string
+---@return string|nil
+function M.check(file, name, sums, release)
+  local expected
+  for line in io.lines(sums) do
+    local sum, listed = line:match('^(%x+)%s+%*?(.-)%s*$')
+    if listed == name then
+      expected = sum:lower()
+      break
+    end
+  end
+  -- The files built together are all in SHA256SUMS: one that is not is
+  -- left from an older build (a platform whose build failed).
+  if not expected then
+    return ('%s is not in the SHA256SUMS of the %s release: it is not from the same build, so it is not installed'):format(name, release)
+  end
+  local handle = assert(io.open(file, 'rb'))
+  local data = handle:read('*a')
+  handle:close()
+  if vim.fn.sha256(data) ~= expected then
+    return ('%s does not match its checksum in SHA256SUMS: the download is broken'):format(name)
+  end
+end
+
 --- Download `release` (a version tag such as `v0.2.0`, or `nightly`) for
 --- this platform, replacing the server downloaded before. `callback` runs
 --- on the main loop with an error message, or with the server's path.
@@ -129,10 +192,7 @@ function M.download(release, callback)
   vim.fn.mkdir(staging, 'p')
   local file = vim.fs.joinpath(staging, archive)
   local gh = vim.startswith(url, 'https://github.com/') and vim.fn.executable('gh') == 1
-  local function fetched(err)
-    if err then
-      return done(('could not download %s: %s'):format(url, err))
-    end
+  local function unpack()
     run(M.unpack_command(file, staging), function(unpack_err)
       if unpack_err then
         return done(unpack_err)
@@ -157,6 +217,31 @@ function M.download(release, callback)
         vim.fn.writefile({ release .. ' ' .. os.date('!%Y-%m-%d %H:%M') .. ' UTC' }, vim.fs.joinpath(M.dir(), 'release'))
         vim.fn.delete(staging, 'rf')
         callback(nil, target)
+      end)
+    end)
+  end
+  -- The archive checked against the release's SHA256SUMS before it is
+  -- unpacked, when the release has them.
+  local function fetched(err)
+    if err then
+      return done(('could not download %s: %s'):format(url, err))
+    end
+    local sums = vim.fs.joinpath(staging, 'SHA256SUMS')
+    fetch_sums(release, sums, function(sums_err, found)
+      if sums_err then
+        return done(sums_err)
+      end
+      vim.schedule(function()
+        if not found then
+          notify(('org-lsp: the %s release has no SHA256SUMS: %s is not checked'):format(release, archive), vim.log.levels.WARN)
+          return unpack()
+        end
+        local ok, wrong = pcall(M.check, file, archive, sums, release)
+        if not ok or wrong then
+          vim.fn.delete(staging, 'rf')
+          return callback(ok and wrong or tostring(wrong))
+        end
+        unpack()
       end)
     end)
   end

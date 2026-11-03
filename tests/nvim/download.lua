@@ -47,8 +47,23 @@ vim.fn.mkdir(vim.fs.joinpath(releases, 'nightly'), 'p')
 local staged = vim.fn.tempname()
 vim.fn.mkdir(staged, 'p')
 vim.uv.fs_copyfile(server, vim.fs.joinpath(staged, 'org-lsp'))
-local packed = vim.system({ 'tar', '-czf', vim.fs.joinpath(releases, 'nightly', ('org-lsp-%s.tar.gz'):format(platform)), '-C', staged, 'org-lsp' }):wait()
+local archive = ('org-lsp-%s.tar.gz'):format(platform)
+local packed = vim.system({ 'tar', '-czf', vim.fs.joinpath(releases, 'nightly', archive), '-C', staged, 'org-lsp' }):wait()
 eq(packed.code, 0, 'the release is packed')
+local sum = vim.fn.sha256(vim.fn.readblob(vim.fs.joinpath(releases, 'nightly', archive)))
+vim.fn.writefile({ sum .. '  ' .. archive, ('0'):rep(64) .. '  install.sh' }, vim.fs.joinpath(releases, 'nightly', 'SHA256SUMS'))
+--- A release `name` with the same archive and `sums` as its SHA256SUMS
+--- (none when nil).
+local function release_with(name, sums)
+  vim.fn.mkdir(vim.fs.joinpath(releases, name), 'p')
+  vim.uv.fs_copyfile(vim.fs.joinpath(releases, 'nightly', archive), vim.fs.joinpath(releases, name, archive))
+  if sums then
+    vim.fn.writefile(sums, vim.fs.joinpath(releases, name, 'SHA256SUMS'))
+  end
+end
+release_with('v9.0.0-broken', { ('0'):rep(64) .. '  ' .. archive })
+release_with('v9.0.0-unlisted', { sum .. '  org-lsp-other.tar.gz' })
+release_with('v9.0.0-unchecked', nil)
 download.base_url = 'file://' .. releases
 local data = vim.fn.tempname()
 download.dir = function()
@@ -128,6 +143,40 @@ failure = vim.iter(messages):find(function(message)
 end)
 check(failure[1]:find('"../nightly" is not a release', 1, true), 'the refusal names the release: ' .. failure[1])
 check(vim.uv.fs_stat(download.path()) ~= nil, 'the server downloaded before stays')
+
+--- `:OrgLspDownload` of `release`: the messages, once one with `level`
+--- (or the download's report) has come.
+local function download_release(release, level)
+  org_lsp.setup({ release = release })
+  messages = {}
+  vim.cmd('OrgLspDownload')
+  wait('the download of ' .. release, function()
+    return not download.running
+  end)
+  return vim.iter(messages):find(function(message)
+    return message[2] == level
+  end)
+end
+
+-- 5. An archive that does not match the release's SHA256SUMS is not
+-- installed: the server downloaded before stays.
+local before = download.version()
+local broken = download_release('v9.0.0-broken', vim.log.levels.ERROR)
+check(broken and broken[1]:find(archive .. ' does not match its checksum in SHA256SUMS', 1, true), 'a broken download is refused: ' .. vim.inspect(messages))
+eq(download.version(), before, 'the server downloaded before stays')
+check(vim.fn.isdirectory(vim.fs.joinpath(data, 'staging')) == 0, 'the refused archive is cleaned up')
+
+-- 6. Nor is one the release's SHA256SUMS do not list (left from another
+-- build).
+local unlisted = download_release('v9.0.0-unlisted', vim.log.levels.ERROR)
+check(unlisted and unlisted[1]:find(archive .. ' is not in the SHA256SUMS of the v9.0.0-unlisted release', 1, true), 'an unlisted archive is refused: ' .. vim.inspect(messages))
+eq(download.version(), before, 'the server downloaded before stays')
+
+-- 7. A release without SHA256SUMS is installed unchecked, as
+-- scripts/install.sh does, and says so.
+local unchecked = download_release('v9.0.0-unchecked', vim.log.levels.WARN)
+check(unchecked and unchecked[1]:find('the v9.0.0-unchecked release has no SHA256SUMS: ' .. archive .. ' is not checked', 1, true), 'an unchecked download is said: ' .. vim.inspect(messages))
+check((download.version() or ''):match('^v9.0.0%-unchecked '), 'it is installed: ' .. tostring(download.version()))
 
 io.stdout:write(('ok: %d download checks passed\n'):format(checks))
 vim.cmd('qall!')

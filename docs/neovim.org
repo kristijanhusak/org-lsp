@@ -41,7 +41,10 @@ above does that on each update of the plugin. ~release = 'v0.2.0'~ picks a
 release instead of the nightly build, and ~download = false~ turns the
 download off. A release that needs a GitHub login, as one of a private
 repository, is downloaded with the GitHub CLI (~gh~) when it is installed
-and logged in.
+and logged in. The archive is checked against the release's ~SHA256SUMS~
+before it is unpacked, as ~scripts/install.sh~ checks it: one that does
+not match is not installed. A release without ~SHA256SUMS~ is installed
+unchecked, with a warning.
 
 To build the server instead (with [[https://rustup.rs][cargo]]), run
 ~:OrgLspBuild~, in the autocommand in place of ~OrgLspDownload~ to build it
