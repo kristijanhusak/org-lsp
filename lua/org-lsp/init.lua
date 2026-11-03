@@ -24,7 +24,7 @@ local SERVER = 'org_lsp'
 ---@class org_lsp.Config
 ---@field cmd? string[] Server command. Found automatically when unset: a build in the plugin's directory, `org-lsp` on PATH, or the one `download` fetched.
 ---@field download? boolean Whether a server is downloaded when none is found: the build of `release` for this platform, into `stdpath('data')/org-lsp` (needs `curl` and `tar`). `:OrgLspDownload` downloads it again, to update it.
----@field release? string The release `download` and `:OrgLspDownload` fetch the server from: 'nightly' (built from the latest `main`), or a version tag such as 'v0.2.0'.
+---@field release? string The release `download` and `:OrgLspDownload` fetch the server from: 'nightly' (built from the latest `main`), or a version tag such as 'v0.2.0'. Unset, the tag the plugin is checked out at (lazy.nvim's `version`, `tag`), or 'nightly' on any other commit.
 ---@field settings? org_lsp.Settings The server's options, such as `org_agenda_files` and `org_todo_keywords`; see docs/configuration.org.
 ---@field startup_folded? 'showeverything'|'overview' How a newly opened file shows when neither the settings' `org_startup_folded` nor its `#+STARTUP:` say: everything open or every subtree folded. The file's `#+STARTUP:` and `VISIBILITY` properties always decide for it.
 ---@field folding? boolean Whether to fold with the server's folding ranges.
@@ -57,7 +57,6 @@ local SERVER = 'org_lsp'
 local defaults = {
   cmd = nil,
   download = true,
-  release = 'nightly',
   settings = {},
   folding = true,
   replace_syntax = false,
@@ -128,6 +127,27 @@ local own_commands = {
 local function plugin_root()
   local source = debug.getinfo(1, 'S').source:sub(2)
   return vim.fs.dirname(vim.fs.dirname(vim.fs.dirname(source)))
+end
+
+--- The release to download: the `release` option; unset, the version tag
+--- the plugin's checkout is at, so that a plugin pinned to a release runs
+--- that release's server; 'nightly' on any other commit, or when git
+--- cannot tell.
+---@return string
+function M.release()
+  return M.config.release or M._checkout_release(plugin_root())
+end
+
+--- The release of the checkout in `dir`: the version tag (`v0.2.0`) its
+--- commit has, or 'nightly'.
+---@param dir string
+---@return string
+function M._checkout_release(dir)
+  local ok, result = pcall(function()
+    return vim.system({ 'git', '-C', dir, 'describe', '--tags', '--exact-match', 'HEAD' }, { text = true }):wait()
+  end)
+  local tag = ok and result.code == 0 and vim.trim(result.stdout or '') or ''
+  return tag:match('^v%d[%w._-]*$') and tag or 'nightly'
 end
 
 --- The server command: the configured one, a build inside the plugin
@@ -1457,7 +1477,7 @@ end
 
 --- Download the server, then start it (or restart it, when one runs).
 local function download()
-  require('org-lsp.download').run(M.config.release, function()
+  require('org-lsp.download').run(M.release(), function()
     if enable() then
       restart()
     end

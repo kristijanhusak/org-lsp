@@ -431,8 +431,9 @@ require('org-lsp').setup({
   download = true,
 
   -- The release to download: 'nightly' (built from the latest main), or
-  -- a version tag such as 'v0.2.0'.
-  release = 'nightly',
+  -- a version tag such as 'v0.2.0'. Unset, the tag the plugin is checked
+  -- out at, or 'nightly' on any other commit.
+  release = nil,
 
   -- The server's options, passed to it as they are.
   settings = {},
@@ -716,7 +717,7 @@ what you set is merged into the defaults.
 |---------------------+--------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ~cmd~               | found              | The server command, as a list. Unset: the build in the checkout (~target/release~), ~org-lsp~ on PATH, or the downloaded one.                                                                                                                       |
 | ~download~          | ~1~                | When no server is found, download the build of ~release~ for this platform into =~/.local/share/vim/org-lsp= (with ~curl~ and ~tar~) and start it. ~:OrgLspDownload~ downloads it again, to update it.                                              |
-| ~release~           | ~'nightly'~        | The release to download: ~'nightly'~ (built from the latest ~main~), or a version tag such as ~'v0.2.0'~.                                                                                                                                           |
+| ~release~           | ~''~               | The release to download: ~'nightly'~ (built from the latest ~main~), or a version tag such as ~'v0.2.0'~. Empty, the tag the plugin is checked out at, or ~'nightly'~.                                                                              |
 | ~settings~          | ~{}~               | The server's options, passed to it as they are.                                                                                                                                                                                                     |
 | ~client~            | ~'auto'~           | The LSP client: ~'lsp'~ (yegappan/lsp), ~'coc'~, ~'vim-lsp'~ or ~'ale'~. ~'auto'~ takes the first of these that is installed.                                                                                                                       |
 | ~folding~           | ~1~                | Fold with the server's folding ranges, and cycle with ~<Tab>~ and ~<S-Tab>~.                                                                                                                                                                        |

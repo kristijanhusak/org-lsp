@@ -97,6 +97,24 @@ function! s:not_a_release() abort
   call assert_true(executable(org_lsp#download#path()), 'the server downloaded before stays')
 endfunction
 
+" With no `release`, the release of the plugin's checkout: the version tag
+" of its commit, or nightly.
+function! s:checkout_release() abort
+  let dir = tempname()
+  call mkdir(dir, 'p')
+  let Git = {args -> system('git -C ' . shellescape(dir) . ' -c user.name=t -c user.email=t@t ' . args)}
+  call assert_equal('nightly', org_lsp#checkout_release(dir), 'not a git checkout')
+  call Git('init -q')
+  call Git('commit -q --allow-empty -m one')
+  call assert_equal('nightly', org_lsp#checkout_release(dir), 'a commit without a tag')
+  call Git('tag v0.3.1')
+  call assert_equal('v0.3.1', org_lsp#checkout_release(dir), 'a commit with a version tag')
+  call Git('commit -q --allow-empty -m two')
+  call assert_equal('nightly', org_lsp#checkout_release(dir), 'a commit after the tag')
+  let g:org_lsp.release = 'v0.2.0'
+  call assert_equal('v0.2.0', org_lsp#release(), 'the release option first')
+endfunction
+
 " `:OrgLspDownload` of `release`, once it is over.
 function! s:download_release(release) abort
   let g:org_lsp.release = a:release
@@ -133,6 +151,7 @@ function! s:main(...) abort
   call s:test(':OrgLspDownload downloads it again', function('s:again'))
   call s:test('a release that does not exist is an error', function('s:missing'))
   call s:test('a release that is no release name is refused', function('s:not_a_release'))
+  call s:test('the release of the checkout', function('s:checkout_release'))
   call s:test('the archive is checked against SHA256SUMS', function('s:checked'))
   for error in v:errors
     call add(s:results, 'not ok - ' . error)

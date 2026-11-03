@@ -15,7 +15,7 @@ let s:root = fnamemodify(expand('<sfile>:p'), ':h:h:h:h')
 let s:defaults = {
       \ 'cmd': [],
       \ 'download': 1,
-      \ 'release': 'nightly',
+      \ 'release': '',
       \ 'settings': {},
       \ 'client': 'auto',
       \ 'folding': 1,
@@ -219,7 +219,25 @@ endfunction
 " client, and starts for the Org buffers open, when there was none before;
 " a server that runs already is replaced the next time Vim starts.
 function! org_lsp#download() abort
-  call org_lsp#download#run(org_lsp#config().release, {path -> s:downloaded()})
+  call org_lsp#download#run(org_lsp#release(), {path -> s:downloaded()})
+endfunction
+
+" The release to download: the `release` option; empty, the version tag the
+" plugin's checkout is at, so that a plugin pinned to a release runs that
+" release's server; 'nightly' on any other commit, or when git cannot tell.
+function! org_lsp#release() abort
+  let release = org_lsp#config().release
+  return empty(release) ? org_lsp#checkout_release(s:root) : release
+endfunction
+
+" The release of the checkout in `dir`: the version tag (`v0.2.0`) its
+" commit has, or 'nightly'.
+function! org_lsp#checkout_release(dir) abort
+  if !executable('git')
+    return 'nightly'
+  endif
+  let tag = trim(system('git -C ' . shellescape(a:dir) . ' describe --tags --exact-match HEAD'))
+  return v:shell_error == 0 && tag =~# '^v[0-9][0-9A-Za-z._-]*$' ? tag : 'nightly'
 endfunction
 
 function! s:downloaded() abort
