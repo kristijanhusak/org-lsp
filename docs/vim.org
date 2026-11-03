@@ -78,12 +78,12 @@ LaTeX, what other options change) waits for it. It needs ~:syntax on~.
 
 To try it without touching your own configuration,
 [[file:../editors/vim/minimal.vim][editors/vim/minimal.vim]] is a vimrc that puts vim-plug and yegappan/lsp in
-a temporary folder and loads the plugin from a checkout (=~/github/org-lsp=;
-change both places it is named for another):
+a temporary folder and loads the plugin from the checkout it is in, wherever
+that is, from any directory:
 
 #+begin_src sh
 cargo build --release -p org-lsp
-vim -N -u editors/vim/minimal.vim ~/org/todo.org
+vim -N -u path/to/org-lsp/editors/vim/minimal.vim ~/org/todo.org
 #+end_src
 
 * Setting it up
