@@ -181,6 +181,12 @@ impl Workspace {
         &self.folders
     }
 
+    /// Whether `org_agenda_files` names the agenda files, rather than the
+    /// workspace folders being looked in.
+    pub fn names_files(&self) -> bool {
+        !self.patterns.is_empty()
+    }
+
     /// Whether the agenda has a place to look for files.
     pub fn is_configured(&self) -> bool {
         !self.patterns.is_empty() || !self.folders.is_empty()

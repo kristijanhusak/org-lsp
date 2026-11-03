@@ -346,7 +346,7 @@ Where editors fall short:
 - ✅ Habits (~org-habit~): the consistency graph, ~K~ /(in part in Sublime Text)/
 - ✅ Groups of org-super-agenda (~org_super_agenda_mode~, ~org_super_agenda_groups~): its selectors, automatic groups and options, for each day and each view; not the selectors that run Lisp
 - ✅ Diary sexps (~%%(diary-…)~ lines, ~<%%(…)>~ timestamps): the date functions of ~diary-lib~ and Org (~diary-anniversary~, ~-block~, ~-cyclic~, ~-date~, ~-float~, ~org-class~ …) with ~and~, ~or~, ~not~ and comparisons
-- ✅ Diary sexps calling other Lisp, evaluated by Emacs (~org-diary-sexp-entry~) for each day of the view
+- ✅ Diary sexps calling other Lisp, evaluated by Emacs (~org-diary-sexp-entry~) for each day of the view; unlike Emacs, only those of the files ~org_agenda_files~ names and the journal's, not of a file that is an agenda file because it is open or in the workspace folder, which the agenda says once
 - ✅ Column view in the agenda (~C-c C-x C-c~, through Emacs): each entry's line covered by its columns, the summaries on the date lines and the blocks' headers; editing, cycling and showing the values of the entries, changed in their files /(not in Sublime Text, Zed, Helix)/
 - ✅ Column view as soon as the agenda is made (~org-agenda-view-columns-initially~) /(not in Sublime Text, Zed, Helix)/
 - ✅ Writing the agenda to a file (~C-x C-w~): ~.org~ and plain text; in plain text, some lines of each entry's text under its line (~org-agenda-add-entry-text-maxlines~)
