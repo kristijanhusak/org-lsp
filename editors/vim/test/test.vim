@@ -464,6 +464,19 @@ function! s:protocol_capture() abort
 endfunction
 call s:test('captures from an org-protocol URL', function('s:protocol_capture'))
 
+" The server may ask to run only its own commands (`org.*`), never one of
+" the plugin's (`help`, `quit`).
+function! s:run_command_own_only() abort
+  let popups = popup_list()
+  call org_lsp#handle_notification('org-lsp/runCommand', {'command': 'help', 'argument': {}})
+  sleep 200m
+  call feedkeys('', 'x')
+  let opened = filter(popup_list(), 'index(popups, v:val) < 0')
+  call map(copy(opened), 'popup_close(v:val)')
+  call assert_equal([], opened, 'the keys popup opened')
+endfunction
+call s:test('runs only the server''s commands when it asks', function('s:run_command_own_only'))
+
 function! s:clock() abort
   execute 'buffer' s:work_buf
   call cursor(2, 3)
