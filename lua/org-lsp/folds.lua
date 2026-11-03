@@ -264,23 +264,55 @@ local function token_looks(token, filetype)
   return looks
 end
 
+--- The lines of each buffer already looked at, with the tokens found
+--- unmarked there, until the buffer changes or Neovim marks tokens (new
+--- ones came): `{ tick, rows }` by buffer.
+local looked = {}
+vim.api.nvim_create_autocmd('LspTokenUpdate', {
+  group = vim.api.nvim_create_augroup('org_lsp_fold_tokens', { clear = true }),
+  callback = function(args)
+    looked[args.buf] = nil
+  end,
+})
+
 --- The semantic tokens over `row` that Neovim has not marked. It marks no
 --- token in a closed fold, and of the fold's first line only the first
 --- (`check_fold` in its semantic_tokens.lua): a headline folded before
---- it ever showed open would show in `Folded`, past its stars.
+--- it ever showed open would show in `Folded`, past its stars. A line is
+--- looked at once, not each time its fold text is drawn again.
 ---@param bufnr integer
 ---@param row integer
 ---@param width integer
 ---@return table[]
 local function unmarked(bufnr, row, width)
+  local tick = vim.api.nvim_buf_get_changedtick(bufnr)
+  local state = looked[bufnr]
+  if not state or state.tick ~= tick then
+    state = { tick = tick, rows = {} }
+    looked[bufnr] = state
+  end
+  if state.rows[row] then
+    return vim.tbl_filter(function(token)
+      return not token.marked
+    end, state.rows[row])
+  end
   local tokens, seen = {}, {}
-  for col = 0, width - 1 do
+  state.rows[row] = tokens
+  local col = 0
+  while col < width do
+    -- The next column to look at: past the tokens here, which do not
+    -- overlap others.
+    local after = col + 1
     for _, token in ipairs(vim.lsp.semantic_tokens.get_at_pos(bufnr, row, col) or {}) do
-      if not token.marked and not seen[token] then
+      if not seen[token] then
         seen[token] = true
-        table.insert(tokens, token)
+        if not token.marked then
+          table.insert(tokens, token)
+        end
       end
+      after = math.max(after, token.end_line > row and width or token.end_col)
     end
+    col = after
   end
   return tokens
 end

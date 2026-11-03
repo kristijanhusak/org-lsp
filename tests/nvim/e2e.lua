@@ -215,6 +215,9 @@ for col = 2, 18 do
     end
   end
 end
+-- Neovim tells of the stars it marked.
+local stars = vim.lsp.semantic_tokens.get_at_pos(never_open_buf, 0, 0)[1]
+vim.api.nvim_exec_autocmds('LspTokenUpdate', { buffer = never_open_buf, modeline = false, data = { token = stars, client_id = stars.client_id } })
 vim.cmd('redraw')
 local never_folded = vim.api.nvim_win_call(0, function()
   vim.v.foldstart = 1
