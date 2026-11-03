@@ -2012,12 +2012,15 @@ function! s:other_window(from, path) abort
 endfunction
 
 " A URL or a file for the system to open (a link of `org-open-at-point`):
-" with Vim's own `:Open` where there is one, else the system's opener.
+" with what Vim's own `:Open` runs where there is one (`g:Openprg`), else
+" the system's opener. The function, not the command: the command's
+" argument is read as a file name, which a URL's `?` and `#` are not.
 function! s:open_external(uri) abort
-  if exists(':Open') == 2
-    execute 'Open' fnameescape(a:uri)
+  try
+    call dist#vim9#Open(a:uri)
     return
-  endif
+  catch /^Vim\%((\a\+)\)\=:E117:/
+  endtry
   " On Windows, the URL's handler without cmd.exe, which would read `&`,
   " `|` and `%VAR%` in it.
   let opener = has('mac') ? ['open'] : has('win32') ? ['rundll32', 'url.dll,FileProtocolHandler'] : ['xdg-open']
