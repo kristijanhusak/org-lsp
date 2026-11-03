@@ -74,6 +74,9 @@ impl Server {
     /// as the `info` program writes the node, else the entry of the index
     /// of that name, as `org-info-follow-link` looks for it.
     pub(super) fn open_info(&mut self, file: &str, node: &str) -> Result<Value, Refusal> {
+        if let Some(refused) = manual::info_refused(file, node) {
+            return Err(refused.into());
+        }
         if manual::on_the_web(file, &self.info_other_documents) {
             let url = manual::info_url(file, node, &self.info_other_documents);
             let target = uri::from_url(&url).ok_or_else(|| format!("Cannot open {url}"))?;
