@@ -3074,29 +3074,47 @@ function! s:define_faces() abort
   endfor
 endfunction
 
+" The face's color `key` (`foreground`, `background`) as Vim takes it: `#rrggbb`
+" or a name, Emacs's spaces dropped (`dark green` is Vim's `darkgreen`);
+" empty for anything else.
+function! s:face_color(face, key) abort
+  let value = get(a:face, a:key, '')
+  if type(value) != v:t_string
+    return ''
+  endif
+  let value = substitute(value, ' ', '', 'g')
+  return value =~# '^#\x\{6}$\|^\a\w*$' ? value : ''
+endfunction
+
 " The highlight group and text property type of the face of keyword or
 " priority `name`; returns the type.
 function! s:define_face(kind, name, face) abort
   let [kind, name, face] = [a:kind, a:name, a:face]
   let group = s:face_group(kind, name)
-  let attributes = filter(['bold', 'italic', 'underline', 'strikethrough'], {_, a -> get(face, a, v:false)})
-  let attr = empty(attributes) ? 'NONE' : join(attributes, ',')
-  let colors = ''
-  if has_key(face, 'foreground')
-    let colors .= ' guifg=' . face.foreground
+  let attributes = {}
+  for attribute in filter(['bold', 'italic', 'underline', 'strikethrough'], {_, a -> get(face, a, v:false)})
+    let attributes[attribute] = v:true
+  endfor
+  " Set with `hlset()`, never through `:highlight`: the colors come from
+  " the user's options, and only a color is taken from them.
+  let look = {'name': group, 'default': v:true, 'term': attributes, 'cterm': attributes, 'gui': attributes}
+  let foreground = s:face_color(face, 'foreground')
+  let background = s:face_color(face, 'background')
+  if !empty(foreground)
+    let look.guifg = foreground
   endif
-  if has_key(face, 'background')
-    let colors .= ' guibg=' . face.background
+  if !empty(background)
+    let look.guibg = background
   endif
   try
-    execute 'highlight default' group 'term=' . attr 'cterm=' . attr 'gui=' . attr colors
+    call hlset([look])
   catch
   endtry
   " A color name the terminal knows, without 'termguicolors'.
-  for [key, value] in [['ctermfg', get(face, 'foreground', '')], ['ctermbg', get(face, 'background', '')]]
+  for [key, value] in [['ctermfg', foreground], ['ctermbg', background]]
     if value =~# '^\a\+$'
       try
-        execute 'highlight' group key . '=' . value
+        call hlset([{'name': group, key: value}])
       catch
       endtry
     endif
