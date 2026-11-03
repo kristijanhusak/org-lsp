@@ -3396,6 +3396,24 @@ fn shrinks_table_columns() {
     assert_eq!(hints(&mut client), []);
 }
 
+/// A width cookie past any window (`<99999999999999>`) shrinks its
+/// column to [`org_core::shrink::WIDEST`]: the file opens, where the
+/// server used to end trying to make the fields.
+#[test]
+fn shrinks_columns_with_a_huge_cookie() {
+    let mut client = Client::start(json!({ "textDocument": { "inlayHint": {} } }), json!({}));
+    client.open(&uri(), "#+STARTUP: shrink\n|<99999999999999>|\n|-|\n");
+    let tokens =
+        client.raw_request("textDocument/semanticTokens/full", json!({ "textDocument": { "uri": uri().as_str() } }));
+    assert!(tokens.response_result.is_ok());
+    let params = json!({ "textDocument": { "uri": uri().as_str() }, "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 3, "character": 0 } } });
+    let result = client.raw_request("textDocument/inlayHint", params).response_result.unwrap();
+    let labels: Vec<&str> = result.as_array().unwrap().iter().map(|hint| hint["label"].as_str().unwrap()).collect();
+    let widest = org_core::shrink::WIDEST;
+    // The cookie's own field, 16 characters wide, padded as Emacs pads it.
+    assert_eq!(labels, [format!("{}…", " ".repeat(widest - 14)), format!("{}…", "-".repeat(widest + 1))]);
+}
+
 /// The relative timer and the countdown, for the editor's status line as
 /// Emacs's mode line shows them (`org-lsp/timer`).
 #[test]
