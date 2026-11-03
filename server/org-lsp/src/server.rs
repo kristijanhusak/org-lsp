@@ -2967,7 +2967,7 @@ pub(crate) fn write_whole(path: &Path, text: &str) -> std::result::Result<(), St
 /// Write `bytes` to `path` at once: to a file beside it, then renamed over
 /// it, keeping its permissions. A link is written through, to the file it
 /// leads to, as Emacs writes it.
-fn replace_whole(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+pub(crate) fn replace_whole(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     let target = written_path(path);
     let path = target.as_path();
     let permissions = std::fs::metadata(path).ok().map(|metadata| metadata.permissions());

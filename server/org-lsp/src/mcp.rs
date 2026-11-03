@@ -724,27 +724,15 @@ fn may_write(path: &Path, read: Option<&str>) -> Result<(), Call> {
 }
 
 /// Write `text` to `path`, whose text the tool read as `read` (`None` when
-/// it was not there), at once: into a file beside it, which then takes its
-/// place, so that no one reads it half written. Refused as [`may_write`]
-/// refuses it.
+/// it was not there), at once: into a new file of a name no one can guess
+/// beside it, which then takes its place, so that no one reads it half
+/// written and no file planted there is written instead. Refused as
+/// [`may_write`] refuses it.
 fn write_file(path: &Path, read: Option<&str>, text: &str) -> Result<(), Call> {
     may_write(path, read)?;
     // A link stays a link: the file it points to is written.
-    let path = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
-    let directory = path.parent().filter(|parent| !parent.as_os_str().is_empty()).unwrap_or(Path::new("."));
-    std::fs::create_dir_all(directory).map_err(|error| format!("Cannot make {}: {error}", directory.display()))?;
-    let name = path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
-    let temporary = directory.join(format!(".{name}.org-lsp-{}.tmp", std::process::id()));
-    let written = std::fs::write(&temporary, text).and_then(|()| {
-        if let Ok(metadata) = std::fs::metadata(&path) {
-            std::fs::set_permissions(&temporary, metadata.permissions())?;
-        }
-        std::fs::rename(&temporary, &path)
-    });
-    written.map_err(|error| {
-        let _ = std::fs::remove_file(&temporary);
-        Call::Failed(format!("Cannot write {}: {error}", path.display()))
-    })
+    crate::server::replace_whole(path, text.as_bytes())
+        .map_err(|error| Call::Failed(format!("Cannot write {}: {error}", path.display())))
 }
 
 /// The lines that differ between `old` and `new`, as a unified diff with
@@ -2483,6 +2471,35 @@ mod tests {
         assert!(write_file(&path, None, "* New\n").is_err());
         assert!(write_file(&path, Some(TASKS), "* New\n").is_ok());
         assert_eq!(setup.read("tasks.org"), "* New\n");
+    }
+
+    /// A link planted beside the file, under the name of the file the text
+    /// once went to first (`.NAME.org-lsp-PID.tmp`): neither the file it
+    /// leads to is written, nor does the Org file become that link.
+    #[cfg(unix)]
+    #[test]
+    fn a_link_planted_beside_the_file_is_not_written_through() {
+        let setup = Setup::new("planted", "mcp_edits = true", &[("tasks.org", TASKS)]);
+        let other = setup.folder.join("other");
+        std::fs::write(&other, "kept\n").unwrap();
+        let planted = setup.folder.join(format!(".tasks.org.org-lsp-{}.tmp", std::process::id()));
+        std::os::unix::fs::symlink(&other, &planted).unwrap();
+        let (text, error) = setup.call("set_todo_state", json!({ "file": "tasks.org", "line": 3, "state": "DONE" }));
+        assert!(!error, "{text}");
+        assert_eq!(std::fs::read_to_string(&other).unwrap(), "kept\n");
+        let tasks = setup.folder.join("tasks.org");
+        assert!(!std::fs::symlink_metadata(&tasks).unwrap().file_type().is_symlink());
+        assert!(setup.read("tasks.org").contains("* DONE Write the report"), "{}", setup.read("tasks.org"));
+        // Nothing else is left beside it.
+        let mut names: Vec<String> = std::fs::read_dir(&setup.folder)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        names.sort();
+        assert_eq!(
+            names,
+            [planted.file_name().unwrap().to_string_lossy().as_ref(), "config.toml", "other", "tasks.org"]
+        );
     }
 
     #[test]
