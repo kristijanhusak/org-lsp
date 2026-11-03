@@ -2221,7 +2221,9 @@ options the server cannot read), once in a session though Emacs starts
 again. A request carries the document's
 text as the editor has it, unsaved changes and all, in a buffer that
 visits the file's path (so that ~#+INCLUDE:~, ~#+SETUPFILE:~ and the output's
-name work as they would in Emacs), with the file's safe local variables.
+name work as they would in Emacs), in Org mode, with the file's safe local
+variables; a ~mode:~ among them is left out (Emacs would call the function
+it names, any whose name ends in ~-mode~).
 ~org-agenda-files~ is the server's agenda files.
 
 Emacs must not read the terminal: a yes-or-no question it asks comes to the
