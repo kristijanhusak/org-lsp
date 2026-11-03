@@ -1290,6 +1290,23 @@ fn reads_the_settings_of_setup_files() {
     client.settle();
     let links = client.request("textDocument/documentLink", json!({ "textDocument": { "uri": uri } })).unwrap();
     assert!(links.to_string().contains("https://github.com/org-lsp"), "{links}");
+    // Followed as the URL it stands for, and not a fuzzy link to lint.
+    let said = client
+        .notifications
+        .iter()
+        .rev()
+        .find(|notification| {
+            notification.method == "textDocument/publishDiagnostics" && notification.params["uri"] == uri
+        })
+        .map(|notification| notification.params["diagnostics"].to_string())
+        .unwrap_or_default();
+    assert!(!said.contains("fuzzy"), "{said}");
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 3, "character": 4 } });
+    client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] })).unwrap();
+    client.settle();
+    let shown = client.received.iter().rev().find(|request| request.method == "window/showDocument");
+    assert_eq!(shown.expect("a document shown").params["uri"], "https://github.com/org-lsp");
     // The agenda file's entry is a TODO entry with the setup file's tag.
     let asked = client.request(
         "workspace/executeCommand",

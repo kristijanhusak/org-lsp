@@ -5215,7 +5215,7 @@ impl Server {
                 Held::Open(outline) => {
                     let parse = match self.document(&uri).filter(|document| document.text == outline.text) {
                         Some(document) => document.parse.clone(),
-                        None => org_syntax::parse(&outline.text, &self.todo),
+                        None => org_syntax::parse(&outline.text, &self.keywords_for(&uri, &outline.text)),
                     };
                     (uri, outline.text.clone(), parse)
                 }
@@ -5291,7 +5291,7 @@ impl Server {
         let canonical = std::fs::canonicalize(&target_path).ok();
         let same =
             |path: &Path| path == target_path || (canonical.is_some() && std::fs::canonicalize(path).ok() == canonical);
-        let target_parse = org_syntax::parse(target_text, &self.todo);
+        let target_parse = org_syntax::parse(target_text, &self.keywords_for(target, target_text));
         let id = {
             let outline = Outline::new(&target_parse, target_text, &uri::file_stem(target));
             outline.entry_at(heading).and_then(|entry| outline.entry_property(Some(entry), "ID", false))
@@ -5489,7 +5489,7 @@ impl Server {
                     return None;
                 }
                 let (_, target) = self.file_text(&path)?;
-                let parse = org_syntax::parse(&target, &self.todo);
+                let parse = org_syntax::parse(&target, &self.keywords_at(Some(&path), &target));
                 let offset =
                     open::search_in_file_with(&target, Some(&parse), search, self.open_settings.exact_headline).ok()?;
                 (target, offset)
@@ -5555,7 +5555,7 @@ impl Server {
             let offset = document.index.offset(&document.text, context.position, self.client.encoding);
             (uri.clone(), document.text.clone(), offset)
         };
-        let parse = org_syntax::parse(&text, &self.todo);
+        let parse = org_syntax::parse(&text, &self.keywords_for(&uri, &text));
         // Answering whether to make a missing headline, the link picked
         // among the entry's, if one was, is in `answers`.
         // So is it when answering whether to run a `shell:` link's command.
@@ -5790,7 +5790,7 @@ impl Server {
                     return None;
                 }
                 let (_, text) = self.file_text(&path)?;
-                let parse = org_syntax::parse(&text, &self.todo);
+                let parse = org_syntax::parse(&text, &self.keywords_at(Some(&path), &text));
                 let exact = open::ExactHeadline::QueryToCreate;
                 open::search_in_file_with(&text, Some(&parse), search, exact).is_err().then(|| (path, search.clone()))
             }
@@ -5821,7 +5821,7 @@ impl Server {
             return Ok(json!({ "input": input }));
         }
         let (target, text) = self.file_text(path).ok_or("Cannot read the file")?;
-        let parse = org_syntax::parse(&text, &self.todo);
+        let parse = org_syntax::parse(&text, &self.keywords_at(Some(path), &text));
         if !matches!(context.input.as_deref(), Some("y" | "Y" | "yes")) {
             let missing = open::search_in_file_with(&text, Some(&parse), search, open::ExactHeadline::Yes);
             return Err(missing.err().unwrap_or_else(|| "Abort".to_string()).into());
@@ -5978,7 +5978,7 @@ impl Server {
                 };
                 let (target, text) = self.file_text(&path).ok_or_else(|| format!("Cannot read {}", path.display()))?;
                 let org = path.extension().is_some_and(|extension| extension == "org" || extension == "org_archive");
-                let parse = org.then(|| org_syntax::parse(&text, &self.todo));
+                let parse = org.then(|| org_syntax::parse(&text, &self.keywords_at(Some(&path), &text)));
                 // A BibTeX file is searched for the entry of a key, as
                 // `ol-bibtex.el` searches it.
                 let offset = if path.extension().is_some_and(|extension| extension == "bib") {
@@ -6124,7 +6124,8 @@ impl Server {
     /// Where the entry with this `ID` is in the file `path`, read again.
     fn id_in_file(&self, id: &str, path: &Path) -> Option<(Uri, usize)> {
         let (target, text) = self.file_text(path)?;
-        open::find_id(&org_syntax::parse(&text, &self.todo), id).map(|offset| (target, offset))
+        open::find_id(&org_syntax::parse(&text, &self.keywords_at(Some(path), &text)), id)
+            .map(|offset| (target, offset))
     }
 
     /// [`Server::find_id`] past the file of the link. `open_ids` are the
@@ -10679,7 +10680,7 @@ impl Server {
                         return None;
                     }
                     let version = this.document(&other).map(|document| document.version);
-                    let parse = org_syntax::parse(&text, &this.todo);
+                    let parse = org_syntax::parse(&text, &this.keywords_at(Some(path), &text));
                     others.push((other, version, text, parse));
                     index_of.insert(canonical, others.len());
                     Some(others.len())
@@ -10717,7 +10718,7 @@ impl Server {
                 Some(RefileTarget { files: RefileFiles::Current, .. }) | None => OutlinePath::Yes,
                 Some(_) => OutlinePath::File,
             };
-            let parse = org_syntax::parse(&text, &self.todo);
+            let parse = org_syntax::parse(&text, &self.keywords_for(&uri, &text));
             let keywords = parse.todo_keywords().clone();
             let names: Vec<String> =
                 std::iter::once(&uri).chain(others.iter().map(|(other, ..)| other)).map(uri::file_name).collect();
