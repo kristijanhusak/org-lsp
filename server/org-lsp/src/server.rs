@@ -3445,7 +3445,7 @@ fn table_command(id: &str) -> Option<org_core::table::Command> {
 /// `#+CALL:` line (`org-element-at-point`), or an inline source block or
 /// call (`org-element-context`).
 fn babel_at(text: &str, root: &org_syntax::SyntaxNode, offset: usize) -> bool {
-    let element = org_core::indent::Elements::new(text).at(offset);
+    let element = org_core::indent::Elements::new(text, root).at(offset);
     if element.is_some_and(|element| matches!(element.kind, "src-block" | "babel-call")) {
         return true;
     }
