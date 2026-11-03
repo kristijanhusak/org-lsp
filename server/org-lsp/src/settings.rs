@@ -2115,7 +2115,9 @@ pub const SETTINGS: &[Setting] = &[
         "org-display-remote-inline-images",
         "Whether the images of `http:` and `https:` links show (`C-c C-x C-v`): `\"skip\"` not; `\"download\"` \
          downloaded each time they show; `\"cache\"` downloaded once and kept for the session. The download \
-         follows `org_resource_download_policy`; an image larger than 20 MB is not downloaded.",
+         follows `org_resource_download_policy`; an image larger than 20 MB is not downloaded. Unlike Emacs, a \
+         redirect to this machine or its network (`localhost`, a loopback, private or link-local address) is not \
+         followed, unless the link names such a host itself.",
     ),
     setting(
         "org_resource_download_policy",
