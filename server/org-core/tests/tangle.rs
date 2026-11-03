@@ -82,6 +82,56 @@ fn refuses_a_block_that_refers_to_itself() {
     assert_eq!(tangled.err().as_deref(), Some("Lisp nesting exceeds `max-lisp-eval-depth'"));
 }
 
+/// A block tangled, and under it a chain of `references` named blocks,
+/// each `<<cN>>` the next one; the last is `end`.
+fn chain(references: usize) -> String {
+    let mut text = "#+begin_src sh :tangle out.sh :noweb yes\n<<c1>>\n#+end_src\n".to_string();
+    for n in 1..=references {
+        let body = if n < references { format!("<<c{}>>", n + 1) } else { "end".to_string() };
+        text.push_str(&format!("#+name: c{n}\n#+begin_src sh :noweb yes\n{body}\n#+end_src\n"));
+    }
+    text
+}
+
+fn tangled(text: &str) -> Result<String, String> {
+    let parse = org_syntax::parse(text, &TodoKeywords::default());
+    tangle::tangle(text, &parse, Path::new("/case/a.org"), &Settings::default())
+        .map(|outcome| outcome.files.into_iter().map(|file| file.text).collect())
+}
+
+/// Emacs's Lisp stack (`max-lisp-eval-depth`) holds a chain of 524
+/// references, and says it is full past them; a longer one used to
+/// overflow the server's stack.
+#[test]
+fn refuses_references_deeper_than_emacs_goes() {
+    assert_eq!(tangled(&chain(524)).as_deref(), Ok("end\n"));
+    for references in [525, 30_000] {
+        let refused = tangled(&chain(references)).unwrap_err();
+        assert_eq!(refused, "Lisp nesting exceeds `max-lisp-eval-depth'", "{references}");
+    }
+}
+
+/// References to a block twice over, at each level: each block is
+/// expanded once, and past [`tangle::LARGEST`] bytes the expansion stops.
+#[test]
+fn refuses_references_that_expand_past_the_largest() {
+    let doubling = |levels: usize, last: &str| {
+        let mut text = "#+begin_src sh :tangle out.sh :noweb yes\n<<b1>>\n#+end_src\n".to_string();
+        for n in 1..=levels {
+            let body = if n < levels { format!("<<b{0}>><<b{0}>>", n + 1) } else { last.to_string() };
+            text.push_str(&format!("#+name: b{n}\n#+begin_src sh :noweb yes\n{body}\n#+end_src\n"));
+        }
+        text
+    };
+    // 2^7 times the last block.
+    assert_eq!(tangled(&doubling(8, "ab")), Ok(format!("{}\n", "ab".repeat(128))));
+    // 2^59 times an empty one: nothing, at once.
+    assert_eq!(tangled(&doubling(60, "")).as_deref(), Ok("\n"));
+    // 2^39 times ten bytes.
+    let refused = tangled(&doubling(40, "0123456789")).unwrap_err();
+    assert_eq!(refused, "Noweb references expand to more than 64 MiB");
+}
+
 #[test]
 fn leaves_a_comment_function_of_the_users_to_emacs() {
     let text = "* H\ntext\n#+begin_src sh :tangle out.sh :comments org\necho 1\n#+end_src\n";
