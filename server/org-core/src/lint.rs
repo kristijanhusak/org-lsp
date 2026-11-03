@@ -1389,9 +1389,11 @@ impl Doc<'_> {
     fn item_number(&self) -> Found {
         let mut out = Vec::new();
         for list in self.root.descendants().filter(|node| node.kind() == SyntaxKind::LIST) {
-            // The items of the list, with their counters.
-            let mut previous: Vec<Option<String>> = Vec::new();
-            for item in list.children().filter(|child| child.kind() == SyntaxKind::LIST_ITEM) {
+            // The last item of the list with a counter, by position, and
+            // its counter.
+            let mut last: Option<(i64, String)> = None;
+            for (position, item) in list.children().filter(|child| child.kind() == SyntaxKind::LIST_ITEM).enumerate() {
+                let position = position as i64;
                 // The bullet and the blanks after it, as `:bullet` has it.
                 let bullet = item
                     .children_with_tokens()
@@ -1406,22 +1408,17 @@ impl Doc<'_> {
                 let counter = token(&item, SyntaxKind::COUNTER_SET)
                     .map(|counter| counter.trim_start_matches("[@").trim_end_matches(']').to_string());
                 // `get-relative-number`: from the nearest counter before.
-                let mut seq = 0;
-                let mut found = counter.clone();
-                let mut index = previous.len();
-                while found.is_none() && index > 0 {
-                    index -= 1;
-                    seq += 1;
-                    found = previous[index].clone();
-                }
-                let true_number = match found {
-                    None => seq + 1,
-                    Some(counter) => counter_number(&counter).map_or(seq + 1, |number| number + seq),
-                };
-                previous.push(counter.clone());
-                if counter.is_some() {
+                if let Some(counter) = counter {
+                    last = Some((position, counter));
                     continue;
                 }
+                let true_number = match &last {
+                    None => position + 1,
+                    Some((at, counter)) => {
+                        let seq = position - at;
+                        counter_number(counter).map_or(seq + 1, |number| number.saturating_add(seq))
+                    }
+                };
                 let bullet_number = if let Some(letter) = bullet.chars().find(char::is_ascii_alphabetic) {
                     Some(i64::from(u32::from(letter.to_ascii_uppercase())) - 64)
                 } else {
