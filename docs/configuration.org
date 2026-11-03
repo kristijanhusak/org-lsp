@@ -783,7 +783,12 @@ restarts the server, so the change applies at once. In a workspace VS Code
 does not trust (/restricted mode/), these two come from the user's settings
 only: a folder's ~.vscode/settings.json~ could otherwise name a program for
 the server to run (~emacs~, a capture template's ~function~). They follow
-the folder's settings again once it is trusted. While a clock runs,
+the folder's settings again once it is trusted. The extension also tells
+the server the workspace is not trusted (~workspace_trusted~), which then
+runs nothing from the files: no ~shell:~ or ~elisp:~ link, code block,
+export, ~org_file_apps~ command, or diary sexp, table formula, dynamic
+block or tangle header evaluated by Emacs ([[file:vscode.org::#setting-it-up][Setting it up]] lists them).
+Trusting the workspace restarts the server. While a clock runs,
 the status bar shows it as Emacs's mode line does, such as
 ~[0:25/1:00] (Write the report)~; clicking it goes to the entry.
 

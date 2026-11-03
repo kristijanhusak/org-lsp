@@ -21,6 +21,7 @@ its sections says what it should look like.
 - [ ] ~"org-lsp.keys": "vim"~ (with VSCodeVim) switches to the Vim keys; ~"emacs_full"~ to all of Emacs's, ~Shift+Right~ on a headline changing its TODO state
 - [ ] With the default keys, in an Org file ~Shift+Right~ selects, ~Ctrl+A~ is VS Code's, ~Ctrl+C~ copies the selection, and with nothing selected ~Ctrl+C Ctrl+T~ changes the TODO state
 - [ ] ~org-lsp.~ settings and =~/.config/org-lsp/config.toml= reach the server
+- [ ] In a folder opened in Restricted Mode, ~C-c C-o~ on a ~[[shell:…]]~ link says ~shell: links are off in Restricted Mode: trust the workspace to run them~ and runs nothing; once the folder is trusted (/Manage/ in the banner, /Trust/), the same link runs
 
 * Highlighting
 

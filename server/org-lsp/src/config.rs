@@ -639,6 +639,9 @@ pub struct Options {
     /// (`org-lsp/runCommand`), as one announcing
     /// `experimental.orgRunCommand` does.
     pub run_command: Option<bool>,
+    /// Whether the editor trusts the workspace: with `false` (VS Code's
+    /// Restricted Mode), nothing in its files runs code.
+    pub workspace_trusted: Option<bool>,
     /// The client hides the lines a command's answer names
     /// (`hiddenLines`), as one announcing `experimental.orgHiddenLines`
     /// does.

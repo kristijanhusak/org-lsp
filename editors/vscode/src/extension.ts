@@ -528,7 +528,13 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
   };
   const clientOptions: LanguageClientOptions = {
     documentSelector: [...languages.map((language) => ({ language })), { scheme: agendaScheme }],
-    initializationOptions: vscode.workspace.getConfiguration('org-lsp').get('settings'),
+    // In Restricted Mode the server runs nothing from the files (`shell:`
+    // links, code blocks, exports…): it is told whether the workspace is
+    // trusted, over what the settings say.
+    initializationOptions: {
+      ...vscode.workspace.getConfiguration('org-lsp').get<Record<string, unknown>>('settings', {}),
+      workspace_trusted: vscode.workspace.isTrusted,
+    },
     middleware: {
       // The client registers every command of the server with VS Code. Run
       // from a key or the palette, a command has no arguments: add the
@@ -2480,6 +2486,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
         await restartClient(context);
       }
     }),
+    // Trusted now: a server that runs what the files ask for.
+    vscode.workspace.onDidGrantWorkspaceTrust(() => restartClient(context)),
   );
   clockItem = vscode.window.createStatusBarItem('org-lsp.clock', vscode.StatusBarAlignment.Left, 50);
   clockItem.name = 'Org clock';
