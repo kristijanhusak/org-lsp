@@ -60,6 +60,23 @@ function! org_lsp#config() abort
   return config
 endfunction
 
+" The program `name` in a directory of PATH, as an absolute path; '' when it
+" is in none. Never one in the current directory, where Windows looks first
+" for a bare name, nor in an empty or relative entry of PATH, which stand for
+" it.
+function! org_lsp#on_path(name) abort
+  for dir in split($PATH, has('win32') ? ';' : ':')
+    let dir = substitute(dir, '^"\(.*\)"$', '\1', '')
+    if !empty(dir) && isabsolutepath(dir)
+      let path = dir . '/' . a:name
+      if executable(path) && !isdirectory(path)
+        return path
+      endif
+    endif
+  endfor
+  return ''
+endfunction
+
 " The server command: the configured one, a build inside the plugin's
 " checkout, `org-lsp` on PATH, or the downloaded one; empty when there is
 " none.
@@ -75,8 +92,9 @@ function! org_lsp#server_command() abort
       return [built]
     endif
   endfor
-  if executable('org-lsp')
-    return ['org-lsp']
+  let on_path = org_lsp#on_path(exe)
+  if !empty(on_path)
+    return [on_path]
   endif
   let downloaded = org_lsp#download#path()
   return executable(downloaded) ? [downloaded] : []

@@ -1131,6 +1131,23 @@ class Server(unittest.TestCase):
         self.plugin.OrgLsp.on_pre_start(None, None, [], configuration)
         self.assertEqual(configuration.command, [binary])
 
+    def test_never_takes_the_server_from_the_current_directory(self):
+        # As Windows would look there first for a bare name: neither the
+        # current directory nor a relative entry of PATH is searched.
+        here = tempfile.mkdtemp()
+        binary = os.path.join(here, 'org-lsp')
+        open(binary, 'w').close()
+        os.chmod(binary, 0o755)
+        cwd = os.getcwd()
+        os.chdir(here)
+        os.environ['PATH'] = os.pathsep.join(['', '.', self.empty])
+        try:
+            self.assertIsNone(self.plugin.server_path(self.storage))
+            self.assertIsNone(self.plugin.on_path('org-lsp', os.environ['PATH']))
+            self.assertEqual(self.plugin.on_path('org-lsp', os.pathsep.join(['.', '"' + here + '"'])), binary)
+        finally:
+            os.chdir(cwd)
+
     def test_a_configured_command_is_used_as_it_is(self):
         self.sublime.settings['command'] = ['~/bin/org-lsp']
         self.assertEqual(self.plugin.server_path(self.storage), os.path.join(self.empty, 'bin', 'org-lsp'))

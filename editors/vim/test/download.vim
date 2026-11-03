@@ -31,6 +31,26 @@ function! s:messages() abort
   return execute('messages')
 endfunction
 
+" A server in the current directory is never taken, as Windows would take
+" it for a bare name, even with `.` or an empty entry in PATH.
+function! s:not_from_here() abort
+  let here = s:work . '/here'
+  call mkdir(here, 'p')
+  call writefile(['#!/bin/sh'], here . '/org-lsp')
+  call setfperm(here . '/org-lsp', 'rwxr-xr-x')
+  let [path, cwd] = [$PATH, getcwd()]
+  execute 'cd' fnameescape(here)
+  try
+    let $PATH = '.::' . path
+    call assert_equal([], org_lsp#server_command(), 'no server is taken from the current directory')
+    let $PATH = here . ':' . path
+    call assert_equal([here . '/org-lsp'], org_lsp#server_command(), 'a server on PATH is taken by its absolute path')
+  finally
+    let $PATH = path
+    execute 'cd' fnameescape(cwd)
+  endtry
+endfunction
+
 function! s:first_file() abort
   call assert_equal([], org_lsp#server_command(), 'no server before the download')
   call mkdir(s:work . '/notes', 'p')
@@ -81,6 +101,7 @@ endfunction
 " and a silent message is not kept in the message history.
 function! s:main(...) abort
   set cmdheight=20
+  call s:test('never takes the server from the current directory', function('s:not_from_here'))
   call s:test('downloads the server for the first Org file and starts it', function('s:first_file'))
   call s:test(':OrgLspDownload downloads it again', function('s:again'))
   call s:test('a release that does not exist is an error', function('s:missing'))

@@ -161,6 +161,25 @@ function M.reload_syntax(buf)
   require('org-lsp.src').reapply(buf)
 end
 
+--- The program `name` in a directory of PATH, as an absolute path; nil
+--- when it is in none. Never one in the current directory, where Windows
+--- looks first for a bare name, nor in an empty or relative entry of PATH,
+--- which stand for it.
+---@param name string
+---@return string|nil
+function M.on_path(name)
+  local separator = vim.fn.has('win32') == 1 and ';' or ':'
+  for dir in vim.gsplit(vim.env.PATH or '', separator, { plain = true }) do
+    dir = dir:gsub('^"(.*)"$', '%1')
+    if dir ~= '' and vim.fn.isabsolutepath(dir) == 1 then
+      local path = vim.fs.joinpath(dir, name)
+      if vim.fn.executable(path) == 1 and vim.fn.isdirectory(path) == 0 then
+        return path
+      end
+    end
+  end
+end
+
 function M.server_command()
   if M.config.cmd then
     return M.config.cmd
@@ -170,8 +189,9 @@ function M.server_command()
   if vim.fn.executable(built) == 1 then
     return { built }
   end
-  if vim.fn.executable('org-lsp') == 1 then
-    return { 'org-lsp' }
+  local on_path = M.on_path(exe)
+  if on_path then
+    return { on_path }
   end
   local downloaded = require('org-lsp.download').path()
   if vim.fn.executable(downloaded) == 1 then
