@@ -1519,7 +1519,7 @@ fn remove_indentation(text: &str) -> String {
 }
 
 /// `org-item-beginning-re`
-fn item_start() -> Regex {
+fn item_start() -> &'static Regex {
     crate::list::item_regex(r"(?m)^[ \t]*(?:[-+*]|{ordered})(?:[ \t]+|$)")
 }
 
