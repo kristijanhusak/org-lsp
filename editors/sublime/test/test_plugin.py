@@ -13,6 +13,8 @@ plugin as Sublime asks them.
 
     python3 editors/sublime/test/test_plugin.py
 """
+import contextlib
+import hashlib
 import heapq
 import importlib.util
 import io
@@ -24,6 +26,7 @@ import tarfile
 import tempfile
 import types
 import unittest
+import urllib.error
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -1079,6 +1082,33 @@ def archive(binary=b'#!/bin/sh\n'):
     return out.getvalue()
 
 
+class Response(io.BytesIO):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+
+def serve_release(binary=b'server', sums='match', asked=None):
+    """A `urlopen` serving a release: the archive with `binary`, and its
+    SHA256SUMS listing the archive's checksum (`match`), a wrong one
+    (`broken`), another file only (`unlisted`), or none (`None`)."""
+    data = archive(binary)
+
+    def urlopen(url, timeout=None):
+        if asked is not None:
+            asked.append(url)
+        if url.endswith('/SHA256SUMS'):
+            if sums is None:
+                raise urllib.error.HTTPError(url, 404, 'Not Found', None, None)
+            name = 'org-lsp-other.tar.gz' if sums == 'unlisted' else 'org-lsp-linux-x86_64.tar.gz'
+            digest = '0' * 64 if sums == 'broken' else hashlib.sha256(data).hexdigest()
+            return Response('{}  install.sh\n{}  {}\n'.format('1' * 64, digest, name).encode())
+        return Response(data)
+    return urlopen
+
+
 class Server(unittest.TestCase):
     def setUp(self):
         self.plugin, self.sublime, _ = load_plugin()
@@ -1171,22 +1201,12 @@ class Server(unittest.TestCase):
         open(unversioned, 'w').close()
         self.assertTrue(self.plugin.OrgLsp.needs_update_or_installation())
         asked = []
-
-        class Response(io.BytesIO):
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *args):
-                return False
-
-        def urlopen(url, timeout=None):
-            asked.append(url)
-            return Response(archive(b'server'))
-        self.plugin.urllib.request.urlopen = urlopen
+        self.plugin.urllib.request.urlopen = serve_release(asked=asked)
         self.plugin.OrgLsp.install_or_update()
         release = 'v' + self.plugin.VERSION
         self.assertEqual(self.plugin.RELEASE, release)
-        self.assertEqual(asked, ['https://github.com/kristijanhusak/org-lsp/releases/download/{}/org-lsp-linux-x86_64.tar.gz'.format(release)])
+        self.assertEqual(asked, ['https://github.com/kristijanhusak/org-lsp/releases/download/{}/{}'.format(release, name)
+                                 for name in ('org-lsp-linux-x86_64.tar.gz', 'SHA256SUMS')])
         binary = os.path.join(self.storage, 'LSP-org', release, 'org-lsp')
         with open(binary, 'rb') as written:
             self.assertEqual(written.read(), b'server')
@@ -1201,7 +1221,7 @@ class Server(unittest.TestCase):
         self.plugin.RELEASE = 'v9.9.9'
         self.assertTrue(self.plugin.OrgLsp.needs_update_or_installation())
         self.plugin.OrgLsp.install_or_update()
-        self.assertEqual(asked[-1], 'https://github.com/kristijanhusak/org-lsp/releases/download/v9.9.9/org-lsp-linux-x86_64.tar.gz')
+        self.assertEqual(asked[-2], 'https://github.com/kristijanhusak/org-lsp/releases/download/v9.9.9/org-lsp-linux-x86_64.tar.gz')
         newer = os.path.join(self.storage, 'LSP-org', 'v9.9.9', 'org-lsp')
         self.assertEqual(self.plugin.server_path(self.storage), newer)
         self.assertFalse(os.path.exists(binary))
@@ -1213,15 +1233,7 @@ class Server(unittest.TestCase):
         unversioned = os.path.join(self.storage, 'LSP-org', 'org-lsp')
         os.makedirs(os.path.dirname(unversioned), exist_ok=True)
         open(unversioned, 'w').close()
-
-        class Response(io.BytesIO):
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *args):
-                return False
-
-        self.plugin.urllib.request.urlopen = lambda url, timeout=None: Response(archive(b'server'))
+        self.plugin.urllib.request.urlopen = serve_release()
         remove = self.plugin.os.remove
 
         def refuse(path):
@@ -1235,6 +1247,26 @@ class Server(unittest.TestCase):
         self.assertEqual(self.plugin.server_path(self.storage), binary)
         self.assertTrue(os.path.exists(unversioned))
         self.assertFalse(self.plugin.OrgLsp.needs_update_or_installation())
+
+
+    def test_a_download_is_checked_against_the_release_sums(self):
+        # As scripts/install.sh checks it: an archive that does not match,
+        # or that SHA256SUMS does not list, is not installed.
+        binary = os.path.join(self.storage, 'LSP-org', self.plugin.RELEASE, 'org-lsp')
+        for sums, message in (('broken', 'does not match its checksum in SHA256SUMS: the download is broken'),
+                              ('unlisted', 'is not in the SHA256SUMS of the {} release'.format(self.plugin.RELEASE))):
+            self.plugin.urllib.request.urlopen = serve_release(sums=sums)
+            with self.assertRaises(RuntimeError) as raised:
+                self.plugin.OrgLsp.install_or_update()
+            self.assertIn('org-lsp-linux-x86_64.tar.gz ' + message, str(raised.exception))
+            self.assertFalse(os.path.exists(binary))
+        # A release without SHA256SUMS is installed unchecked, and says so.
+        self.plugin.urllib.request.urlopen = serve_release(sums=None)
+        said = io.StringIO()
+        with contextlib.redirect_stdout(said):
+            self.plugin.OrgLsp.install_or_update()
+        self.assertIn('has no SHA256SUMS: org-lsp-linux-x86_64.tar.gz is not checked', said.getvalue())
+        self.assertTrue(os.path.exists(binary))
 
 
 class Help(unittest.TestCase):

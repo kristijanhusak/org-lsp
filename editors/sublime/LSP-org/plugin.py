@@ -8,6 +8,7 @@ with the cursor position, asks what they ask for, and cycles folds.
 from __future__ import annotations
 
 import colorsys
+import hashlib
 import html
 import io
 import os
@@ -17,6 +18,7 @@ import struct
 import tarfile
 import threading
 import time
+import urllib.error
 import urllib.request
 import zipfile
 
@@ -167,6 +169,35 @@ def server_path(storage: str):
     return downloaded if os.path.isfile(downloaded) else None
 
 
+def check_download(data: bytes, archive: str) -> None:
+    """Check the downloaded `archive` against the SHA256SUMS of `RELEASE`,
+    as scripts/install.sh does: a release without them (not found) is not
+    checked; any other failure to get them, an archive they do not list or
+    one that does not match is an error."""
+    url = 'https://github.com/{}/releases/download/{}/SHA256SUMS'.format(REPOSITORY, RELEASE)
+    try:
+        with urllib.request.urlopen(url, timeout=120) as response:
+            sums = response.read().decode('utf-8', 'replace')
+    except urllib.error.HTTPError as error:
+        if error.code != 404:
+            raise RuntimeError('could not download SHA256SUMS from the {} release ({}): {}'.format(RELEASE, url, error))
+        print('org-lsp: the {} release has no SHA256SUMS: {} is not checked'.format(RELEASE, archive))
+        return
+    expected = None
+    for line in sums.splitlines():
+        fields = line.split(None, 1)
+        if len(fields) == 2 and fields[1].strip().lstrip('*') == archive:
+            expected = fields[0].lower()
+            break
+    # The files built together are all in SHA256SUMS: one that is not is
+    # left from an older build (a platform whose build failed).
+    if expected is None:
+        raise RuntimeError('{} is not in the SHA256SUMS of the {} release: it is not from the same build, '
+                           'so it is not installed'.format(archive, RELEASE))
+    if hashlib.sha256(data).hexdigest() != expected:
+        raise RuntimeError('{} does not match its checksum in SHA256SUMS: the download is broken'.format(archive))
+
+
 def download(storage: str) -> str:
     """Fetch the server of `RELEASE` for this platform into the package's
     storage, and return its path."""
@@ -178,6 +209,7 @@ def download(storage: str) -> str:
     url = 'https://github.com/{}/releases/download/{}/{}'.format(REPOSITORY, RELEASE, archive)
     with urllib.request.urlopen(url, timeout=120) as response:
         data = response.read()
+    check_download(data, archive)
     if windows:
         with zipfile.ZipFile(io.BytesIO(data)) as files:
             binary = files.read(executable())
