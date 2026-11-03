@@ -496,6 +496,9 @@ struct Context {
     /// For the commands that ask several questions in turn (the BibTeX
     /// commands): the answers so far; `input` is then the next one.
     replies: Option<Vec<String>>,
+    /// For archiving: the archive files the user was asked about
+    /// (`Archive to FILE?`), which a yes lets it write.
+    targets: Option<Vec<String>>,
     /// The text of the buffer the command runs in, as the editor has it:
     /// a capture or note buffer whose last changes the server may not have
     /// heard of yet.
@@ -3032,6 +3035,42 @@ fn written_path(path: &Path) -> PathBuf {
     match (path.parent().and_then(|parent| std::fs::canonicalize(parent).ok()), path.file_name()) {
         (Some(parent), Some(name)) => parent.join(name),
         _ => path,
+    }
+}
+
+/// The step of the question `Archive to FILE?`.
+const ARCHIVE_TO: &str = "archive-to";
+
+/// Whether archiving from the file `source` to `file` asks first: `file`,
+/// where its links lead, is outside `source`'s directory, or has a hidden
+/// directory or name below it, or is not named as Org names its files
+/// and its archive files (`.org`, `%s_archive`).
+fn unusual_archive(file: &Path, source: &Path) -> bool {
+    let target = real_path(file);
+    let directory = source.parent().map(real_path).unwrap_or_default();
+    let Ok(below) = target.strip_prefix(&directory) else { return true };
+    let hidden = below.components().any(|part| part.as_os_str().to_string_lossy().starts_with('.'));
+    let name = target.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
+    hidden || !(name.ends_with(".org") || name.ends_with("_archive"))
+}
+
+/// [`written_path`] for a file whose directories may not be there yet: the
+/// part there as the file system has it, then the rest.
+fn real_path(path: &Path) -> PathBuf {
+    let path = written_path(path);
+    let mut rest = Vec::new();
+    let mut there = path.as_path();
+    loop {
+        if let Ok(found) = std::fs::canonicalize(there) {
+            return rest.iter().rev().fold(found, |path, part| path.join(part));
+        }
+        match (there.parent(), there.file_name()) {
+            (Some(parent), Some(name)) => {
+                rest.push(name.to_os_string());
+                there = parent;
+            }
+            _ => return path,
+        }
     }
 }
 
@@ -9623,7 +9662,17 @@ impl Server {
             json!({ "input": input })
         };
         let (defaults, default_command) = self.archive.clone();
+        // The answer to `Archive to FILE?`: the files asked about, which a
+        // yes lets it write; a no ends it. The questions before it were
+        // answered.
+        let asked_where = context.step.as_deref() == Some(ARCHIVE_TO);
+        let allowed: Vec<String> = match asked_where {
+            true if !matches!(context.input.as_deref(), Some("y" | "Y" | " ")) => return Err("Abort".into()),
+            // A bulk action passes the files its question was about.
+            _ => context.targets.clone().unwrap_or_default(),
+        };
         let id = match id {
+            commands::ARCHIVE_CONFIRM if asked_where => commands::ARCHIVE_DEFAULT,
             commands::ARCHIVE_CONFIRM => match context.input.as_deref() {
                 None => return Ok(yes_or_no("Archive this subtree or entry?", None)),
                 Some("y" | "Y" | " ") => commands::ARCHIVE_DEFAULT,
@@ -9664,6 +9713,10 @@ impl Server {
         let now = self.date_time();
         let path = uri::to_path(&file);
         let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
+        // The files to ask about before they are written, and the answers
+        // to `org-archive-all-done`'s questions so far.
+        let mut unusual: Vec<PathBuf> = Vec::new();
+        let mut answered = context.answers.clone().unwrap_or_default();
         let archived = match id {
             commands::ARCHIVE_SIBLING => {
                 let (source, cursor) = archive::to_sibling(&text, offset, &keywords, now, &settings)?;
@@ -9686,11 +9739,10 @@ impl Server {
                     Some((_, text)) => Some(text.clone()),
                     None => std::fs::read_to_string(wanted).ok(),
                 };
-                if id == commands::ARCHIVE_SUBTREE {
+                let done = if id == commands::ARCHIVE_SUBTREE {
                     archive::archive_subtree(&text, offset, &keywords, &where_, &settings, &mut read)?
                 } else {
-                    let mut answered = context.answers.clone().unwrap_or_default();
-                    if let Some(input) = context.input.as_deref() {
+                    if let Some(input) = context.input.as_deref().filter(|_| !asked_where) {
                         answered.push(if matches!(input, "y" | "Y" | " ") { 'y' } else { 'n' });
                     }
                     let answers: Vec<bool> = answered.chars().map(|answer| answer == 'y').collect();
@@ -9700,10 +9752,30 @@ impl Server {
                         AllOutcome::Ask(question) => return Ok(yes_or_no(&question, Some(answered))),
                         AllOutcome::Done(done) => done,
                     }
-                }
+                };
+                let configured = archive::archive_files("", &keywords, &where_, &settings.location);
+                unusual = done
+                    .files
+                    .iter()
+                    .map(|file| file.path.clone())
+                    .filter(|file| !configured.contains(file) && unusual_archive(file, &path))
+                    .collect();
+                done
             }
             _ => return Err(format!("Unknown command {id}").into()),
         };
+        // Unlike Emacs, an archive file the file names (`#+ARCHIVE:`, an
+        // `ARCHIVE` property) outside its directory, hidden, or not named
+        // as Org names its files is asked about first: such a line may come
+        // from someone else's text, and the entry's text would go there.
+        let names: Vec<String> = unusual.iter().map(|file| file.display().to_string()).collect();
+        if names.iter().any(|name| !allowed.contains(name)) {
+            let shown: Vec<String> = unusual.iter().map(|file| abbreviate_path(file)).collect();
+            let mut question = yes_or_no(&format!("Archive to {}? ", shown.join(", ")), Some(answered));
+            question["input"]["context"]["step"] = json!(ARCHIVE_TO);
+            question["input"]["context"]["targets"] = json!(names);
+            return Ok(question);
+        }
         // The entry's file, and the archive files open in an editor, get
         // edits. The others are written when `org-archive-subtree-save-file-p`
         // says the archive is saved, and else get edits too, which the

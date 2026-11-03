@@ -524,8 +524,18 @@ impl Server {
         self.staging = Some(Staging::new());
         // The targets of a refile are those of the first entry's file.
         self.refile_current = marks.first().map(|mark| mark.uri.clone()).filter(|_| matches!(key, "r" | "w"));
+        // `$` asked `Archive to FILE?` (an archive file the entry's file
+        // names outside its directory): a no ends it.
+        if key == "$" && !answer.is_empty() && !matches!(answer, "y" | "Y" | " ") {
+            self.staging = None;
+            self.refile_current = None;
+            return Err("Abort".into());
+        }
         let (mut processed, mut skipped) = (0, 0);
         let mut failure = None;
+        // The question an entry's archiving asked, and the marks from that
+        // entry on, which the answer goes on with.
+        let mut asked: Option<(Value, Vec<EntryRef>)> = None;
         for number in 0..marks.len() {
             let mark = marks[number].clone();
             let mark = &mark;
@@ -548,7 +558,13 @@ impl Server {
             at.answers = None;
             at.input = None;
             let result = match key {
-                "$" => self.archive(commands::ARCHIVE_SUBTREE, &at).map(|_| ()),
+                "$" => match self.archive(commands::ARCHIVE_SUBTREE, &at) {
+                    Ok(question) if question.get("input").is_some() => {
+                        asked = Some((question, marks[number..].to_vec()));
+                        break;
+                    }
+                    other => other.map(|_| ()),
+                },
                 "A" => self.archive(commands::ARCHIVE_SIBLING, &at).map(|_| ()),
                 "t" => {
                     // No note is asked for: a time is logged instead.
@@ -645,6 +661,20 @@ impl Server {
         self.refile_current = None;
         self.finish_staging();
         self.agenda_marks = kept;
+        // Asked: the entries done so far are done, and the others stay
+        // marked for the answer; the files said yes to so far with it.
+        if let Some((mut question, left)) = asked {
+            self.agenda_marks = left;
+            self.release_held();
+            self.refresh_view();
+            let mut files: Vec<Value> = context.targets.iter().flatten().map(|file| json!(file)).collect();
+            if let Some(more) = question["input"]["context"]["targets"].as_array() {
+                files.extend(more.iter().cloned());
+            }
+            let toggled = if persist == self.agenda_persistent_marks { "" } else { "p" };
+            question["input"]["context"] = json!({ "step": key, "answers": toggled, "targets": files });
+            return Ok(question);
+        }
         self.release_held();
         self.refresh_view();
         if let Some(failure) = failure {

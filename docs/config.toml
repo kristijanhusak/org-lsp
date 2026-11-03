@@ -667,7 +667,9 @@ org_reverse_note_order = false
 # the subtree is in; an empty file part is that file. `datetree/` as the
 # headline files them under year, month and day, by when they were closed. An
 # `ARCHIVE` property of the entry or a parent, or a `#+ARCHIVE:` line, says
-# otherwise. (org-archive-location)
+# otherwise; unlike Emacs, a file they name outside the file's directory,
+# hidden, or not named `*.org` or `*_archive` is asked about first (`Archive
+# to FILE?`). (org-archive-location)
 org_archive_location = "%s_archive::"
 
 # An archived subtree goes first under its archive headline, not last.
