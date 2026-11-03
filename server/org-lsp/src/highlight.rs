@@ -1200,8 +1200,11 @@ impl Walker<'_> {
         let level = modifier::level(self.fontify.level_face(level));
         // `org-archived`: what follows the stars of a headline with
         // `:ARCHIVE:` in it.
-        let line = node.text().to_string();
-        let archived = line.split('\n').next().is_some_and(|line| line.contains(":ARCHIVE:"));
+        // The headline's own line: the node holds its whole subtree, too
+        // big to copy at each level of a deep outline.
+        let text = node.text();
+        let line_length = text.find_char('\n').unwrap_or(text.len());
+        let archived = text.slice(..line_length).to_string().contains(":ARCHIVE:");
         // `org-fontify-done-headline`: after a done keyword, the rest of
         // the headline is `org-headline-done`; `org-fontify-todo-headline`:
         // after one not done, `org-headline-todo`.
@@ -1226,7 +1229,7 @@ impl Walker<'_> {
                 _ => self.element(node, child, Style::PLAIN),
             }
         }
-        let headline_end = node.text_range().start() + TextSize::from(line.find('\n').unwrap_or(line.len()) as u32);
+        let headline_end = node.text_range().start() + line_length;
         if let Some(state) = state.filter(|state| *state != 0) {
             for token in &mut self.out[after_stars..] {
                 if token.range.start() < headline_end && token.ty != TokenType::TodoKeyword {
