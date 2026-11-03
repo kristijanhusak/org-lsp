@@ -463,6 +463,10 @@ fn bounded_count<'de, D: serde::Deserializer<'de>>(deserializer: D) -> std::resu
     Ok(Option::<i64>::deserialize(deserializer)?.map(|count| count.clamp(-COUNT_MAX, COUNT_MAX)))
 }
 
+/// What a yes to `Execute … in shell?` (or `as Elisp?`) is told when the
+/// link at the cursor no longer gives what was asked about.
+const LINK_CHANGED: &str = "The link changed after the question: not executed";
+
 /// Where a command was invoked: a document and a place in it.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -485,6 +489,10 @@ struct Context {
     answers: Option<String>,
     /// For the property commands: the question `input` answers.
     step: Option<String>,
+    /// For a `shell:` or `elisp:` link: the command or form the question
+    /// asked about, which the link at the cursor must still give for the
+    /// answer to run it.
+    confirm: Option<String>,
     /// For the commands that ask several questions in turn (the BibTeX
     /// commands): the answers so far; `input` is then the next one.
     replies: Option<Vec<String>>,
@@ -5699,11 +5707,20 @@ impl Server {
                         "prompt": format!("Execute {command} in shell? "),
                         "value": "",
                         "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
-                        "context": { "step": "shell", "answers": answer.map(String::from).unwrap_or_default() },
+                        "context": {
+                            "step": "shell",
+                            "answers": answer.map(String::from).unwrap_or_default(),
+                            "confirm": command,
+                        },
                     } }));
                 }
                 if *confirm && !matches!(context.input.as_deref(), Some("y" | "Y" | "yes")) {
                     return Err("Abort".into());
+                }
+                // The answer is to the command asked about: the text may
+                // have changed in between.
+                if *confirm && context.confirm.as_deref() != Some(command.as_str()) {
+                    return Err(LINK_CHANGED.into());
                 }
                 let directory = uri::to_path(&uri).and_then(|path| path.parent().map(PathBuf::from));
                 self.run_shell_link(command, directory);
@@ -5719,11 +5736,18 @@ impl Server {
                         "prompt": format!("Execute {form} as Elisp? "),
                         "value": "",
                         "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
-                        "context": { "step": "elisp", "answers": answer.map(String::from).unwrap_or_default() },
+                        "context": {
+                            "step": "elisp",
+                            "answers": answer.map(String::from).unwrap_or_default(),
+                            "confirm": form,
+                        },
                     } }));
                 }
                 if !matches!(context.input.as_deref(), Some("y" | "Y" | "yes")) {
                     return Err("Abort".into());
+                }
+                if context.confirm.as_deref() != Some(form.as_str()) {
+                    return Err(LINK_CHANGED.into());
                 }
                 let directory = uri::to_path(&uri).and_then(|path| path.parent().map(PathBuf::from));
                 let value = self.eval_elisp_link(form, directory.as_deref())?;
