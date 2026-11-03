@@ -141,6 +141,31 @@ function! s:choice_faces() abort
 endfunction
 call s:test('offers TODO keywords in their faces', function('s:choice_faces'))
 
+" A URL the server asks the system to open (`window/showDocument` with
+" `external`) reaches the opener as it is, `?` and `#` and all: through
+" `g:Openprg` where Vim has `:Open`, else through `xdg-open`.
+function! s:open_external() abort
+  let opener = s:work . '/opener'
+  let got = s:work . '/opened'
+  call writefile(['#!/bin/sh', 'printf "%s\n" "$@" > ' . shellescape(got)], opener)
+  call setfperm(opener, 'rwx------')
+  call mkdir(s:work . '/opener-bin', 'p')
+  call writefile(readfile(opener), s:work . '/opener-bin/xdg-open')
+  call setfperm(s:work . '/opener-bin/xdg-open', 'rwx------')
+  let [path, g:Openprg] = [$PATH, opener]
+  let $PATH = s:work . '/opener-bin:' . $PATH
+  try
+    let url = 'https://example.com/search?q=org&page=2#results'
+    call assert_equal({'success': v:true}, org_lsp#show_document({'uri': url, 'external': v:true}))
+    call s:until('the opener', {-> filereadable(got)})
+    call assert_equal([url], readfile(got))
+  finally
+    let $PATH = path
+    unlet g:Openprg
+  endtry
+endfunction
+call s:test('opens URLs with ? and # outside Vim', function('s:open_external'))
+
 " A face's colors are only colors: a value that is not one sets nothing
 " and runs nothing; Emacs's `dark green` is Vim's `darkgreen`.
 function! s:face_colors() abort
@@ -479,6 +504,19 @@ function! s:protocol_capture() abort
   call s:until('the capture buffer closed', {-> fnamemodify(bufname(), ':t') !~# '^CAPTURE-'})
 endfunction
 call s:test('captures from an org-protocol URL', function('s:protocol_capture'))
+
+" The server may ask to run only its own commands (`org.*`), never one of
+" the plugin's (`help`, `quit`).
+function! s:run_command_own_only() abort
+  let popups = popup_list()
+  call org_lsp#handle_notification('org-lsp/runCommand', {'command': 'help', 'argument': {}})
+  sleep 200m
+  call feedkeys('', 'x')
+  let opened = filter(popup_list(), 'index(popups, v:val) < 0')
+  call map(copy(opened), 'popup_close(v:val)')
+  call assert_equal([], opened, 'the keys popup opened')
+endfunction
+call s:test('runs only the server''s commands when it asks', function('s:run_command_own_only'))
 
 function! s:clock() abort
   execute 'buffer' s:work_buf

@@ -170,23 +170,28 @@ pub(super) fn tools() -> Vec<Value> {
             &["value"],
             true,
         ),
-        tool(
-            "archive",
-            "Archive",
-            "Archive an entry and its subtree: moved to its archive file (org-archive-subtree, where \
-             org_archive_location and the file's #+ARCHIVE say), under the parent's Archive sibling \
-             (to_sibling, org-archive-to-archive-sibling), or tagged ARCHIVE or not (toggle_tag, \
-             org-toggle-archive-tag). Writes the archive file, then the entry's.",
-            json!({
-                "method": {
-                    "type": "string",
-                    "enum": ["subtree", "to_sibling", "toggle_tag"],
-                    "description": "How to archive: subtree, the default, to_sibling or toggle_tag",
-                },
-            }),
-            &[],
-            false,
-        ),
+        {
+            let mut archive = tool(
+                "archive",
+                "Archive",
+                "Archive an entry and its subtree: moved to its archive file (org-archive-subtree, where \
+                 org_archive_location and the file's #+ARCHIVE say), under the parent's Archive sibling \
+                 (to_sibling, org-archive-to-archive-sibling), or tagged ARCHIVE or not (toggle_tag, \
+                 org-toggle-archive-tag). Writes the archive file, then the entry's.",
+                json!({
+                    "method": {
+                        "type": "string",
+                        "enum": ["subtree", "to_sibling", "toggle_tag"],
+                        "description": "How to archive: subtree, the default, to_sibling or toggle_tag",
+                    },
+                }),
+                &[],
+                false,
+            );
+            // It writes a file other than the entry's.
+            archive["annotations"]["destructiveHint"] = json!(true);
+            archive
+        },
         tool(
             "add_note",
             "Add note",
@@ -573,25 +578,29 @@ fn archive(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> R
             // agenda files: that of `org_archive_location`, and those the
             // file names (`#+ARCHIVE:`, `ARCHIVE` properties) in the
             // directory of an agenda file or below, as what the assistant
-            // writes there could name any file.
+            // writes there could name any file: Org files and archive
+            // files only, not hidden, and where they are once links are
+            // followed. The directories are those of the agenda files as
+            // listed, not where a link among them leads.
             let mut writable: Vec<PathBuf> = agenda.iter().map(|file| canonical(file)).collect();
             writable.extend(
                 archive::archive_files("", &keywords, &context, &settings.location).iter().map(|file| resolved(file)),
             );
             let directories: Vec<PathBuf> =
-                agenda.iter().filter_map(|file| canonical(file).parent().map(Path::to_path_buf)).collect();
+                agenda.iter().filter_map(|file| std::path::absolute(file).ok()?.parent().map(canonical)).collect();
             writable.extend(
                 archive::archive_files(text, &keywords, &context, &settings.location)
                     .iter()
                     .map(|file| resolved(file))
-                    .filter(|file| directories.iter().any(|directory| file.starts_with(directory))),
+                    .filter(|file| directories.iter().any(|directory| archive_file_in(file, directory))),
             );
             let mut read = |wanted: &Path| std::fs::read_to_string(wanted).ok();
             let archived = archive::archive_subtree(text, entry.heading, &keywords, &context, &settings, &mut read)?;
             if let Some(other) = archived.files.iter().find(|file| !writable.contains(&resolved(&file.path))) {
                 return Err(format!(
                     "{} is not an archive file org-lsp mcp changes: those are the file of org_archive_location, \
-                     and the others in the directory of an agenda file or below",
+                     and the others in the directory of an agenda file or below, named *.org or *_archive, \
+                     not hidden",
                     other.path.display()
                 )
                 .into());
@@ -638,6 +647,17 @@ fn archive(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> R
         out.push_str(&format!("{name}:{line}: {headline}"));
     }
     Ok(out.trim_end().to_string())
+}
+
+/// Whether `file` (as [`resolved`] has it) is an archive file the tool may
+/// write in `directory`: below it, named as Org names its files and its
+/// archive files (`.org`, and `%s_archive` of `org-archive-location`), and
+/// with nothing hidden on the way (`.ssh/`, `.bashrc`).
+fn archive_file_in(file: &Path, directory: &Path) -> bool {
+    let Ok(below) = file.strip_prefix(directory) else { return false };
+    let hidden = below.components().any(|part| part.as_os_str().to_string_lossy().starts_with('.'));
+    let name = file.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
+    !hidden && (name.ends_with(".org") || name.ends_with("_archive"))
 }
 
 // ----- delete
@@ -908,6 +928,64 @@ mod tests {
         assert!(setup.read("old/done.org").contains("* TODO In"));
     }
 
+    /// Beside an agenda file, only Org files and archive files, not hidden,
+    /// where they are once links are followed.
+    #[cfg(unix)]
+    #[test]
+    fn archives_only_to_org_files_not_hidden() {
+        let tasks = "* TODO Keys\n:PROPERTIES:\n:ARCHIVE: .ssh/authorized_keys::\n:END:\n\
+                     * TODO Profile\n:PROPERTIES:\n:ARCHIVE: profile::\n:END:\n\
+                     * TODO Hidden\n:PROPERTIES:\n:ARCHIVE: .old/done.org::\n:END:\n\
+                     * TODO Linked\n:PROPERTIES:\n:ARCHIVE: linked/done.org::\n:END:\n\
+                     * TODO Archive\n:PROPERTIES:\n:ARCHIVE: done.org_archive::\n:END:\n";
+        let setup = Setup::new("archive-names", "", &[("tasks.org", tasks)]);
+        // A directory of the folder that leads out of it.
+        let outside = std::env::temp_dir().join(format!("org-lsp-mcp-linked-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&outside);
+        std::fs::create_dir_all(&outside).unwrap();
+        std::os::unix::fs::symlink(&outside, setup.folder.join("linked")).unwrap();
+        for (line, headline) in [(1, "Keys"), (5, "Profile"), (9, "Hidden"), (13, "Linked")] {
+            let (text, error) =
+                setup.call("archive", json!({ "file": "tasks.org", "line": line, "headline": headline }));
+            assert!(error && text.contains("is not an archive file org-lsp mcp changes"), "{headline}: {text}");
+        }
+        assert_eq!(setup.read("tasks.org"), tasks);
+        assert!(!setup.folder.join(".ssh").exists() && !setup.folder.join("profile").exists());
+        assert!(!outside.join("done.org").exists());
+        let (text, error) = setup.call("archive", json!({ "file": "tasks.org", "line": 17, "headline": "Archive" }));
+        assert!(!error, "{text}");
+        assert!(setup.read("done.org_archive").contains("* TODO Archive"));
+        std::fs::remove_dir_all(&outside).unwrap();
+    }
+
+    /// Without `org_agenda_files`, the Org files of the folder are the
+    /// agenda files, but not one that is a link to a file outside it; one
+    /// `org_agenda_files` names is, wherever it leads.
+    #[cfg(unix)]
+    #[test]
+    fn leaves_out_agenda_files_that_lead_out_of_the_folder() {
+        let setup = Setup::new("linked-agenda", "", &[("tasks.org", "* TODO Here\n")]);
+        let outside = std::env::temp_dir().join(format!("org-lsp-mcp-profile-{}", std::process::id()));
+        std::fs::write(&outside, "* TODO Not an Org file\n").unwrap();
+        std::os::unix::fs::symlink(&outside, setup.folder.join("readme.org")).unwrap();
+        // The folder's files, without `org_agenda_files`.
+        let config = format!("mcp_edits = true\norg_directory = {:?}\n", setup.folder.display().to_string());
+        std::fs::write(&setup.config, config).unwrap();
+        let (text, error) = setup.call("agenda_files", json!({}));
+        assert!(!error && text.contains("tasks.org") && !text.contains("readme.org"), "{text}");
+        let arguments = json!({ "file": "readme.org", "line": 1, "headline": "Not" });
+        let (text, error) = setup.call("delete_entry", arguments.clone());
+        assert!(error && text.contains("not an agenda file"), "{text}");
+        assert_eq!(std::fs::read_to_string(&outside).unwrap(), "* TODO Not an Org file\n");
+        // Named, it is the user's.
+        let config = format!("mcp_edits = true\norg_agenda_files = [{:?}]\n", setup.folder.join("readme.org"));
+        std::fs::write(&setup.config, config).unwrap();
+        let (text, error) = setup.call("delete_entry", arguments);
+        assert!(!error, "{text}");
+        assert_eq!(std::fs::read_to_string(&outside).unwrap(), "");
+        std::fs::remove_file(&outside).unwrap();
+    }
+
     #[test]
     fn deletes_an_entry_with_its_subtree_as_org_cut_subtree() {
         let tasks = "* Projects\n** TODO Write the report :work:\n*** Outline\nText.\n\n** TODO Water the plants\n";
@@ -964,6 +1042,9 @@ mod tests {
         assert_eq!(delete["annotations"]["destructiveHint"], true);
         assert_eq!(delete["annotations"]["readOnlyHint"], false);
         assert_eq!(delete["inputSchema"]["required"], json!(["file", "line", "headline"]));
+        // Archiving writes another file than the entry's.
+        let archive = tools.iter().find(|tool| tool["name"] == "archive").expect("archive");
+        assert_eq!(archive["annotations"]["destructiveHint"], true);
     }
 
     #[test]

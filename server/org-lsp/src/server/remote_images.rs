@@ -388,6 +388,12 @@ fn file_name(url: &str) -> String {
     format!("{}{extension}", &name[..NAME_BYTES - extension.len()])
 }
 
+/// The most redirects a download follows.
+const REDIRECTS: usize = 10;
+
+/// How long a download may take, its redirects and all.
+const DOWNLOAD_TIME: std::time::Duration = std::time::Duration::from_secs(30);
+
 /// Download `url` with `curl` into `path`: into a file beside it named
 /// with `part` first, then renamed over it, so that the image shown from
 /// it before stays whole until the new one is there. Whether it was: not
@@ -395,26 +401,167 @@ fn file_name(url: &str) -> String {
 /// out only from a `Content-Length`. The URL is as it is: `{a,b}` and
 /// `[1-3]` are no patterns of URLs to download (`--globoff`).
 fn download(url: &str, path: &std::path::Path, part: &str) -> bool {
+    download_through(url, path, part, None)
+}
+
+/// [`download`], through `proxy` for every host when there is one (for
+/// the tests); else through the environment's proxy, as `curl` takes it.
+///
+/// The redirects are followed here, one request at a time, rather than by
+/// `curl --location`: one that leads to this machine or its network (a
+/// loopback, private or link-local address, `localhost`) is not followed
+/// unless the URL itself named such a host, so that a page the user
+/// trusted cannot send the request to what only this machine reaches.
+fn download_through(url: &str, path: &std::path::Path, part: &str, proxy: Option<&str>) -> bool {
     let mut partial = path.as_os_str().to_owned();
     partial.push(format!(".part-{part}"));
     let partial = PathBuf::from(partial);
-    let status = std::process::Command::new("curl")
-        .args(["--silent", "--fail", "--location", "--globoff", "--max-time", "30", "--max-filesize", LARGEST])
-        .args(["--proto", "=http,https", "--proto-redir", "=http,https"])
-        .arg("--output")
-        .arg(&partial)
-        .arg("--")
-        .arg(url)
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status();
+    let inside = internal_host(url);
+    let deadline = std::time::Instant::now() + DOWNLOAD_TIME;
+    let mut at = url.to_string();
+    let mut fetched = false;
+    for _ in 0..=REDIRECTS {
+        let left = deadline.saturating_duration_since(std::time::Instant::now()).as_secs();
+        if left == 0 {
+            break;
+        }
+        let mut command = std::process::Command::new("curl");
+        command
+            .args(["--silent", "--fail", "--globoff", "--max-filesize", LARGEST])
+            .args(["--proto", "=http,https"])
+            .arg("--max-time")
+            .arg(left.to_string())
+            .args(["--write-out", "%{http_code} %{redirect_url}"]);
+        if let Some(proxy) = proxy {
+            command.arg("--proxy").arg(proxy).args(["--noproxy", ""]);
+        }
+        let output = command
+            .arg("--output")
+            .arg(&partial)
+            .arg("--")
+            .arg(&at)
+            .stdin(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .output();
+        let output = match output {
+            Ok(output) if output.status.success() => output,
+            _ => break,
+        };
+        let written = String::from_utf8_lossy(&output.stdout);
+        let (code, next) = written.trim().split_once(' ').unwrap_or((written.trim(), ""));
+        if code.starts_with('3') && !next.is_empty() {
+            let scheme = next.split_once("://").map(|(scheme, _)| scheme.to_ascii_lowercase());
+            let web = matches!(scheme.as_deref(), Some("http" | "https"));
+            if !web || (!inside && internal_host(next)) {
+                break;
+            }
+            at = next.to_string();
+            continue;
+        }
+        fetched = code.starts_with('2');
+        break;
+    }
     let whole = std::fs::metadata(&partial).is_ok_and(|file| file.is_file() && file.len() <= LARGEST_BYTES);
-    let renamed = status.is_ok_and(|status| status.success()) && whole && std::fs::rename(&partial, path).is_ok();
+    let renamed = fetched && whole && std::fs::rename(&partial, path).is_ok();
     if !renamed {
         let _ = std::fs::remove_file(&partial);
     }
     renamed
+}
+
+/// Whether the host of `url` is this machine or on its own network, as
+/// `curl` reads the host: `localhost` and the names under it, and the
+/// loopback, private, link-local, shared and unspecified addresses, the
+/// IPv4 ones in any of the forms `inet_aton` takes (`127.1`,
+/// `2130706433`, `0x7f.0.0.1`). A name is not looked up: one that leads
+/// to such an address is not seen as one.
+fn internal_host(url: &str) -> bool {
+    let rest = url.split_once("://").map_or(url, |(_, rest)| rest);
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    let host = authority.rsplit_once('@').map_or(authority, |(_, host)| host);
+    let host = percent_decoded(host).to_ascii_lowercase();
+    if let Some(inner) = host.strip_prefix('[') {
+        let address = inner.split([']', '%']).next().unwrap_or_default();
+        return address.parse::<std::net::Ipv6Addr>().is_ok_and(internal_v6);
+    }
+    let name = host.rsplit_once(':').map_or(host.as_str(), |(name, _)| name).trim_end_matches('.');
+    if name == "localhost" || name.ends_with(".localhost") {
+        return true;
+    }
+    ipv4(name).is_some_and(internal_v4)
+}
+
+fn internal_v4(address: std::net::Ipv4Addr) -> bool {
+    let [first, second, ..] = address.octets();
+    address.is_loopback()
+        || address.is_private()
+        || address.is_link_local()
+        || address.is_broadcast()
+        || first == 0
+        // Shared address space (RFC 6598), behind a carrier's NAT.
+        || (first == 100 && (64..128).contains(&second))
+}
+
+fn internal_v6(address: std::net::Ipv6Addr) -> bool {
+    let first = address.segments()[0];
+    if let Some(v4) = address.to_ipv4_mapped() {
+        return internal_v4(v4);
+    }
+    address.is_loopback()
+        || address.is_unspecified()
+        // Unique local (fc00::/7) and link-local (fe80::/10).
+        || (first & 0xfe00) == 0xfc00
+        || (first & 0xffc0) == 0xfe80
+}
+
+/// An IPv4 address as `inet_aton` reads it: one to four numbers, each
+/// decimal, octal after `0` or hexadecimal after `0x`, the last filling
+/// the bytes the others leave.
+fn ipv4(name: &str) -> Option<std::net::Ipv4Addr> {
+    let parts: Vec<&str> = name.split('.').collect();
+    if parts.is_empty() || parts.len() > 4 {
+        return None;
+    }
+    let mut numbers = Vec::with_capacity(parts.len());
+    for part in &parts {
+        let (digits, radix) = match part.strip_prefix("0x").or_else(|| part.strip_prefix("0X")) {
+            Some(hex) => (hex, 16),
+            None if part.len() > 1 && part.starts_with('0') => (&part[1..], 8),
+            None => (*part, 10),
+        };
+        if digits.is_empty() && radix != 16 {
+            return None;
+        }
+        numbers.push(if digits.is_empty() { 0 } else { u64::from_str_radix(digits, radix).ok()? });
+    }
+    let (last, first) = numbers.split_last()?;
+    if first.iter().any(|number| *number > 255) || *last >= 1 << (8 * (4 - first.len())) {
+        return None;
+    }
+    let value = first.iter().enumerate().fold(*last, |value, (index, number)| value | number << (8 * (3 - index)));
+    Some(std::net::Ipv4Addr::from(value as u32))
+}
+
+/// `text` with its `%XX` made the bytes they stand for, as `curl` reads a
+/// host.
+fn percent_decoded(text: &str) -> String {
+    let bytes = text.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut at = 0;
+    while at < bytes.len() {
+        let hex = bytes.get(at + 1..at + 3).and_then(|hex| u8::from_str_radix(std::str::from_utf8(hex).ok()?, 16).ok());
+        match (bytes[at], hex) {
+            (b'%', Some(byte)) => {
+                out.push(byte);
+                at += 3;
+            }
+            (byte, _) => {
+                out.push(byte);
+                at += 1;
+            }
+        }
+    }
+    String::from_utf8_lossy(&out).into_owned()
 }
 
 #[cfg(test)]
@@ -431,5 +578,134 @@ mod tests {
         assert!(name.starts_with("___") && name.ends_with("_.jpeg"), "{name}");
         let dotless = file_name(&format!("https://example.com/{}", "x".repeat(400)));
         assert_eq!(dotless, "x".repeat(NAME_BYTES));
+    }
+
+    #[test]
+    fn tells_hosts_of_this_machine_and_its_network() {
+        for url in [
+            "http://localhost/a.png",
+            "http://LocalHost.:8080/a.png",
+            "http://x.localhost/a.png",
+            "http://127.0.0.1/a.png",
+            "http://127.1/a.png",
+            "http://2130706433/a.png",
+            "http://0x7f.0.0.1/a.png",
+            "http://0177.0.0.1/a.png",
+            "http://user:pass@10.1.2.3:80/a.png",
+            "http://172.20.0.1/",
+            "http://192.168.1.1",
+            "http://169.254.169.254/latest/meta-data/",
+            "http://100.64.0.1/",
+            "http://0.0.0.0/",
+            "http://[::1]:8080/a.png",
+            "http://[::ffff:127.0.0.1]/a.png",
+            "http://[fe80::1%25eth0]/",
+            "http://[fd00::1]/",
+            "http://%6c%6fcalhost/a.png",
+            "http://127.0.0.1#@example.com/",
+        ] {
+            assert!(internal_host(url), "{url}");
+        }
+        for url in [
+            "https://example.com/a.png",
+            "https://orgmode.org:443/img.png",
+            "http://8.8.8.8/",
+            "http://172.32.0.1/",
+            "http://[2001:db8::1]/",
+            "http://localhost.example.com/",
+            "http://127.0.0.1.example.com/",
+            "http://example.com/http://127.0.0.1/",
+        ] {
+            assert!(!internal_host(url), "{url}");
+        }
+    }
+
+    /// A proxy that answers each request for a URL by its path: `/to-X`
+    /// redirects to `X`, `/a.png` is a picture, anything else not found.
+    /// The URLs asked for, in turn.
+    fn proxy() -> (String, std::sync::Arc<std::sync::Mutex<Vec<String>>>) {
+        use std::io::{BufRead, BufReader, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = format!("http://127.0.0.1:{}", listener.local_addr().unwrap().port());
+        let asked = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let seen = asked.clone();
+        std::thread::spawn(move || {
+            for stream in listener.incoming() {
+                let Ok(mut stream) = stream else { continue };
+                let mut reader = BufReader::new(stream.try_clone().unwrap());
+                let mut line = String::new();
+                let _ = reader.read_line(&mut line);
+                loop {
+                    let mut header = String::new();
+                    if reader.read_line(&mut header).unwrap_or(0) == 0 || header == "\r\n" {
+                        break;
+                    }
+                }
+                let url = line.split_whitespace().nth(1).unwrap_or("").to_string();
+                seen.lock().unwrap().push(url.clone());
+                let path = url.split_once("://").and_then(|(_, rest)| rest.find('/').map(|at| &rest[at..]));
+                let response = match path {
+                    Some(path) if path.starts_with("/to-") => format!(
+                        "HTTP/1.1 302 Found\r\nLocation: {}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                        &path[4..]
+                    ),
+                    Some("/a.png") => {
+                        "HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\npng a".to_string()
+                    }
+                    _ => "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_string(),
+                };
+                let _ = stream.write_all(response.as_bytes());
+            }
+        });
+        (address, asked)
+    }
+
+    /// Redirects are followed to the web, not to this machine or its
+    /// network unless the URL named such a host itself.
+    #[test]
+    fn follows_redirects_to_the_web_only() {
+        if !std::process::Command::new("curl").arg("--version").output().is_ok_and(|out| out.status.success()) {
+            eprintln!("follows_redirects_to_the_web_only: no curl, skipped");
+            return;
+        }
+        let (proxy, asked) = proxy();
+        let directory = std::env::temp_dir().join(format!("org-lsp-redirects-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let path = directory.join("image.png");
+        let get = |url: &str| {
+            asked.lock().unwrap().clear();
+            let _ = std::fs::remove_file(&path);
+            let done = download_through(url, &path, "x", Some(&proxy));
+            (done, asked.lock().unwrap().clone())
+        };
+        // To another page on the web.
+        let (done, urls) = get("http://images.example/to-http://cdn.example/a.png");
+        assert!(done, "{urls:?}");
+        assert_eq!(urls, ["http://images.example/to-http://cdn.example/a.png", "http://cdn.example/a.png"]);
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "png a");
+        // To this machine and its network: not asked for.
+        for inside in ["http://127.0.0.1/a.png", "http://169.254.169.254/a.png", "http://localhost/a.png"] {
+            let url = format!("http://images.example/to-{inside}");
+            let (done, urls) = get(&url);
+            assert!(!done, "{inside}");
+            assert_eq!(urls, [url.as_str()]);
+            assert!(!path.exists());
+        }
+        // After another redirect too.
+        let (done, urls) = get("http://images.example/to-http://cdn.example/to-http://10.0.0.1/a.png");
+        assert!(!done);
+        assert_eq!(urls.len(), 2, "{urls:?}");
+        // A URL on this network may lead within it.
+        let (done, urls) = get("http://192.168.1.1/to-http://192.168.1.2/a.png");
+        assert!(done, "{urls:?}");
+        // No more than so many redirects.
+        let mut url = "http://images.example/a.png".to_string();
+        for _ in 0..=REDIRECTS {
+            url = format!("http://images.example/to-{url}");
+        }
+        let (done, urls) = get(&url);
+        assert!(!done);
+        assert_eq!(urls.len(), REDIRECTS + 1);
+        std::fs::remove_dir_all(&directory).unwrap();
     }
 }

@@ -15,6 +15,14 @@ pub struct Overlay {
     pub display: String,
 }
 
+/// The widest a shrunk column shows, in columns: wider than any window.
+/// Emacs pads each field to any width its cookie says, and fails past
+/// what it can allocate (`Memory exhausted`); here every field of the
+/// column is sent to the editor padded, so a wider cookie (`<99999>`)
+/// shrinks to this width, rather than making text thousands of times as
+/// long as the table.
+pub const WIDEST: usize = 1000;
+
 /// A table of the document: where its lines are (byte offsets, without the
 /// line ends), from its first line.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -82,7 +90,7 @@ fn fields(text: &str, line: (usize, usize)) -> (Vec<(usize, usize)>, bool) {
 /// The width cookies of a table (`<10>`, `<l10>`): by column, from 1, the
 /// width and the alignment, each the first a cookie of the column gives,
 /// as `org-table--shrink-columns` reads them. A cookie without a width
-/// (`<r>`) is not one of them.
+/// (`<r>`) is not one of them. A width is at most [`WIDEST`].
 pub fn cookies(text: &str, table: &Table) -> Vec<(usize, Option<usize>, Option<char>)> {
     let mut out: Vec<(usize, Option<usize>, Option<char>)> = Vec::new();
     for line in &table.lines {
@@ -100,7 +108,7 @@ pub fn cookies(text: &str, table: &Table) -> Vec<(usize, Option<usize>, Option<c
             if digits.is_empty() || !digits.chars().all(|c| c.is_ascii_digit()) {
                 continue;
             }
-            let width = digits.parse().ok();
+            let width = Some(crate::text::field_width(digits).min(WIDEST));
             match out.iter_mut().find(|(column, _, _)| *column == index + 1) {
                 Some((_, known_width, known_align)) => {
                     *known_width = known_width.or(width);
@@ -342,6 +350,22 @@ mod tests {
         assert_eq!(found[0].line_range(text), (1, 2));
         assert_eq!(cookie_columns(text, &found[0]), [1].into_iter().collect());
         assert!(cookie_columns(text, &found[1]).is_empty());
+    }
+
+    /// A cookie wider than any window (`<99999999999999>`, past what Emacs
+    /// can allocate) shrinks the column to [`WIDEST`].
+    #[test]
+    fn widths_past_any_window_shrink_to_the_widest() {
+        for cookie in ["<99999999999999>", "<l18446744073709551616>"] {
+            let text = format!("|{cookie}|\n|-|\n| a |\n");
+            assert_eq!(
+                cookies(&text, &tables(&text)[0]),
+                [(1, Some(WIDEST), cookie.chars().nth(1).filter(|c| *c == 'l'))]
+            );
+            let shown = shown(&text, &[1]);
+            assert_eq!(shown[1].2, format!("{}…", "-".repeat(WIDEST + 1)));
+            assert_eq!(shown[2].2, format!("{}…", " ".repeat(WIDEST - 1)));
+        }
     }
 
     /// `org-table--shrink-columns`: the first width and the first

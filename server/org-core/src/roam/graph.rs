@@ -163,13 +163,16 @@ pub fn dot(db: &Db, edges_given: Option<Vec<Edge>>, all_nodes: bool, settings: &
                 properties.push(("tooltip".to_string(), xml_escape(&title)));
             }
             None => {
-                properties.push(("label".to_string(), format!("{kind}:{id}")));
+                properties.push(("label".to_string(), quote(&format!("{kind}:{id}"))));
                 if kind == "http" || kind == "https" {
                     properties.push(("URL".to_string(), xml_escape(&format!("{kind}:{id}"))));
                 }
             }
         }
-        format!("\"{id}\" [{}];\n", properties.iter().map(option).collect::<Vec<_>>().join(","))
+        // Org-roam puts the ID and the target of a link in as they are,
+        // where a `"` or a `\` would end the string and add attributes
+        // to the node; they are quoted as titles are.
+        format!("\"{}\" [{}];\n", quote(id), properties.iter().map(option).collect::<Vec<_>>().join(","))
     };
     let mut seen: HashSet<&str> = HashSet::new();
     for (source, dest, kind) in &edges {
@@ -181,7 +184,7 @@ pub fn dot(db: &Db, edges_given: Option<Vec<Edge>>, all_nodes: bool, settings: &
                 out.push_str(&format_node(node, node_kind));
             }
         }
-        out.push_str(&format!("  \"{}\" -> \"{}\";\n", xml_escape(source), xml_escape(dest)));
+        out.push_str(&format!("  \"{}\" -> \"{}\";\n", quote(&xml_escape(source)), quote(&xml_escape(dest))));
     }
     if all_nodes {
         for id in order {

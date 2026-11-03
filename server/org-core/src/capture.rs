@@ -410,6 +410,13 @@ pub(crate) fn format_time(format: &str, time: DateTime) -> String {
 const SEXP_START: char = '\u{E000}';
 const SEXP_END: char = '\u{E001}';
 
+/// `text` without the characters that mark a sexp ([`SEXP_START`],
+/// [`SEXP_END`]): what a link, a page's title, the clipboard or a file
+/// puts in can never make a sexp of its own.
+fn unmarked(text: &str) -> String {
+    text.replace([SEXP_START, SEXP_END], "")
+}
+
 static FILE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"%\[(.+)\]").unwrap());
 
 /// Expand `template` (`org-capture-fill-template`). `answers` answer its
@@ -472,8 +479,11 @@ pub fn fill_counting(
     settings: &ReadDateSettings,
     mut outside: Option<Outside>,
 ) -> Result<(Filled, usize), Refusal> {
+    // Only the marks `mark_sexps` puts in say where a sexp is: none may
+    // come from the template, the files it puts in, or a value put in for
+    // an escape, as Emacs marks them with a text property no text has.
     let template = match &outside {
-        Some(outside) => mark_sexps(&insert_files(template, outside.insert_file)),
+        Some(outside) => mark_sexps(&unmarked(&insert_files(&unmarked(template), outside.insert_file))),
         None => template.to_string(),
     };
     let template = template.as_str();
@@ -538,6 +548,7 @@ pub fn fill_counting(
             b'U' => format_timestamp(stamped, true, true, ""),
             _ => return Ok(None),
         };
+        let value = unmarked(&value);
         // In Lisp, the value is a string's content.
         Ok(Some(if inside { value.replace('\\', "\\\\").replace('"', "\\\"") } else { value }))
     })?;
@@ -1820,6 +1831,46 @@ mod tests {
         assert_eq!(crate::text::format_strings("%4s|%-3s|", &["a", "b"]), "   a|b  |");
         let escaped = crate::text::replace_escapes("%99999999999999999999x", |_| Some("v".to_string()));
         assert_eq!(escaped.len(), widest);
+    }
+
+    /// Only the template's own `%(…)` are evaluated: the marks that say
+    /// where a sexp is cannot come from a page's title (`%a`), the
+    /// initial text (`%i`), the clipboard (`%c`), a link's properties or
+    /// a file put in (`%[…]`). Emacs marks them with a text property.
+    #[test]
+    fn evaluates_only_the_sexps_of_the_template() {
+        let marked = |form: &str| format!("{SEXP_START}{form}{SEXP_END}");
+        let context = Context {
+            now: now(),
+            file: None,
+            initial: marked("(shell-command \"from initial\")"),
+            annotation: format!("[[https://x][{}]]", marked("(shell-command \"from title\")")),
+            link_props: vec![(":description".into(), marked("(shell-command \"from description\")"))],
+            user_name: String::new(),
+            clock_heading: String::new(),
+            clock_link: String::new(),
+            tags_column: -77,
+            clipboard: marked("(shell-command \"from clipboard\")"),
+        };
+        let settings = ReadDateSettings::default();
+        let insert_file = |_: &str| marked("(shell-command \"from file\")") + "%(concat \"in\" \"file\")";
+        let mut evaluated: Vec<String> = Vec::new();
+        let mut eval = |sexp: &str| -> Result<Option<String>, String> {
+            evaluated.push(sexp.to_string());
+            Ok(Some("V".to_string()))
+        };
+        let outside = Outside { insert_file: &insert_file, eval: &mut eval };
+        let template = "* %a %(upcase \"%i\")\n%:description %c %i %[f]";
+        let Filled::Text(text) = fill_with(template, &context, &[], &settings, Some(outside)).unwrap() else {
+            panic!("a question")
+        };
+        // The template's sexp, with `%i` in it as a string's content, and
+        // the one the file puts in, as Emacs evaluates both.
+        let initial = "(shell-command \\\"from initial\\\")";
+        assert_eq!(evaluated, [format!("(upcase \"{initial}\")"), "(concat \"in\" \"file\")".to_string()]);
+        assert!(!text.contains([SEXP_START, SEXP_END]), "{text:?}");
+        assert!(text.contains("(shell-command \"from title\")"), "{text:?}");
+        assert!(text.contains("(shell-command \"from clipboard\")"), "{text:?}");
     }
 
     #[test]

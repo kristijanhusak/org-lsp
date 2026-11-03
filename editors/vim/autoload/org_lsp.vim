@@ -2012,12 +2012,15 @@ function! s:other_window(from, path) abort
 endfunction
 
 " A URL or a file for the system to open (a link of `org-open-at-point`):
-" with Vim's own `:Open` where there is one, else the system's opener.
+" with what Vim's own `:Open` runs where there is one (`g:Openprg`), else
+" the system's opener. The function, not the command: the command's
+" argument is read as a file name, which a URL's `?` and `#` are not.
 function! s:open_external(uri) abort
-  if exists(':Open') == 2
-    execute 'Open' fnameescape(a:uri)
+  try
+    call dist#vim9#Open(a:uri)
     return
-  endif
+  catch /^Vim\%((\a\+)\)\=:E117:/
+  endtry
   " On Windows, the URL's handler without cmd.exe, which would read `&`,
   " `|` and `%VAR%` in it.
   let opener = has('mac') ? ['open'] : has('win32') ? ['rundll32', 'url.dll,FileProtocolHandler'] : ['xdg-open']
@@ -2204,8 +2207,11 @@ function! org_lsp#handle_notification(method, params) abort
   elseif a:method ==# 'org-lsp/folds'
     call s:journal_folds(a:params)
   elseif a:method ==# 'org-lsp/runCommand' && type(a:params) == v:t_dict && type(get(a:params, 'command', 0)) == v:t_string
+        \ && a:params.command =~# '^org\.'
     " A command to run as from its key, where the cursor is, outside the
-    " client's callback: a capture an org-protocol URL started.
+    " client's callback: a capture an org-protocol URL started. Only one
+    " of the server's own (`org.*`), which go to the server: never one of
+    " the plugin's (`quit`).
     let Run = {-> org_lsp#run(a:params.command, {'argument': get(a:params, 'argument', {})})}
     call timer_start(0, {-> Run()})
   elseif a:method ==# 'org-lsp/message' && type(a:params) == v:t_dict

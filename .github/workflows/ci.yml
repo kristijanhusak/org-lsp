@@ -71,8 +71,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The oldest supported release and the current one.
-        neovim: [v0.12.0, stable]
+        # The oldest supported release and the current one. A fixed
+        # release has the SHA-256 of its archive here; `stable` moves, so
+        # its archive is checked against the digest GitHub recorded when
+        # it was uploaded.
+        include:
+          - neovim: v0.12.0
+            sha256: 160b69125defb16e60b283b69be112fd4850d67ac8f9a752328c20ad43ec34af
+          - neovim: stable
+            sha256: ''
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -80,9 +87,19 @@ jobs:
       - name: Install Rust
         run: rustup toolchain install stable --profile minimal && rustup default stable
       - name: Install Neovim
+        env:
+          NVIM_RELEASE: ${{ matrix.neovim }}
+          NVIM_SHA256: ${{ matrix.sha256 }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          curl -sSL -o nvim.tar.gz https://github.com/neovim/neovim/releases/download/${{ matrix.neovim }}/nvim-linux-x86_64.tar.gz
-          mkdir -p "$HOME/nvim" && tar xzf nvim.tar.gz -C "$HOME/nvim" --strip-components=1
+          curl -fsSL -o "$RUNNER_TEMP/nvim.tar.gz" "https://github.com/neovim/neovim/releases/download/$NVIM_RELEASE/nvim-linux-x86_64.tar.gz"
+          if [ -z "$NVIM_SHA256" ]; then
+            NVIM_SHA256=$(gh api "repos/neovim/neovim/releases/tags/$NVIM_RELEASE" \
+              --jq '.assets[] | select(.name == "nvim-linux-x86_64.tar.gz") | (.digest // "") | ltrimstr("sha256:")')
+          fi
+          [ -n "$NVIM_SHA256" ] || { echo "No SHA-256 for Neovim $NVIM_RELEASE"; exit 1; }
+          echo "$NVIM_SHA256  $RUNNER_TEMP/nvim.tar.gz" | sha256sum -c -
+          mkdir -p "$HOME/nvim" && tar xzf "$RUNNER_TEMP/nvim.tar.gz" -C "$HOME/nvim" --strip-components=1
           echo "$HOME/nvim/bin" >> "$GITHUB_PATH"
       # The typed scenarios run Neovim's terminal UI in tmux; the test of
       # images makes its pictures with ImageMagick.

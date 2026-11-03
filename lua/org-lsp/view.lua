@@ -856,8 +856,10 @@ M.handlers = {
   --- A command to run as from its key, where the cursor is, with the
   --- argument's fields the server gives: a capture an org-protocol URL
   --- started.
-  ['org-lsp/runCommand'] = function(_, params)
-    if params and type(params.command) == 'string' then
+  ['org-lsp/runCommand'] = function(_, params, ctx)
+    -- Only the server's own commands, those it announced: never one of
+    -- the editor's or of another plugin's (`vim.lsp.commands`).
+    if params and type(params.command) == 'string' and require('org-lsp').announced(ctx.client_id, params.command) then
       vim.schedule(function()
         require('org-lsp').run(params.command, { argument = params.argument })
       end)

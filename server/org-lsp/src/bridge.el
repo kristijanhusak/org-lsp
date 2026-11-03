@@ -493,7 +493,9 @@ the cursor is."
            (set-buffer-modified-p nil)
            (delay-mode-hooks (org-mode))
            (run-mode-hooks)
-           (hack-local-variables)
+           ;; The file's local variables, but not a `mode:' among them:
+           ;; it would call any function whose name ends in `-mode'.
+           (hack-local-variables 'no-mode)
            (goto-char (min (point-max) (max (point-min) (or (alist-get 'point ,params) 1))))
            ,@body)
        (with-current-buffer buffer

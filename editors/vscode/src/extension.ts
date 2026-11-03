@@ -764,9 +764,16 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     client.onNotification('org-lsp/folds', (params: JournalFolds) => void journalFolds(params));
     // A command the server asks to run as from its key, where the cursor
     // is, with fields of its own: a capture an org-protocol URL started.
+    // Only the server's own commands, those it announced: never another
+    // extension's, nor one of VS Code's.
     const running = client;
+    const announced = new Set(
+      (client.initializeResult?.capabilities.executeCommandProvider?.commands ?? []).filter((id) =>
+        id.startsWith('org.'),
+      ),
+    );
     client.onNotification('org-lsp/runCommand', (params: { command?: unknown; argument?: unknown } | null) => {
-      if (typeof params?.command !== 'string') {
+      if (typeof params?.command !== 'string' || !announced.has(params.command)) {
         return;
       }
       const here = (cursor(running)[0] ?? {}) as Record<string, unknown>;

@@ -2252,7 +2252,9 @@ org_cycle_level_after_item_entry_creation = true
 # `"skip"` not; `"download"` downloaded each time they show; `"cache"`
 # downloaded once and kept for the session. The download follows
 # `org_resource_download_policy`; an image larger than 20 MB is not
-# downloaded. (org-display-remote-inline-images)
+# downloaded. Unlike Emacs, a redirect to this machine or its network
+# (`localhost`, a loopback, private or link-local address) is not followed,
+# unless the link names such a host itself. (org-display-remote-inline-images)
 org_display_remote_inline_images = "skip"
 
 # Which remote resources are downloaded (the images of links, and in Emacs a

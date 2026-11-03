@@ -396,15 +396,21 @@ register_protocol_linux() {
   local entry=$applications/org-lsp-protocol.desktop
   mkdir -p "$applications"
   # The desktop entry's quoting: the path in double quotes, with `"`, `` ` ``,
-  # `$` and `\` escaped.
+  # `$` and `\` escaped by a backslash; then each backslash doubled, as
+  # Exec is a string whose own escapes are read first (`\\$`, and `\\\\`
+  # for one backslash); and `%` doubled, as it starts a field code.
   local quoted
-  quoted=$(printf '%s' "$path" | sed 's/[\\"`$]/\\&/g')
+  quoted=$(printf '%s' "$path" | sed 's/[\\"`$]/\\&/g; s/\\/\\\\/g; s/%/%%/g')
+  # GLib looks for the program before it reads `%%`: a path with `%` is
+  # started through env.
+  local program=
+  case $path in *%*) program='env ' ;; esac
   cat > "$entry" << EOF
 [Desktop Entry]
 Type=Application
 Name=org-lsp
 Comment=Hands org-protocol:// URLs to org-lsp
-Exec="$quoted" protocol %u
+Exec=$program"$quoted" protocol %u
 MimeType=x-scheme-handler/org-protocol;
 NoDisplay=true
 Terminal=false
