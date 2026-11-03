@@ -141,6 +141,31 @@ function! s:choice_faces() abort
 endfunction
 call s:test('offers TODO keywords in their faces', function('s:choice_faces'))
 
+" A URL the server asks the system to open (`window/showDocument` with
+" `external`) reaches the opener as it is, `?` and `#` and all: through
+" `g:Openprg` where Vim has `:Open`, else through `xdg-open`.
+function! s:open_external() abort
+  let opener = s:work . '/opener'
+  let got = s:work . '/opened'
+  call writefile(['#!/bin/sh', 'printf "%s\n" "$@" > ' . shellescape(got)], opener)
+  call setfperm(opener, 'rwx------')
+  call mkdir(s:work . '/opener-bin', 'p')
+  call writefile(readfile(opener), s:work . '/opener-bin/xdg-open')
+  call setfperm(s:work . '/opener-bin/xdg-open', 'rwx------')
+  let [path, g:Openprg] = [$PATH, opener]
+  let $PATH = s:work . '/opener-bin:' . $PATH
+  try
+    let url = 'https://example.com/search?q=org&page=2#results'
+    call assert_equal({'success': v:true}, org_lsp#show_document({'uri': url, 'external': v:true}))
+    call s:until('the opener', {-> filereadable(got)})
+    call assert_equal([url], readfile(got))
+  finally
+    let $PATH = path
+    unlet g:Openprg
+  endtry
+endfunction
+call s:test('opens URLs with ? and # outside Vim', function('s:open_external'))
+
 function! s:folds() abort
   call s:until('folds', {-> !empty(get(b:, 'org_lsp_folds', []))})
   call cursor(2, 1)
