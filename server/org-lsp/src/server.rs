@@ -455,6 +455,182 @@ const EMPTY_ANSWER: &str = "-";
 /// was read, and its text.
 type Included = (Option<std::time::SystemTime>, u64, Option<String>);
 
+/// The files `#+INCLUDE:` lines name, as the lint last read them
+/// (`Server::included`), shared with the threads that lint.
+type IncludedFiles = std::sync::Arc<std::sync::Mutex<HashMap<PathBuf, Included>>>;
+
+/// A copy of a document, linted on a thread of its own
+/// (`Server::publish_diagnostics`).
+struct Linting {
+    text: String,
+    parse: Parse,
+    index: LineIndex,
+    encoding: Encoding,
+    /// The keys of the document's bibliography, when it cites.
+    keys: Option<Vec<String>>,
+    /// What `org-lint` needs, when the document is linted.
+    lint: Option<LintSettings>,
+}
+
+/// What `org-lint` needs of the server (`Server::lint_settings`).
+struct LintSettings {
+    /// The directory of the document's file, which the names of files are
+    /// relative to.
+    directory: Option<PathBuf>,
+    file_name: Option<String>,
+    /// The `ID`s of the open files and the agenda files, when the document
+    /// links to some.
+    ids: Option<HashSet<String>>,
+    priorities: priority::Priorities,
+    link_types: &'static [&'static str],
+    /// `org_lint_ignore`.
+    ignore: Vec<String>,
+    included: IncludedFiles,
+}
+
+/// The diagnostics of a document as it was linted, or why the lint failed
+/// (`Server::linted`).
+struct Linted {
+    key: String,
+    /// Which of the lints of the document this is.
+    generation: u64,
+    version: i32,
+    uri: Uri,
+    result: std::result::Result<Vec<lsp_types::Diagnostic>, String>,
+}
+
+impl Linting {
+    fn diagnostics(&self) -> Vec<lsp_types::Diagnostic> {
+        let mut diagnostics = self.citation_diagnostics();
+        if let Some(lint) = &self.lint {
+            diagnostics.extend(self.lint_diagnostics(lint));
+        }
+        diagnostics
+    }
+
+    /// The citation keys the bibliography does not have, each with the
+    /// keys close to it.
+    fn citation_diagnostics(&self) -> Vec<lsp_types::Diagnostic> {
+        let Some(keys) = &self.keys else { return Vec::new() };
+        let (text, encoding) = (&self.text, self.encoding);
+        let mut diagnostics = Vec::new();
+        for node in self.parse.syntax().descendants().filter(|node| node.kind() == org_syntax::SyntaxKind::CITATION) {
+            let start = usize::from(node.text_range().start());
+            for reference in org_core::cite::references(&node.text().to_string(), start) {
+                if keys.contains(&reference.key) {
+                    continue;
+                }
+                let close: Vec<String> =
+                    org_core::cite::close_keys(&reference.key, keys).into_iter().cloned().collect();
+                let mut message = format!("Unknown citation key: @{}", reference.key);
+                if !close.is_empty() {
+                    message.push_str(&format!(" (suggestions: {})", close.join(" ")));
+                }
+                // A key the bibliography has twice (its file listed
+                // twice) is said twice, as Emacs does, but offered once.
+                let mut close = close;
+                let mut seen = HashSet::new();
+                close.retain(|key| seen.insert(key.clone()));
+                let range = Range::new(
+                    self.index.position(text, reference.start, encoding),
+                    self.index.position(text, reference.end, encoding),
+                );
+                // An Org file is text: nothing in it is an error or a
+                // warning, only information.
+                diagnostics.push(lsp_types::Diagnostic {
+                    range,
+                    severity: Some(lsp_types::DiagnosticSeverity::INFORMATION),
+                    source: Some("org-lsp".to_string()),
+                    message,
+                    data: Some(json!({ "citationKeys": close })),
+                    ..Default::default()
+                });
+            }
+        }
+        diagnostics
+    }
+
+    /// What `org-lint` reports in the document, as diagnostics from the
+    /// report's place to the end of its line: a warning, or information
+    /// for a checker of low trust. The checker's name is the code.
+    fn lint_diagnostics(&self, settings: &LintSettings) -> Vec<lsp_types::Diagnostic> {
+        let (text, directory) = (&self.text, &settings.directory);
+        let exists = |name: &str| {
+            let path = match name.strip_prefix('~') {
+                Some(rest) => match std::env::var_os("HOME") {
+                    Some(home) => PathBuf::from(home).join(rest.trim_start_matches('/')),
+                    None => return false,
+                },
+                None => PathBuf::from(name),
+            };
+            let path = match (directory, path.is_absolute()) {
+                (Some(directory), false) => directory.join(path),
+                _ => path,
+            };
+            path.exists()
+        };
+        let resolve = |name: &str| {
+            let path = match name.strip_prefix('~') {
+                Some(rest) => PathBuf::from(std::env::var_os("HOME")?).join(rest.trim_start_matches('/')),
+                None => PathBuf::from(name),
+            };
+            Some(match (directory, path.is_absolute()) {
+                (Some(directory), false) => directory.join(path),
+                _ => path,
+            })
+        };
+        let read = |name: &str| {
+            let path = resolve(name)?;
+            let metadata = std::fs::metadata(&path).ok()?;
+            let stamp = (metadata.modified().ok(), metadata.len());
+            let mut included = settings.included.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+            match included.get(&path) {
+                Some((modified, len, text)) if (*modified, *len) == stamp && stamp.0.is_some() => text.clone(),
+                _ => {
+                    let text = std::fs::read_to_string(&path).ok();
+                    included.insert(path, (stamp.0, stamp.1, text.clone()));
+                    text
+                }
+            }
+        };
+        let file_name = || settings.file_name.clone();
+        let id_known = |id: &str| settings.ids.as_ref().map(|ids| ids.contains(id));
+        let context = org_core::lint::Context {
+            file_exists: &exists,
+            priorities: settings.priorities,
+            read_file: &read,
+            file_name: &file_name,
+            id_known: &id_known,
+            link_types: settings.link_types,
+        };
+        let encoding = self.encoding;
+        org_core::lint::lint(text, &self.parse, &context)
+            .into_iter()
+            .filter(|report| !settings.ignore.iter().any(|ignored| ignored == report.checker))
+            .map(|report| {
+                let start = report.offset.min(text.len());
+                let end = text[start..].find('\n').map_or(text.len(), |found| start + found);
+                let range =
+                    Range::new(self.index.position(text, start, encoding), self.index.position(text, end, encoding));
+                lsp_types::Diagnostic {
+                    range,
+                    // An Org file is text: what org-lint finds is
+                    // information, a hint where it trusts it less.
+                    severity: Some(if report.trust == "low" {
+                        lsp_types::DiagnosticSeverity::HINT
+                    } else {
+                        lsp_types::DiagnosticSeverity::INFORMATION
+                    }),
+                    code: Some(lsp_types::NumberOrString::String(report.checker.to_string())),
+                    source: Some("org-lint".to_string()),
+                    message: report.message,
+                    ..Default::default()
+                }
+            })
+            .collect()
+    }
+}
+
 /// How long the `ID`s of the files that are not open are taken as they
 /// were last found, for `invalid-id-link`.
 const IDS_FRESH: std::time::Duration = std::time::Duration::from_secs(5);
@@ -1294,7 +1470,7 @@ struct Server {
     ids_on_disk: Option<(std::time::Instant, HashSet<String>)>,
     /// The files `#+INCLUDE:` lines name, as the lint last read them,
     /// with their time of change and size: read again once those change.
-    included: std::cell::RefCell<HashMap<PathBuf, Included>>,
+    included: IncludedFiles,
     /// `org_lint`: Org's linter checks the documents.
     lint: bool,
     /// `org_lint_ignore`: the checkers it leaves out.
@@ -1444,6 +1620,13 @@ struct Server {
     /// of a burst would hold up the answers to the requests that follow.
     diagnostics_due: Vec<String>,
     diagnostics_at: Option<std::time::Instant>,
+    /// The documents being linted, each with which of its lints that is
+    /// (`publish_diagnostics`), the last lint, and where lints say they
+    /// are done.
+    linting: HashMap<String, u64>,
+    lint_generation: u64,
+    lint_sender: crossbeam_channel::Sender<Linted>,
+    lint_receiver: crossbeam_channel::Receiver<Linted>,
     /// When the last change made diagnostics due.
     diagnostics_changed: Option<std::time::Instant>,
     /// Log mode (`l`) and the clock report (`R`) in the agenda.
@@ -1570,6 +1753,7 @@ pub fn run(connection: Connection) -> Result<()> {
     org_core::inlinetask::set_show_first_star(options.inlinetask_show_first_star.unwrap_or(false));
     let (port_sender, port_receiver) = crossbeam_channel::unbounded();
     let (protocol_sender, protocol_receiver) = crossbeam_channel::unbounded::<crate::protocol::Sent>();
+    let (lint_sender, lint_receiver) = crossbeam_channel::unbounded();
 
     let org_client = raw_params.pointer("/capabilities/experimental/orgClient").and_then(Value::as_bool) == Some(true)
         || options.org_client == Some(true);
@@ -1930,7 +2114,7 @@ pub fn run(connection: Connection) -> Result<()> {
         diagnosed: HashSet::new(),
         id_files: HashMap::new(),
         ids_on_disk: None,
-        included: std::cell::RefCell::new(HashMap::new()),
+        included: IncludedFiles::default(),
         lint: options.lint.unwrap_or(true),
         lint_ignore: options.lint_ignore.clone().unwrap_or_default(),
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
@@ -1938,6 +2122,10 @@ pub fn run(connection: Connection) -> Result<()> {
         clock_pending: false,
         diagnostics_due: Vec::new(),
         diagnostics_at: None,
+        linting: HashMap::new(),
+        lint_generation: 0,
+        lint_sender,
+        lint_receiver,
         diagnostics_changed: None,
         last_clocked: None,
         clock_goto_recent: options.clock_goto_may_find_recent_task.unwrap_or(true),
@@ -2071,6 +2259,7 @@ pub fn run(connection: Connection) -> Result<()> {
     server.protocol_listen(protocol_sender);
     let mut protocol_pending = crossbeam_channel::after(std::time::Duration::from_secs(1));
     let emacs_events = server.emacs.events().clone();
+    let linted = server.lint_receiver.clone();
     let downloads = server.remote.downloads();
     // After `shutdown`, requests are refused and notifications dropped
     // until `exit`, which ends the server; an `exit` before it ends it as
@@ -2153,6 +2342,11 @@ pub fn run(connection: Connection) -> Result<()> {
             recv(emacs_events) -> event => {
                 if let Ok(event) = event {
                     let _ = guarded(&mut server, "Emacs's answer", |server| server.emacs_event(event));
+                }
+            }
+            recv(linted) -> linted => {
+                if let Ok(linted) = linted {
+                    let _ = guarded(&mut server, "the diagnostics", |server| server.linted(linted));
                 }
             }
             recv(downloads) -> done => {
@@ -3963,7 +4157,9 @@ impl Server {
                 }
                 self.documents.remove(params.text_document.uri.as_str());
                 // What was said of the file goes with it: the problems an
-                // editor lists are those of open files.
+                // editor lists are those of open files. A lint of it
+                // still going is not sent.
+                self.linting.remove(params.text_document.uri.as_str());
                 if self.diagnosed.remove(params.text_document.uri.as_str()) {
                     let params = lsp_types::PublishDiagnosticsParams {
                         uri: params.text_document.uri.clone(),
@@ -15858,16 +16054,32 @@ impl Server {
             self.diagnostics_due.push(key.to_string());
         }
         let now = std::time::Instant::now();
-        self.diagnostics_at = Some(now + DIAGNOSTICS_DELAY);
+        self.diagnostics_at = Some(now + self.diagnostics_delay());
         self.diagnostics_changed = Some(now);
     }
 
+    /// How long the diagnostics due wait after a change:
+    /// `DIAGNOSTICS_DELAY`, longer for a long document, whose lint takes
+    /// long and is wasted by the next keystroke.
+    fn diagnostics_delay(&self) -> std::time::Duration {
+        let long = self
+            .diagnostics_due
+            .iter()
+            .any(|key| self.documents.get(key).is_some_and(|document| document.text.len() > DIAGNOSTICS_LONG_DOCUMENT));
+        if long {
+            DIAGNOSTICS_DELAY_LONG
+        } else {
+            DIAGNOSTICS_DELAY
+        }
+    }
+
     /// When the diagnostics due go out after a message other than a
-    /// change: `DIAGNOSTICS_DELAY` from now, and no later than
+    /// change: `diagnostics_delay` from now, and no later than
     /// `DIAGNOSTICS_MOST` after the last change.
     fn diagnostics_put_off(&self) -> std::time::Instant {
-        let later = std::time::Instant::now() + DIAGNOSTICS_DELAY;
-        self.diagnostics_changed.map_or(later, |changed| later.min(changed + DIAGNOSTICS_MOST))
+        let delay = self.diagnostics_delay();
+        let later = std::time::Instant::now() + delay;
+        self.diagnostics_changed.map_or(later, |changed| later.min(changed + DIAGNOSTICS_MOST.max(delay)))
     }
 
     /// The diagnostics put off by `diagnostics_later`, of the documents
@@ -15884,60 +16096,91 @@ impl Server {
     /// (`org-lint`), and the citation keys its bibliography does not have
     /// (the `error` face of `oc-basic`), with the keys close to each
     /// (`org-cite-basic--close-keys`) to substitute.
+    ///
+    /// Linting a long document takes a while, and nothing the editor asks
+    /// waits for it: it is done on a thread of its own, from a copy of the
+    /// document, and sent once done (`linted`) unless the document changed
+    /// meanwhile. A document being linted is linted again once that is
+    /// done.
     fn publish_diagnostics(&mut self, key: &str) {
+        if self.linting.contains_key(key) {
+            if !self.diagnostics_due.iter().any(|due| due == key) {
+                self.diagnostics_due.push(key.to_string());
+            }
+            return;
+        }
         let Some(document) = self.documents.get(key) else { return };
         let Ok(uri) = key.parse::<Uri>() else { return };
-        let (text, parse, version) = (document.text.clone(), document.parse.clone(), document.version);
-        let mut diagnostics = Vec::new();
-        if text.contains("[cite") {
+        let text = document.text.clone();
+        let keys = text.contains("[cite").then(|| {
             let files = self.bibliography(&uri, &text);
-            let keys: Vec<String> =
-                files.iter().flat_map(|file| file.entries.iter().map(|entry| entry.key.clone())).collect();
-            let encoding = self.client.encoding;
-            let Some(document) = self.documents.get(key) else { return };
-            for node in parse.syntax().descendants().filter(|node| node.kind() == org_syntax::SyntaxKind::CITATION) {
-                let start = usize::from(node.text_range().start());
-                for reference in org_core::cite::references(&node.text().to_string(), start) {
-                    if keys.contains(&reference.key) {
-                        continue;
-                    }
-                    let close: Vec<String> =
-                        org_core::cite::close_keys(&reference.key, &keys).into_iter().cloned().collect();
-                    let mut message = format!("Unknown citation key: @{}", reference.key);
-                    if !close.is_empty() {
-                        message.push_str(&format!(" (suggestions: {})", close.join(" ")));
-                    }
-                    // A key the bibliography has twice (its file listed
-                    // twice) is said twice, as Emacs does, but offered once.
-                    let mut close = close;
-                    let mut seen = HashSet::new();
-                    close.retain(|key| seen.insert(key.clone()));
-                    let range = Range::new(
-                        document.index.position(&text, reference.start, encoding),
-                        document.index.position(&text, reference.end, encoding),
-                    );
-                    // An Org file is text: nothing in it is an error or a
-                    // warning, only information.
-                    diagnostics.push(lsp_types::Diagnostic {
-                        range,
-                        severity: Some(lsp_types::DiagnosticSeverity::INFORMATION),
-                        source: Some("org-lsp".to_string()),
-                        message,
-                        data: Some(json!({ "citationKeys": close })),
-                        ..Default::default()
-                    });
-                }
-            }
-        }
+            files.iter().flat_map(|file| file.entries.iter().map(|entry| entry.key.clone())).collect()
+        });
         // `invalid-id-link`: the IDs of the open files and the agenda files.
         let ids = (self.lint && text.contains("id:")).then(|| self.known_ids());
-        diagnostics.extend(self.lint_diagnostics(&uri, &text, &parse, ids.as_ref()));
+        let lint = self.lint_settings(&uri, ids);
+        let Some(document) = self.documents.get(key) else { return };
+        let copy = Linting {
+            text,
+            parse: document.parse.clone(),
+            index: document.index.clone(),
+            encoding: self.client.encoding,
+            keys,
+            lint,
+        };
+        self.lint_generation += 1;
+        let (generation, version, key) = (self.lint_generation, document.version, key.to_string());
+        self.linting.insert(key.clone(), generation);
+        let sender = self.lint_sender.clone();
+        let done = key.clone();
+        let spawned = std::thread::Builder::new().name("org-lsp-lint".to_string()).stack_size(16 * 1024 * 1024).spawn(
+            move || {
+                let result =
+                    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| copy.diagnostics())).map_err(|panic| {
+                        panic
+                            .downcast_ref::<&str>()
+                            .map(|reason| reason.to_string())
+                            .or_else(|| panic.downcast_ref::<String>().cloned())
+                            .unwrap_or_default()
+                    });
+                let _ = sender.send(Linted { key: done, generation, version, uri, result });
+            },
+        );
+        if spawned.is_err() {
+            self.linting.remove(&key);
+        }
+    }
+
+    /// The diagnostics a lint found (`publish_diagnostics`), sent while
+    /// the document is as it was linted.
+    fn linted(&mut self, linted: Linted) {
+        let Linted { key, generation, version, uri, result } = linted;
+        // The document closed meanwhile, or opened again: another lint, or
+        // none, is to come.
+        if self.linting.get(&key) != Some(&generation) {
+            return;
+        }
+        self.linting.remove(&key);
+        if self.diagnostics_due.contains(&key) && self.diagnostics_at.is_none() {
+            self.diagnostics_at = Some(std::time::Instant::now());
+        }
+        let mut diagnostics = match result {
+            Ok(diagnostics) => diagnostics,
+            Err(reason) => {
+                let message = format!("org-lsp: the diagnostics failed, a bug of the server's: {reason}");
+                self.show_message(MessageType::ERROR, message);
+                return;
+            }
+        };
+        if self.documents.get(&key).is_none_or(|document| document.version != version) {
+            return;
+        }
         diagnostics.sort_by_key(|diagnostic| (diagnostic.range.start.line, diagnostic.range.start.character));
-        if diagnostics.is_empty() && !self.diagnosed.remove(key) {
+        if diagnostics.is_empty() && !self.diagnosed.remove(&key) {
             return;
         }
         if !diagnostics.is_empty() {
-            self.diagnosed.insert(key.to_string());
+            self.diagnosed.insert(key);
         }
         let params = lsp_types::PublishDiagnosticsParams { uri, diagnostics, version: Some(version) };
         let notification = lsp_server::Notification::new(
@@ -15947,67 +16190,18 @@ impl Server {
         let _ = self.sender.send(Message::Notification(notification));
     }
 
-    /// What `org-lint` reports in a document, as diagnostics from the
-    /// report's place to the end of its line: a warning, or information
-    /// for a checker of low trust. The checker's name is the code.
-    fn lint_diagnostics(
-        &self,
-        uri: &Uri,
-        text: &str,
-        parse: &org_syntax::Parse,
-        ids: Option<&HashSet<String>>,
-    ) -> Vec<lsp_types::Diagnostic> {
+    /// What `org-lint` needs of the server to lint the document `uri` on a
+    /// thread of its own; None when it is not linted.
+    fn lint_settings(&self, uri: &Uri, ids: Option<HashSet<String>>) -> Option<LintSettings> {
         if !self.lint || uri::file_name(uri).starts_with(CAPTURE_PREFIX) || self.is_roam_buffer(uri) {
-            return Vec::new();
+            return None;
         }
-        let Some(document) = self.documents.get(uri.as_str()) else { return Vec::new() };
-        let directory = uri::to_path(uri).and_then(|path| path.parent().map(Path::to_path_buf));
-        let exists = |name: &str| {
-            let path = match name.strip_prefix('~') {
-                Some(rest) => match std::env::var_os("HOME") {
-                    Some(home) => PathBuf::from(home).join(rest.trim_start_matches('/')),
-                    None => return false,
-                },
-                None => PathBuf::from(name),
-            };
-            let path = match (&directory, path.is_absolute()) {
-                (Some(directory), false) => directory.join(path),
-                _ => path,
-            };
-            path.exists()
-        };
-        let resolve = |name: &str| {
-            let path = match name.strip_prefix('~') {
-                Some(rest) => PathBuf::from(std::env::var_os("HOME")?).join(rest.trim_start_matches('/')),
-                None => PathBuf::from(name),
-            };
-            Some(match (&directory, path.is_absolute()) {
-                (Some(directory), false) => directory.join(path),
-                _ => path,
-            })
-        };
-        let read = |name: &str| {
-            let path = resolve(name)?;
-            let metadata = std::fs::metadata(&path).ok()?;
-            let stamp = (metadata.modified().ok(), metadata.len());
-            let mut included = self.included.borrow_mut();
-            match included.get(&path) {
-                Some((modified, len, text)) if (*modified, *len) == stamp && stamp.0.is_some() => text.clone(),
-                _ => {
-                    let text = std::fs::read_to_string(&path).ok();
-                    included.insert(path, (stamp.0, stamp.1, text.clone()));
-                    text
-                }
-            }
-        };
-        let file_name = || uri::to_path(uri).and_then(|path| Some(path.file_name()?.to_string_lossy().into_owned()));
-        let id_known = |id: &str| ids.map(|ids| ids.contains(id));
-        let context = org_core::lint::Context {
-            file_exists: &exists,
+        let path = uri::to_path(uri);
+        Some(LintSettings {
+            directory: path.as_ref().and_then(|path| path.parent().map(Path::to_path_buf)),
+            file_name: path.as_ref().and_then(|path| Some(path.file_name()?.to_string_lossy().into_owned())),
+            ids,
             priorities: self.edit_settings.priorities,
-            read_file: &read,
-            file_name: &file_name,
-            id_known: &id_known,
             // The link types of the modules on: org-roam's, `ol-man`'s.
             link_types: match (self.roam.is_some(), self.open_settings.man) {
                 (true, true) => &["roam", "man"],
@@ -16015,34 +16209,9 @@ impl Server {
                 (false, true) => &["man"],
                 (false, false) => &[],
             },
-        };
-        let encoding = self.client.encoding;
-        org_core::lint::lint(text, parse, &context)
-            .into_iter()
-            .filter(|report| !self.lint_ignore.iter().any(|ignored| ignored == report.checker))
-            .map(|report| {
-                let start = report.offset.min(text.len());
-                let end = text[start..].find('\n').map_or(text.len(), |found| start + found);
-                let range = Range::new(
-                    document.index.position(text, start, encoding),
-                    document.index.position(text, end, encoding),
-                );
-                lsp_types::Diagnostic {
-                    range,
-                    // An Org file is text: what org-lint finds is
-                    // information, a hint where it trusts it less.
-                    severity: Some(if report.trust == "low" {
-                        lsp_types::DiagnosticSeverity::HINT
-                    } else {
-                        lsp_types::DiagnosticSeverity::INFORMATION
-                    }),
-                    code: Some(lsp_types::NumberOrString::String(report.checker.to_string())),
-                    source: Some("org-lint".to_string()),
-                    message: report.message,
-                    ..Default::default()
-                }
-            })
-            .collect()
+            ignore: self.lint_ignore.clone(),
+            included: self.included.clone(),
+        })
     }
 
     /// `org-indent-mode` for the client: how far each line of the document
@@ -17355,6 +17524,10 @@ const SHELL_MESSAGE_CHARS: usize = 8000;
 const SHELL_OUTPUT_SIZE: usize = 1 << 20;
 /// How long after the last change of a document its diagnostics wait.
 const DIAGNOSTICS_DELAY: std::time::Duration = std::time::Duration::from_millis(200);
+/// How long they wait for a document longer than
+/// `DIAGNOSTICS_LONG_DOCUMENT` bytes.
+const DIAGNOSTICS_DELAY_LONG: std::time::Duration = std::time::Duration::from_secs(1);
+const DIAGNOSTICS_LONG_DOCUMENT: usize = 1 << 20;
 /// The longest messages other than changes put the diagnostics off, from
 /// the last change.
 const DIAGNOSTICS_MOST: std::time::Duration = std::time::Duration::from_secs(1);
