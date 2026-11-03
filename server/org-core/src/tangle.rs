@@ -150,6 +150,8 @@ pub fn tangle(text: &str, parse: &Parse, path: &Path, settings: &Settings) -> Re
     let mut by_file: Vec<(PathBuf, Vec<(usize, String)>)> = Vec::new();
     let mut counters: HashMap<Option<usize>, usize> = HashMap::new();
     let mut tangled = 0;
+    // The bytes Noweb references expanded to, in all the blocks.
+    let mut expanded = 0;
     for (index, block) in blocks.iter().enumerate() {
         // The block's number under its headline, for its comments.
         let counter = {
@@ -165,7 +167,7 @@ pub fn tangle(text: &str, parse: &Parse, path: &Path, settings: &Settings) -> Re
             continue;
         }
         let Some(file) = tangled_file(path, directory, block.lang.as_deref(), tangle, settings) else { continue };
-        let spec = single_block(text, &outline, &blocks, index, counter, path, &file, settings)?;
+        let spec = single_block(text, &outline, &blocks, index, counter, path, &file, settings, &mut expanded)?;
         tangled += 1;
         match by_file.iter_mut().find(|(known, _)| *known == file) {
             Some((_, specs)) => specs.push((index, spec)),
@@ -802,6 +804,7 @@ fn single_block(
     path: &Path,
     file: &Path,
     settings: &Settings,
+    expanded: &mut usize,
 ) -> Result<String, String> {
     let block = &blocks[index];
     let params = &block.params;
@@ -810,9 +813,21 @@ fn single_block(
         if noweb.split_whitespace().any(|value| value == "strip-tangle") {
             strip_references(&block.body, &settings.noweb_wrap)
         } else {
-            let mut expander =
-                Expander { text, outline, blocks, path, file, settings, by_ref: None, expanding: Vec::new() };
-            expander.expand(index, Context::Tangle)?
+            let mut expander = Expander {
+                text,
+                outline,
+                blocks,
+                path,
+                file,
+                settings,
+                by_ref: None,
+                expanding: Vec::new(),
+                expanded: HashMap::new(),
+                size: *expanded,
+            };
+            let body = expander.expand(index, Context::Tangle)?;
+            *expanded = expander.size;
+            body
         }
     } else {
         block.body.clone()
@@ -1001,18 +1016,44 @@ struct Expander<'a> {
     /// The blocks being expanded, outermost first: a block met again
     /// among them refers to itself.
     expanding: Vec<usize>,
+    /// The blocks expanded, by index: a block referred to again is the
+    /// same text, expanded once.
+    expanded: HashMap<usize, String>,
+    /// The bytes references expanded to so far, in this block and the
+    /// blocks tangled before it.
+    size: usize,
+}
+
+/// The most blocks expanded at once, the block tangled among them: Emacs's
+/// Lisp stack (`max-lisp-eval-depth`) holds a chain of 524 references
+/// under it, and says it is full past them.
+const DEEPEST: usize = 525;
+
+/// The most bytes Noweb references expand to in a tangle. Emacs has no
+/// limit, but a few blocks that each refer twice to the next
+/// (`<<b2>><<b2>>`) expand to gigabytes, and take as long to write.
+pub const LARGEST: usize = 64 << 20;
+
+fn too_large() -> String {
+    format!("Noweb references expand to more than {} MiB", LARGEST >> 20)
 }
 
 impl Expander<'_> {
     /// `org-babel-expand-noweb-references` on the block `index`.
     fn expand(&mut self, index: usize, context: Context) -> Result<String, String> {
+        if let Some(expanded) = self.expanded.get(&index) {
+            return Ok(expanded.clone());
+        }
         // Emacs recurses until its Lisp stack is full, and says so.
-        if self.expanding.contains(&index) {
+        if self.expanding.contains(&index) || self.expanding.len() == DEEPEST {
             return Err("Lisp nesting exceeds `max-lisp-eval-depth'".to_string());
         }
         self.expanding.push(index);
         let expanded = self.expand_references(index, context);
         self.expanding.pop();
+        if let Ok(expanded) = &expanded {
+            self.expanded.insert(index, expanded.clone());
+        }
         expanded
     }
 
@@ -1036,7 +1077,13 @@ impl Expander<'_> {
             } else {
                 self.reference(id, context, comment)?
             };
-            if prefix_lines {
+            let breaks =
+                if prefix_lines { expansion.bytes().filter(|byte| matches!(byte, b'\n' | b'\r')).count() } else { 0 };
+            self.size = self.size.saturating_add(expansion.len()).saturating_add(breaks.saturating_mul(prefix.len()));
+            if self.size > LARGEST {
+                return Err(too_large());
+            }
+            if prefix_lines && breaks > 0 {
                 out.push_str(&expansion.split(['\n', '\r']).collect::<Vec<_>>().join(&format!("\n{prefix}")));
             } else {
                 out.push_str(&expansion);
@@ -1080,6 +1127,9 @@ impl Expander<'_> {
         let mut out = String::new();
         for (position, block) in found.iter().enumerate() {
             out.push_str(&self.expand_body(*block, context, comment)?);
+            if self.size.saturating_add(out.len()) > LARGEST {
+                return Err(too_large());
+            }
             if position + 1 < found.len() {
                 out.push_str(param(&self.blocks[*block].params, ":noweb-sep").unwrap_or("\n"));
             }
