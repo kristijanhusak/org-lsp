@@ -518,6 +518,9 @@ struct Context {
     range: Option<Range>,
     /// In column view: the column picked, from 0.
     column: Option<usize>,
+    /// For a file the system is to open that may run (`Open FILE with the
+    /// system?`): the file asked about, which a yes lets it open.
+    program: Option<String>,
     /// For the commands that read them (`"folds": true` in the manifest):
     /// the closed folds of the editor's window, as their first and last
     /// lines, from 0.
@@ -5570,11 +5573,19 @@ impl Server {
         let creating = context.step.as_deref() == Some("create");
         let shell = context.step.as_deref() == Some("shell");
         let elisp = context.step.as_deref() == Some("elisp");
-        let answer = if creating || shell || elisp { context.answers.as_deref() } else { context.input.as_deref() }
-            .and_then(|input| input.chars().next());
+        let program = context.step.as_deref() == Some(SYSTEM_STEP);
+        let answer =
+            if creating || shell || elisp || program { context.answers.as_deref() } else { context.input.as_deref() }
+                .and_then(|input| input.chars().next());
         // `org-ctags`'s functions in `org-open-link-functions`, which Org
         // runs first for an internal link.
-        if self.ctags.is_some() && !creating && !shell && !elisp && !self.is_view(&context.text_document.uri) {
+        if self.ctags.is_some()
+            && !creating
+            && !shell
+            && !elisp
+            && !program
+            && !self.is_view(&context.text_document.uri)
+        {
             if let Some(name) =
                 open::internal_path(&text, &parse, offset, &self.link_abbreviations, &self.open_settings)
             {
@@ -5673,8 +5684,35 @@ impl Server {
                 self.show_external(target);
             }
             Open::File { path, system: true, .. } => {
-                let target =
-                    self.link_path(&uri, path).and_then(|path| uri::from_path(&path)).ok_or("Cannot open the file")?;
+                let full = self.link_path(&uri, path).ok_or("Cannot open the file")?;
+                // Unlike Emacs, a file the system's application may run (one
+                // that may be executed, or a program or script by its name)
+                // is asked about first: `file+sys:` and `C-u C-u` hand it to
+                // the system, which would run it.
+                if may_run(&full) {
+                    let named = full.display().to_string();
+                    if !program {
+                        return Ok(json!({ "input": {
+                            "kind": "key",
+                            "prompt": format!("Open {} with the system, which may run it? ", abbreviate_path(&full)),
+                            "value": "",
+                            "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
+                            "context": {
+                                "step": SYSTEM_STEP,
+                                "answers": answer.map(String::from).unwrap_or_default(),
+                                "program": named,
+                            },
+                        } }));
+                    }
+                    if !matches!(context.input.as_deref(), Some("y" | "Y" | "yes")) {
+                        return Err("Abort".into());
+                    }
+                    // The yes was to that file.
+                    if context.program.as_deref() != Some(named.as_str()) {
+                        return Err("The link changed after the question: not opened".into());
+                    }
+                }
+                let target = uri::from_path(&full).ok_or("Cannot open the file")?;
                 self.show_external(target);
             }
             Open::Agenda { date, span } => {
@@ -17454,6 +17492,37 @@ fn file_question(prompt: &str, file: Option<&Path>, complete: &str) -> Value {
         .map(|directory| format!("{}/", directory.to_string_lossy()))
         .unwrap_or_default();
     json!({ "kind": "text", "prompt": prompt, "value": value, "complete": complete })
+}
+
+/// The step of the question about a file the system may run.
+const SYSTEM_STEP: &str = "system";
+
+/// The extensions of programs and scripts that the system's application
+/// for a file runs (Windows, macOS, the desktops of Linux).
+const PROGRAM_EXTENSIONS: &[&str] = &[
+    "exe", "com", "bat", "cmd", "ps1", "psm1", "vbs", "vbe", "js", "jse", "wsf", "wsh", "msi", "msp", "scr", "pif",
+    "cpl", "hta", "lnk", "reg", "jar", "sh", "bash", "zsh", "csh", "ksh", "fish", "command", "tool", "app", "pkg",
+    "workflow", "desktop", "appimage", "run", "bin", "py", "pyw", "pl", "rb",
+];
+
+/// Whether opening `path` with the system's application may run it: an
+/// extension of [`PROGRAM_EXTENSIONS`], or a file whose mode lets it be
+/// executed.
+fn may_run(path: &Path) -> bool {
+    let extension = path.extension().map(|extension| extension.to_string_lossy().to_ascii_lowercase());
+    if extension.is_some_and(|extension| PROGRAM_EXTENSIONS.contains(&extension.as_str())) {
+        return true;
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if std::fs::metadata(path)
+            .is_ok_and(|metadata| metadata.is_file() && metadata.permissions().mode() & 0o111 != 0)
+        {
+            return true;
+        }
+    }
+    false
 }
 
 pub(crate) fn abbreviate_path(path: &Path) -> String {
