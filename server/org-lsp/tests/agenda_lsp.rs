@@ -739,6 +739,7 @@ fn the_dispatcher_asks_which_view() {
         json!([
             { "key": "a", "label": "Agenda for the current week or day" },
             { "key": "t", "label": "List of all TODO entries" },
+            { "key": "T", "label": "Entries with special TODO kwd" },
             { "key": "m", "label": "Match a TAGS/PROP/TODO query" },
             { "key": "M", "label": "Like m, but only TODO entries" },
             { "key": "s", "label": "Search for keywords" },
