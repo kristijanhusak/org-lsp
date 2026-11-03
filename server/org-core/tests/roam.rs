@@ -535,6 +535,27 @@ fn roam_graphs_match_emacs() {
     assert!(failures.is_empty(), "{} differences from Emacs:\n{}", failures.len(), failures.join("\n"));
 }
 
+/// An `ID`, or the target of a link, holding `"` or `\` stays inside its
+/// string in the graph, as titles do, and adds no attribute to a node.
+#[test]
+fn graph_quotes_ids_and_link_targets() {
+    use org_core::roam::graph;
+    let body =
+        ":PROPERTIES:\n:ID: a\" URL=\"javascript:x\\\n:END:\n#+title: A\n[[https://e.x/\" image=\"/etc/passwd][e]]\n";
+    let todo = org_syntax::TodoKeywords::from_document(body).unwrap_or_default();
+    let parse = org_syntax::parse(body, &todo);
+    let outline = Outline::new(&parse, body, "x");
+    let mut db = Db::default();
+    db.add("a.org", roam::scan(body, &parse, &outline, "a.org"));
+    let dot = graph::dot(&db, None, true, &graph::Settings::default());
+    assert!(dot.contains("\n\"a\\\" URL=\\\"javascript:x\\\\\" ["), "{dot}");
+    assert!(dot.contains(",label=\"https://e.x/\\\" image=\\\"/etc/passwd\""), "{dot}");
+    assert!(
+        dot.contains("  \"a&quot; URL=&quot;javascript:x\\\\\" -> \"//e.x/&quot; image=&quot;/etc/passwd\";"),
+        "{dot}"
+    );
+}
+
 /// What `org-roam-refile` and `org-roam-extract-subtree` leave: every
 /// file, and the error.
 fn run_move(case: &Value) -> Value {
