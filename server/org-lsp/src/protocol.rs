@@ -340,7 +340,7 @@ fn create_private_dir(directory: &Path) -> std::io::Result<()> {
 /// directory: `/tmp/org-lsp-UID`, made only the user's, or
 /// taken when it is the user's already and only the user's.
 #[cfg(unix)]
-fn short_socket_directory() -> std::io::Result<PathBuf> {
+pub(crate) fn short_socket_directory() -> std::io::Result<PathBuf> {
     use std::os::unix::fs::DirBuilderExt;
     // The user's, who runs the server.
     // SAFETY: `getuid` only reads the process's user, and cannot fail.

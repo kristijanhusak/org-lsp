@@ -4042,7 +4042,8 @@ pub const SETTINGS: &[Setting] = &[
             "",
             "Offer more commands as code actions: the agenda, capture, refile, a TODO state or a priority picked \
              from a list, a new heading or item (M-RET and its neighbours), for a client that cannot run a \
-             command from a key. The agenda's commands go through a local port instead: the server writes a \
+             command from a key. The agenda's commands go through the server's own port instead (on Unix a socket \
+             beside the script, only the user's): the server writes a \
              script (`command_script`) that runs `SCRIPT COMMAND [ROW COLUMN]` in the agenda, where the cursor \
              is when no row is given (the server follows the cursor through the document highlights the client \
              asks for), for the editor's keys to call; with no agenda open, the commands that need none (the \
