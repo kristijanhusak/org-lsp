@@ -521,6 +521,29 @@ vim.g.org_lsp = { mappings = { org = false } }   -- nothing in Org files
 vim.g.org_lsp = { mappings = false }             -- nothing anywhere
 #+end_src
 
+To set only your own keys, give ~disable_all = true~: none of the default
+keys are set, neither the server's nor the plugin's own (~<Tab>~, ~q~), and
+the commands listed in ~mappings~ get the keys given there:
+
+#+begin_src lua
+require('org-lsp').setup({
+  mappings = {
+    disable_all = true,
+    org = { ['org.todo'] = '<C-t>', ['org.checkbox.toggle'] = '<C-Space>', cycle = '<Tab>' },
+    global = { ['org.agenda.dispatch'] = '<Leader>a' },
+  },
+})
+#+end_src
+
+To keep the default keys under another prefix than ~<Leader>o~, give it as
+~prefix~: with ~prefix = '<LocalLeader>o'~ the agenda is ~<LocalLeader>oa~
+and scheduling ~<LocalLeader>ois~. Only the keys that start with
+~<Leader>o~ change; the keys given in ~mappings~ are set as they are.
+
+#+begin_src lua
+vim.g.org_lsp = { mappings = { prefix = '<LocalLeader>o' } }
+#+end_src
+
 Calling ~setup()~ again changes the keys of buffers opened after it, and the
 global ones at once.
 

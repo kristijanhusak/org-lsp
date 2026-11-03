@@ -1063,14 +1063,23 @@ function! s:keys_in(scope) abort
   if type(mappings) != v:t_dict || type(get(mappings, a:scope, {})) != v:t_dict
     return [{}, {}]
   endif
+  " `disable_all`: none of the default keys, only those given.
+  let defaults_too = !get(mappings, 'disable_all', 0)
+  " `prefix`: the default keys under `<Leader>o` start with it instead.
+  let prefix = get(mappings, 'prefix', '')
+  let Prefixed = {lhs -> type(prefix) == v:t_string && !empty(prefix) && lhs =~# '^<Leader>o'
+        \ ? prefix .. lhs[len('<Leader>o'):] : lhs}
   let keys = {}
   let native = {}
   for command in get(org_lsp#manifest(), 'commands', [])
     for key in command.keys
       if key.preset ==# 'vim' && key.in ==# a:scope
-        call add(get(extend(keys, {command.command: []}, 'keep'), command.command), key.key)
-        if get(key, 'native', v:false)
-          let native[key.key] = 1
+        if defaults_too
+          let lhs = Prefixed(key.key)
+          call add(get(extend(keys, {command.command: []}, 'keep'), command.command), lhs)
+          if get(key, 'native', v:false)
+            let native[lhs] = 1
+          endif
         endif
         if get(key, 'mode', '') ==# 'insert'
           let s:insert_commands[command.command] = 1
@@ -1085,8 +1094,15 @@ function! s:keys_in(scope) abort
   " user's, are theirs: a command of the server's with the same key goes
   " without it.
   let mapped = {}
+  let given = get(get(g:, 'org_lsp', {}), 'mappings', {})
+  let own = type(given) == v:t_dict && type(get(given, a:scope, 0)) == v:t_dict ? given[a:scope] : {}
   for [name, key] in items(get(mappings, a:scope, {}))
-    let keys[name] = type(key) == v:t_list ? key : (type(key) == v:t_string ? [key] : [])
+    let mine = has_key(own, name)
+    if !mine && !defaults_too
+      continue
+    endif
+    let list = type(key) == v:t_list ? copy(key) : (type(key) == v:t_string ? [key] : [])
+    let keys[name] = mine ? list : map(list, {_, lhs -> Prefixed(lhs)})
     for lhs in keys[name]
       let mapped[lhs] = name
     endfor

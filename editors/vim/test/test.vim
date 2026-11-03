@@ -1227,6 +1227,29 @@ function! s:reread() abort
 endfunction
 call s:test('a buffer read again is told to the server', function('s:reread'))
 
+" `disable_all`: only the keys given are set; `prefix`: the default keys
+" start with it in place of `<Leader>o`.
+function! s:key_options() abort
+  let saved = deepcopy(g:org_lsp)
+  let Keys = {scope -> map(org_lsp#keys(scope), {_, entry -> [entry.command, entry.keys]})}
+  let g:org_lsp.mappings = {'disable_all': 1, 'org': {'org.todo': '<C-t>'}}
+  call assert_equal([['org.todo', ['<C-t>']]], Keys('org'))
+  call assert_equal([], Keys('global'))
+  call assert_equal([], Keys('agenda'))
+  let g:org_lsp.mappings = {'prefix': '<Leader>r', 'org': {'org.todo.next': '<Leader>on'}}
+  let org = {}
+  for [name, list] in Keys('org')
+    let org[name] = list
+  endfor
+  call assert_equal(['<Leader>ris'], org['org.schedule'])
+  call assert_equal(['cit'], org['org.todo'])
+  call assert_equal(['<Leader>on'], org['org.todo.next'], 'a key given stays as it is')
+  call assert_equal(['<Tab>'], org['cycle'])
+  call assert_equal(['<Leader>ra'], filter(Keys('global'), 'v:val[0] ==# "org.agenda.dispatch"')[0][1])
+  let g:org_lsp = saved
+endfunction
+call s:test('mappings: disable_all and prefix', function('s:key_options'))
+
 for error in v:errors
   call add(s:results, 'not ok - ' . error)
 endfor
