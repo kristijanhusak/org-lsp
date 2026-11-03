@@ -151,3 +151,34 @@ fn clock_tables_match_emacs() {
     }
     assert!(failed == 0, "{failed} of {} cases differ from Emacs:{failures}", cases.len());
 }
+
+/// A clock table in steps reads the file once: each step used to parse
+/// the whole file again, with the tables of the steps before in it, and
+/// days over ten years took most of a minute. Past 10,000 tables, it
+/// refuses.
+#[test]
+fn steps_read_the_file_once() {
+    let mut text = String::new();
+    for day in 1..=28 {
+        let clock = format!("[2025-02-{day:02} Fri 10:00]--[2025-02-{day:02} Fri 11:30] =>  1:30");
+        let notes = "Some notes about it.\n".repeat(20);
+        text.push_str(&format!("* Task {day}\n:LOGBOOK:\nCLOCK: {clock}\n:END:\n{notes}"));
+    }
+    let block = |from: &str, to: &str| {
+        format!("#+BEGIN: clocktable :step day :tstart \"<{from}>\" :tend \"<{to}>\" :stepskip0 t\n#+END:\n")
+    };
+    let settings = Settings::default();
+    let files = Folder { files: Vec::new() };
+    let context = Context { path: Some("/org/main.org"), settings: &settings, files: &files };
+    let start = std::time::Instant::now();
+    let two_years = format!("{}{text}", block("2024-03-01", "2026-03-01"));
+    let done = clocktable::update(&two_years, 0, false, &context).unwrap();
+    let elapsed = start.elapsed();
+    // A table for each day with a clock.
+    assert_eq!(done.text.matches("Daily report: ").count(), 28);
+    assert!(done.text.contains("Daily report: [2025-02-14 Fri]\n"));
+    // Generous: this takes a fraction of a second in a debug build.
+    assert!(elapsed < std::time::Duration::from_secs(10), "took {elapsed:?}");
+    let refused = clocktable::update(&format!("{}{text}", block("0001-01-01", "2026-01-01")), 0, false, &context);
+    assert_eq!(refused.err().as_deref(), Some("Clocktable `:step' makes more than 10000 tables"));
+}

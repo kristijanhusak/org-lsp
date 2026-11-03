@@ -4,6 +4,7 @@
 //! `org-list-write-struct` does). Checked against Emacs in
 //! `tests/meta-return`.
 
+use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 
 use regex::Regex;
@@ -15,26 +16,26 @@ use crate::todo::headline_level;
 /// A regular expression of a list item, `{ordered}` in `template` the
 /// count and terminator of an ordered bullet as `org-item-re` has them
 /// (`org-list-allow-alphabetical`, `org-plain-list-ordered-item-terminator`),
-/// `{count}` the same with the count in a group. Made once for each.
-pub(crate) fn item_regex(template: &'static str) -> Regex {
-    use std::collections::HashMap;
+/// `{count}` the same with the count in a group. Made once for each, and
+/// kept: a copy of a regular expression makes its search tables again
+/// at its first search, which costs more than the search on a line.
+pub(crate) fn item_regex(template: &'static str) -> &'static Regex {
     use std::sync::Mutex;
-    static MADE: LazyLock<Mutex<HashMap<(&'static str, org_syntax::ListSyntax), Regex>>> =
+    static MADE: LazyLock<Mutex<HashMap<(&'static str, org_syntax::ListSyntax), &'static Regex>>> =
         LazyLock::new(|| Mutex::new(HashMap::new()));
     let syntax = org_syntax::list_syntax();
     let mut made = MADE.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-    made.entry((template, syntax))
-        .or_insert_with(|| {
-            let pattern = template
-                .replace("{ordered}", &syntax.ordered_pattern(false))
-                .replace("{count}", &syntax.ordered_pattern(true));
-            Regex::new(&pattern).expect("a valid item regexp")
-        })
-        .clone()
+    made.entry((template, syntax)).or_insert_with(|| {
+        let pattern = template
+            .replace("{ordered}", &syntax.ordered_pattern(false))
+            .replace("{count}", &syntax.ordered_pattern(true));
+        // One for each template and list syntax, a handful.
+        Box::leak(Box::new(Regex::new(&pattern).expect("a valid item regexp")))
+    })
 }
 
 /// `org-item-re`, at the start of a line.
-fn item_re() -> Regex {
+fn item_re() -> &'static Regex {
     item_regex(r"^(?:[ \t]*(?:[-+]|{ordered})|[ \t]+\*)(?:[ \t]+|$)")
 }
 
@@ -422,28 +423,31 @@ pub(crate) fn structure(text: &str, item: usize) -> Struct {
     let mut beg_cell = (start, indentation(line(text, start)));
     let mut items: Vec<Item> = Vec::new();
     let mut ends: Vec<(usize, usize)> = Vec::new();
-    // 1. Up from the item to the start of the list.
+    // 1. Up from the item to the start of the list. The items and ends
+    // are pushed going up, where Org pushes them onto the front of its
+    // lists, and turned around after.
     {
         let mut pos = start;
+        let mut keep = false;
         loop {
             let current = line(text, pos);
             let ind = indentation(current);
             if pos <= up {
                 if is_item(current) {
                     beg_cell = (pos, ind);
-                    items.insert(0, item_at(text, pos, ind));
+                    items.push(item_at(text, pos, ind));
                 } else {
-                    keep_from(&mut items, beg_cell.0);
+                    keep = true;
                 }
                 break;
             }
             if two_blank_lines(text, pos) {
-                keep_from(&mut items, beg_cell.0);
+                keep = true;
                 break;
             }
             if is_item(current) {
-                items.insert(0, item_at(text, pos, ind));
-                ends.insert(0, (ind, pos));
+                items.push(item_at(text, pos, ind));
+                ends.push((ind, pos));
                 if ind < text_min_ind {
                     beg_cell = (pos, ind);
                 }
@@ -467,14 +471,19 @@ pub(crate) fn structure(text: &str, item: usize) -> Struct {
                 continue;
             }
             if ind == 0 {
-                keep_from(&mut items, beg_cell.0);
+                keep = true;
                 break;
             }
             if ind < text_min_ind {
                 text_min_ind = ind;
             }
-            ends.insert(0, (ind, pos));
+            ends.push((ind, pos));
             pos = previous_line(text, pos);
+        }
+        items.reverse();
+        ends.reverse();
+        if keep {
+            keep_from(&mut items, beg_cell.0);
         }
     }
     // 2. Down from the item to the end of the list.
@@ -636,8 +645,9 @@ pub(crate) fn count_boxes(
         (Some(_), Some(index)) => (0..list.len()).filter(|other| parents_of[*other] == Some(index)).collect(),
         (None, _) if recursive => (0..list.len()).collect(),
         (None, _) => {
+            let nexts_of = nexts(&prevs_of);
             let mut chain = vec![0];
-            while let Some(next) = prevs_of.iter().position(|prev| *prev == chain.last().copied()) {
+            while let Some(next) = chain.last().and_then(|last| nexts_of[*last]) {
                 chain.push(next);
             }
             chain
@@ -678,7 +688,33 @@ pub(crate) fn next_item_or_end(list: &Struct, pos: usize) -> Option<usize> {
 
 /// `org-list-prevs-alist`: each item's previous item in its sub-list.
 fn prevs(list: &Struct) -> Vec<Option<usize>> {
-    list.iter().map(|item| list.iter().position(|other| other.end == item.pos)).collect()
+    // The first item that ends where each one starts.
+    let mut ending: HashMap<usize, usize> = HashMap::new();
+    for (index, item) in list.iter().enumerate() {
+        ending.entry(item.end).or_insert(index);
+    }
+    list.iter().map(|item| ending.get(&item.pos).copied()).collect()
+}
+
+/// Each item's next item in its sub-list, from [`prevs`]: the first item
+/// whose previous one it is.
+fn nexts(prevs_of: &[Option<usize>]) -> Vec<Option<usize>> {
+    let mut out = vec![None; prevs_of.len()];
+    for (index, prev) in prevs_of.iter().enumerate().rev() {
+        if let Some(prev) = prev {
+            out[*prev] = Some(index);
+        }
+    }
+    out
+}
+
+/// The index of each item of `list` by its position.
+fn by_pos(list: &Struct) -> HashMap<usize, usize> {
+    let mut out = HashMap::new();
+    for (index, item) in list.iter().enumerate() {
+        out.entry(item.pos).or_insert(index);
+    }
+    out
 }
 
 /// `org-list-parents-alist`: each item's parent.
@@ -1168,19 +1204,23 @@ fn fix_ind(list: &mut Struct, parents_of: &[Option<usize>], bullet_size: Option<
 
 /// `org-list-struct-fix-item-end`
 fn fix_item_end(list: &mut Struct) {
+    let index_of = by_pos(list);
+    // Both pushed in the order of the items, where Org pushes onto the
+    // front of its lists: read backwards.
     let mut end_list: Vec<(isize, usize)> = Vec::new();
     let mut acc_end: Vec<(usize, usize)> = Vec::new();
     for index in 0..list.len() {
         let (pos, ind, end) = (list[index].pos, list[index].ind, list[index].end);
-        if !list.iter().any(|item| item.pos == end) {
+        if !index_of.contains_key(&end) {
             // The last item whose end is further than this one's.
-            let up = acc_end.iter().find(|(acc, _)| end < *acc).map(|(_, item)| *item);
-            let ind = up.and_then(|up| list.iter().find(|item| item.pos == up)).map_or(0, |item| item.ind + 2);
-            end_list.insert(0, (ind, end));
+            let up = acc_end.iter().rev().find(|(acc, _)| end < *acc).map(|(_, item)| *item);
+            let ind = up.and_then(|up| index_of.get(&up)).map_or(0, |up| list[*up].ind + 2);
+            end_list.push((ind, end));
         }
-        end_list.insert(0, (ind, pos));
-        acc_end.insert(0, (end, pos));
+        end_list.push((ind, pos));
+        acc_end.push((end, pos));
     }
+    end_list.reverse();
     end_list.sort_by_key(|(_, at)| *at);
     assoc_end(list, &end_list);
 }
@@ -1203,7 +1243,7 @@ fn inc_bullet(bullet: &str) -> String {
 /// `org-list-use-alpha-bul-p`: whether the list from its first item
 /// `first` can count with letters: `org-list-allow-alphabetical`, and no
 /// more items than letters, counters taken into account.
-fn use_alpha_bullets(list: &Struct, first: usize, prevs_of: &[Option<usize>]) -> bool {
+fn use_alpha_bullets(list: &Struct, first: usize, nexts_of: &[Option<usize>]) -> bool {
     if !org_syntax::list_syntax().alphabetical {
         return false;
     }
@@ -1217,7 +1257,7 @@ fn use_alpha_bullets(list: &Struct, first: usize, prevs_of: &[Option<usize>]) ->
         if ascii > 90 {
             return false;
         }
-        item = prevs_of.iter().position(|prev| *prev == Some(index));
+        item = nexts_of[index];
     }
     true
 }
@@ -1231,6 +1271,7 @@ fn fix_bul(list: &mut Struct, prevs_of: &[Option<usize>], settings: &Settings) -
     static LOWER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[a-z]").unwrap());
     static UPPER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[A-Z]").unwrap());
     static NUMBER_OR_LETTER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[0-9]+|[A-Za-z]").unwrap());
+    let nexts_of = nexts(prevs_of);
     let matched = std::cell::Cell::new(false);
     // `string-match`, which says whether it matched.
     let search = |regex: &Regex, text: &str| {
@@ -1278,7 +1319,7 @@ fn fix_bul(list: &mut Struct, prevs_of: &[Option<usize>], settings: &Settings) -
                 }
                 break 'new inc_bullet(prev_bullet);
             }
-            let alphap = use_alpha_bullets(list, index, prevs_of);
+            let alphap = use_alpha_bullets(list, index, &nexts_of);
             if let Some(counter) = &counter {
                 if alphap && search(&LETTER, counter).is_some() && search(&LETTER, &bullet).is_some() {
                     if let Some(new) = lettered(&bullet, counter) {
@@ -1319,18 +1360,21 @@ fn fix_box(list: &mut Struct, parents_of: &[Option<usize>]) {
 /// checked after an unchecked one. Returns the item that blocked boxes
 /// after it.
 fn fix_box_ordered(list: &mut Struct, parents_of: &[Option<usize>], ordered: bool) -> Option<usize> {
+    // Each item's children, in order.
+    let mut children: Vec<Vec<usize>> = vec![Vec::new(); list.len()];
     let mut parent_list: Vec<usize> = Vec::new();
-    for &parent in parents_of.iter().take(list.len()).flatten() {
-        if list[parent].checkbox.is_some() && !parent_list.contains(&parent) {
-            parent_list.insert(0, parent);
+    for (child, parent) in parents_of.iter().take(list.len()).enumerate() {
+        let Some(parent) = *parent else { continue };
+        if list[parent].checkbox.is_some() && children[parent].is_empty() {
+            parent_list.push(parent);
         }
+        children[parent].push(child);
     }
+    // Pushed where Org pushes onto the front of its list.
+    parent_list.reverse();
     parent_list.sort_by(|a, b| list[*b].ind.cmp(&list[*a].ind));
     for parent in parent_list {
-        let boxes: Vec<Option<String>> = (0..list.len())
-            .filter(|child| parents_of[*child] == Some(parent))
-            .map(|child| list[child].checkbox.clone())
-            .collect();
+        let boxes: Vec<Option<String>> = children[parent].iter().map(|child| list[*child].checkbox.clone()).collect();
         let has = |state: &str| boxes.iter().any(|found| found.as_deref() == Some(state));
         list[parent].checkbox = if (has("[ ]") && has("[X]")) || has("[-]") {
             Some("[-]".to_string())
@@ -1362,54 +1406,58 @@ fn fix_box_ordered(list: &mut Struct, parents_of: &[Option<usize>], ordered: boo
 /// `list` made in the text.
 fn apply_struct(buffer: &mut Buffer, list: &Struct, old: &Struct) -> Result<(), Refusal> {
     let mut origin = buffer.point;
-    let find = |list: &Struct, pos: usize| list.iter().find(|item| item.pos == pos).cloned();
-    // 1. The shift of each item, and the ends that are not items.
-    let mut itm_shift: Vec<(usize, isize, isize)> = Vec::new();
+    let (new_at, old_at) = (by_pos(list), by_pos(old));
+    fn find<'a>(list: &'a Struct, at: &HashMap<usize, usize>, pos: usize) -> Option<&'a Item> {
+        at.get(&pos).map(|index| &list[*index])
+    }
+    // 1. The shift of each item, and the ends that are not items. Each
+    // pushed in the order of the items, where Org pushes onto the front of
+    // its lists.
+    let mut itm_shift: HashMap<usize, (isize, isize)> = HashMap::new();
     let mut end_list: Vec<(usize, Option<usize>)> = Vec::new();
     let mut acc_end: Vec<(usize, usize)> = Vec::new();
     for e in old {
-        let new = find(list, e.pos).unwrap_or_else(|| e.clone());
+        let new = find(list, &new_at, e.pos).unwrap_or(e);
         let shift = (new.ind + new.bullet.len() as isize) - (e.ind + e.bullet.len() as isize);
-        itm_shift.insert(0, (e.pos, shift, new.ind));
-        if !old.iter().any(|item| item.pos == e.end) {
-            let up = acc_end.iter().find(|(acc, _)| e.end < *acc).map(|(_, item)| *item);
-            end_list.insert(0, (e.end, up));
+        itm_shift.insert(e.pos, (shift, new.ind));
+        if !old_at.contains_key(&e.end) {
+            let up = acc_end.iter().rev().find(|(acc, _)| e.end < *acc).map(|(_, item)| *item);
+            end_list.push((e.end, up));
         }
-        acc_end.insert(0, (e.end, e.pos));
+        acc_end.push((e.end, e.pos));
     }
     // 2. Slices shifted by the same amount.
-    let mut all_ends: Vec<usize> = itm_shift.iter().map(|(pos, _, _)| *pos).collect();
-    let mut ends: Vec<usize> = Vec::new();
-    for (end, _) in &end_list {
-        if !ends.contains(end) {
-            ends.push(*end);
-        }
-    }
-    all_ends.extend(ends);
+    let mut all_ends: Vec<usize> = old.iter().map(|item| item.pos).collect();
+    let mut ends: HashSet<usize> = HashSet::new();
+    all_ends.extend(end_list.iter().map(|(end, _)| *end).filter(|end| ends.insert(*end)));
     all_ends.sort();
-    acc_end.reverse();
+    // The first item that ends at each end.
+    let mut ending: HashMap<usize, usize> = HashMap::new();
+    for (end, item) in &acc_end {
+        ending.entry(*end).or_insert(*item);
+    }
     let mut slices: Vec<(usize, usize, isize, Option<isize>)> = Vec::new();
     for pair in all_ends.windows(2) {
         let (up, down) = (pair[0], pair[1]);
-        let itemp = list.iter().any(|item| item.pos == up);
+        let itemp = new_at.contains_key(&up);
         let delta = if itemp {
-            itm_shift.iter().find(|(pos, _, _)| *pos == up).map_or(0, |(_, shift, _)| *shift)
+            itm_shift.get(&up).map_or(0, |(shift, _)| *shift)
         } else {
-            let child = acc_end.iter().find(|(end, _)| *end == up).map(|(_, item)| *item);
-            let ind = child.and_then(|child| find(list, child)).map_or(0, |item| item.ind);
+            let child = ending.get(&up);
+            let ind = child.and_then(|child| find(list, &new_at, *child)).map_or(0, |item| item.ind);
             ind - min_indentation(buffer, up, down)
         };
-        let ind = itemp.then(|| itm_shift.iter().find(|(pos, _, _)| *pos == up).map(|(_, _, ind)| *ind)).flatten();
-        slices.insert(0, (down, up, delta, ind));
+        let ind = itemp.then(|| itm_shift.get(&up).map(|(_, ind)| *ind)).flatten();
+        slices.push((down, up, delta, ind));
     }
     // 3. Shift each slice, from the end, and rewrite the items that changed.
-    for (end, beg, delta, ind) in slices {
+    for (end, beg, delta, ind) in slices.into_iter().rev() {
         if delta != 0 {
             shift_body(buffer, &mut origin, end, beg, delta, ind);
         }
-        let new = find(list, beg);
-        if new.is_some() && new != find(old, beg) {
-            modify_item(buffer, &mut origin, beg, list, old)?;
+        let old_item = find(old, &old_at, beg);
+        if let Some(new_item) = find(list, &new_at, beg).filter(|new_item| Some(*new_item) != old_item) {
+            modify_item(buffer, &mut origin, beg, new_item, old_item)?;
         }
     }
     buffer.point = origin;
@@ -1587,14 +1635,13 @@ fn modify_item(
     buffer: &mut Buffer,
     origin: &mut usize,
     item: usize,
-    list: &Struct,
-    old: &Struct,
+    new_item: &Item,
+    old_item: Option<&Item>,
 ) -> Result<(), Refusal> {
-    let new_item = list.iter().find(|found| found.pos == item).expect("the item");
     let new_ind = new_item.ind;
     let old_ind = indentation(line(&buffer.text, line_start(&buffer.text, item)));
     let new_bullet = bullet_string(&new_item.bullet, buffer.settings);
-    let old_bullet = old.iter().find(|found| found.pos == item).map(|found| found.bullet.clone());
+    let old_bullet = old_item.map(|found| found.bullet.clone());
     let new_box = new_item.checkbox.clone();
     if let Some(found) = MatchData::full_item(&buffer.text, item) {
         buffer.md = found;
@@ -2004,7 +2051,7 @@ pub fn cycle_bullet(text: &str, at: usize, previous: bool, settings: &Settings) 
         first = prev;
     }
     let bullet = list[first].bullet.trim().to_string();
-    let alpha = use_alpha_bullets(&list, first, &prevs_of);
+    let alpha = use_alpha_bullets(&list, first, &nexts(&prevs_of));
     let letter_then = |lower: bool, terminator: char| {
         bullet.as_bytes().windows(2).any(|pair| {
             (if lower { pair[0].is_ascii_lowercase() } else { pair[0].is_ascii_uppercase() })
@@ -2215,8 +2262,9 @@ pub(crate) fn sort_bounds(text: &str, at: usize) -> Result<SortBounds, Refusal> 
     while let Some(prev) = prevs_of[first] {
         first = prev;
     }
+    let nexts_of = nexts(&prevs_of);
     let mut last = index;
-    while let Some(next) = prevs_of.iter().position(|prev| *prev == Some(last)) {
+    while let Some(next) = nexts_of[last] {
         last = next;
     }
     let ends = list.iter().map(|item| (item.pos, end_before_blank(text, item.end))).collect();
@@ -2242,7 +2290,8 @@ pub fn next_item(text: &str, at: usize, previous: bool, circular: bool) -> Resul
     let list = structure(text, item);
     let index = list.iter().position(|found| found.pos == item).ok_or_else(|| failed("Not in an item"))?;
     let prevs_of = prevs(&list);
-    let next_of = |index: usize| prevs_of.iter().position(|prev| *prev == Some(index));
+    let nexts_of = nexts(&prevs_of);
+    let next_of = |index: usize| nexts_of[index];
     let found = if previous { prevs_of[index] } else { next_of(index) };
     match found {
         Some(found) => Ok(list[found].pos),

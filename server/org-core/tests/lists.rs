@@ -163,3 +163,29 @@ fn edits_lists_as_emacs_does() {
         failures.iter().take(15).cloned().collect::<Vec<_>>().join("\n")
     );
 }
+
+/// `C-c C-c` on an item of a long list: the list's structure is worked
+/// out and written back in linear time. Each item used to look for the
+/// one before it, and for its old self, among all the others: 10,000
+/// items took seconds, and editors ask at every move of the cursor (the
+/// code actions run the command to offer it).
+#[test]
+fn toggles_a_box_in_a_long_list_fast() {
+    let settings = list::Settings::default();
+    let keywords = TodoKeywords::default();
+    let flat = "- [ ] a\n".repeat(20_000);
+    // Each item with a sub-item, whose box decides its parent's.
+    let nested = "- [ ] a\n  - [ ] b\n".repeat(10_000);
+    let start = std::time::Instant::now();
+    let middle = flat.len() / 2;
+    let (text, cursor, _) = org_core::checkbox::ctrl_c_ctrl_c(&flat, &keywords, middle, -77, false, &settings).unwrap();
+    assert_eq!(text, format!("{}- [X] a\n{}", &flat[..middle], &flat[middle + 8..]));
+    assert_eq!(cursor, middle);
+    let child = nested.len() / 2 + "- [ ] a\n".len();
+    let (text, _, _) = org_core::checkbox::ctrl_c_ctrl_c(&nested, &keywords, child, -77, false, &settings).unwrap();
+    let half = nested.len() / 2;
+    assert_eq!(text, format!("{}- [X] a\n  - [X] b\n{}", &nested[..half], &nested[half + 18..]));
+    let elapsed = start.elapsed();
+    // Generous: this takes about 3 s in a debug build, and took 23 s.
+    assert!(elapsed < std::time::Duration::from_secs(10), "took {elapsed:?}");
+}

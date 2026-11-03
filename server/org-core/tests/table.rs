@@ -114,3 +114,19 @@ fn says_the_formulas_were_updated() {
     let done = table::run(text, 2, Command::NextField).unwrap();
     assert_eq!(done.message, None);
 }
+
+/// A line of many columns: going to the cursor's column again after
+/// aligning used to look for the end of the line once for each column
+/// before it.
+#[test]
+fn aligns_a_line_of_many_columns_fast() {
+    let text = format!("{}|\n", "| a ".repeat(200_000));
+    let at = text.len() - 4;
+    let start = std::time::Instant::now();
+    let done = table::run(&text, at, Command::Align).unwrap();
+    let elapsed = start.elapsed();
+    assert_eq!(done.text, text);
+    assert_eq!(done.cursor, at);
+    // Generous: this takes a fraction of a second in a debug build.
+    assert!(elapsed < std::time::Duration::from_secs(5), "took {elapsed:?}");
+}

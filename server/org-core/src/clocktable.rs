@@ -6,6 +6,9 @@
 //! text as Emacs runs them on a buffer. `S-<arrows>` on the `#+BEGIN:`
 //! line move its `:block` (`org-clocktable-shift`).
 
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::LazyLock;
 
 use org_syntax::TodoKeywords;
@@ -13,7 +16,7 @@ use regex::{Regex, RegexBuilder};
 
 use crate::agenda::matcher::{Clock as MatcherClock, Matcher};
 use crate::agenda::report::{display_format, heading_title, normalize, shorten, without_cookies};
-use crate::clock::{clock_minutes, duration, minutes_of, parse_line};
+use crate::clock::{clock_minutes, duration, minutes_of, parse_line, Clock};
 use crate::clock_range::special_range;
 use crate::date::{Date, DateTime, Day};
 use crate::format::align_table;
@@ -605,7 +608,7 @@ fn update_block(text: &str, begin: usize, context: &Context) -> Result<String, S
     if name != "clocktable" {
         return Err(format!("Symbol’s function definition is void: org-dblock-write:{name}"));
     }
-    write_clocktable(&mut buffer, &params, context)?;
+    write_clocktable(&mut buffer, &params, context, &Sources::new())?;
     if indentation > 0 {
         let indent = " ".repeat(indentation);
         let mut at = next_line(&buffer.text, begin);
@@ -973,27 +976,19 @@ struct Table {
 /// `include` takes count, and their parents show what is under them. Gives
 /// the start of each headline with its time, and the total.
 fn clock_sum(
-    text: &str,
-    (start, end): (usize, usize),
+    lines: &[Line],
     (from, to): (Option<i64>, Option<i64>),
     include: Option<&dyn Fn(usize) -> bool>,
     running: Option<(DateTime, i64)>,
 ) -> (Vec<(usize, i64)>, i64) {
-    let mut lines = Vec::new();
-    let mut at = start;
-    while at < end {
-        let stop = line_end(text, at).min(end);
-        lines.push((at, &text[at..stop]));
-        at = next_line(text, at);
-    }
     let headings: Vec<(usize, usize)> =
-        lines.iter().filter_map(|(at, line)| headline_level(line).map(|level| (*at, level))).collect();
+        lines.iter().filter_map(|line| line.level.map(|level| (line.at, level))).collect();
     let mut forced: Vec<usize> = Vec::new();
     let mut found = Vec::new();
     let mut levels = vec![0i64; 32];
     let mut pending = 0;
-    for (at, line) in lines.iter().rev() {
-        if let Some(level) = headline_level(line) {
+    for Line { at, level, clock } in lines.iter().rev() {
+        if let Some(level) = *level {
             if level >= levels.len() {
                 levels.resize(level * 2, 0);
             }
@@ -1023,8 +1018,8 @@ fn clock_sum(
                     *slot = 0;
                 }
             }
-        } else if let Some(clock) = parse_line(line) {
-            pending += clock_minutes(&clock, from, to);
+        } else if let Some(clock) = clock {
+            pending += clock_minutes(clock, from, to);
             // The time of the clock that runs, for its headline.
             if let Some((_, minutes)) = running.filter(|(start, _)| clock.start == Some(*start) && clock.end.is_none())
             {
@@ -1176,18 +1171,71 @@ fn title(text: &str) -> Option<String> {
     (!joined.trim().is_empty()).then_some(joined)
 }
 
-/// The outline of `text`, as the settings say to read it.
-fn outline_of(text: &str, path: Option<&str>, settings: &Settings) -> Outline {
-    let name = path
-        .map(std::path::Path::new)
-        .and_then(|path| path.file_stem())
-        .map_or(String::new(), |stem| stem.to_string_lossy().into_owned());
-    Outline::with_inheritance(&org_syntax::parse(text, &settings.keywords), text, &name, &settings.inheritance)
+/// A line of a file, for [`clock_sum`]: where it starts, its level when
+/// it is a headline, and its clock when it is a `CLOCK:` line.
+struct Line {
+    at: usize,
+    level: Option<usize>,
+    clock: Option<Clock>,
+}
+
+/// What a table reads of a file: its outline, as the settings say to
+/// read it, its title and its lines. Read once for each file, however many
+/// tables a table in steps makes of it.
+struct Prepared {
+    text: String,
+    outline: Outline,
+    title: Option<String>,
+    lines: Vec<Line>,
+}
+
+impl Prepared {
+    fn new(text: String, path: Option<&str>, settings: &Settings) -> Prepared {
+        let name = path
+            .map(std::path::Path::new)
+            .and_then(|path| path.file_stem())
+            .map_or(String::new(), |stem| stem.to_string_lossy().into_owned());
+        let parse = org_syntax::parse(&text, &settings.keywords);
+        let outline = Outline::with_inheritance(&parse, &text, &name, &settings.inheritance);
+        let mut lines = Vec::new();
+        let mut at = 0;
+        while at < text.len() {
+            let line = &text[at..line_end(&text, at)];
+            let level = headline_level(line);
+            let clock = if level.is_none() { parse_line(line) } else { None };
+            lines.push(Line { at, level, clock });
+            at = next_line(&text, at);
+        }
+        Prepared { title: title(&text), outline, lines, text }
+    }
+
+    /// The lines that start in `region`.
+    fn lines_in(&self, (start, end): (usize, usize)) -> &[Line] {
+        let first = self.lines.partition_point(|line| line.at < start);
+        let last = self.lines.partition_point(|line| line.at < end);
+        &self.lines[first..last.max(first)]
+    }
+}
+
+/// The files the tables read, each prepared once (see [`Prepared`]).
+/// For a table in steps, the file with the table is read as it was
+/// before the steps, with the point where it was: the tables the steps
+/// put in it have no headline and no clock, and would only be read again
+/// at each step.
+struct Sources {
+    before_steps: Option<(Rc<Prepared>, usize)>,
+    prepared: RefCell<HashMap<String, Rc<Prepared>>>,
+}
+
+impl Sources {
+    fn new() -> Sources {
+        Sources { before_steps: None, prepared: RefCell::new(HashMap::new()) }
+    }
 }
 
 /// `org-clock-get-table-data` over `text[region]`.
 fn table_data(
-    text: &str,
+    prepared: &Prepared,
     region: (usize, usize),
     name: Option<&str>,
     path: Option<&str>,
@@ -1196,11 +1244,11 @@ fn table_data(
 ) -> Result<Table, String> {
     let maxlevel = params.int("maxlevel").unwrap_or(3).max(0) as usize;
     let window = window(params, settings)?;
-    let outline = outline_of(text, path, settings);
+    let (text, outline) = (prepared.text.as_str(), &prepared.outline);
     let matcher = params.string("match").map(Matcher::new);
     let clock = MatcherClock { today: settings.now.day, minute: settings.now.minute };
     let include = |heading: usize| match (&matcher, outline.entry_at(heading)) {
-        (Some(matcher), Some(index)) => matcher.matches(&outline, index, false, clock),
+        (Some(matcher), Some(index)) => matcher.matches(outline, index, false, clock),
         _ => true,
     };
     // `org-clock-report-include-clocking-task`: the clock that runs in
@@ -1212,7 +1260,7 @@ fn table_data(
             .then(|| (clocking.start, crate::clock::minutes_of(settings.now) - start))
     });
     let include = matcher.as_ref().map(|_| &include as &dyn Fn(usize) -> bool);
-    let (times, total) = clock_sum(text, region, window, include, running);
+    let (times, total) = clock_sum(prepared.lines_in(region), window, include, running);
     let link = params.flag("link");
     let properties: Vec<String> = match params.get("properties") {
         Some(Lisp::List(items)) => items
@@ -1251,17 +1299,17 @@ fn table_data(
         let timestamp = if params.flag("timestamp") {
             ["SCHEDULED", "DEADLINE", "TIMESTAMP", "TIMESTAMP_IA"]
                 .iter()
-                .find_map(|name| entry_value(text, path, &outline, index, name, false))
+                .find_map(|name| entry_value(text, path, outline, index, name, false))
         } else {
             None
         };
         let properties = properties
             .iter()
-            .filter_map(|name| entry_value(text, path, &outline, index, name, inherit).map(|v| (name.clone(), v)))
+            .filter_map(|name| entry_value(text, path, outline, index, name, inherit).map(|v| (name.clone(), v)))
             .collect();
         rows.push(Row { level: entry.level, headline, tags, timestamp, time, properties });
     }
-    Ok(Table { name: name.map(str::to_string), title: title(text), time: total, rows })
+    Ok(Table { name: name.map(str::to_string), title: prepared.title.clone(), time: total, rows })
 }
 
 /// The region of the scope in the file with the table: a subtree or a
@@ -1402,7 +1450,12 @@ fn format_cell(format: &str, value: &str) -> String {
 
 /// `org-dblock-write:clocktable` at the buffer's point. Gives the total
 /// time, or nothing for tables in steps.
-fn write_clocktable(buffer: &mut Buffer, params: &Plist, context: &Context) -> Result<Option<i64>, String> {
+fn write_clocktable(
+    buffer: &mut Buffer,
+    params: &Plist,
+    context: &Context,
+    sources: &Sources,
+) -> Result<Option<i64>, String> {
     let settings = context.settings;
     let params = Plist::read(&settings.defaults)?.combine(params);
     let scope = params.get("scope").cloned();
@@ -1431,13 +1484,24 @@ fn write_clocktable(buffer: &mut Buffer, params: &Plist, context: &Context) -> R
         }
         out
     };
-    let text_of = |path: &str| -> String {
-        if Some(path) == context.path {
-            buffer.text.clone()
-        } else {
-            context.files.read(path).unwrap_or_default()
+    // The file at `path`, or the one with the table, read once.
+    let prepared = |path: Option<&str>| -> Rc<Prepared> {
+        if let Some((before, _)) = sources.before_steps.as_ref().filter(|_| path.is_none() || path == context.path) {
+            return before.clone();
         }
+        let key = path.or(context.path).unwrap_or_default().to_string();
+        if let Some(known) = sources.prepared.borrow().get(&key) {
+            return known.clone();
+        }
+        let text = match path {
+            Some(path) if Some(path) != context.path => context.files.read(path).unwrap_or_default(),
+            _ => buffer.text.clone(),
+        };
+        let known = Rc::new(Prepared::new(text, path.or(context.path), settings));
+        sources.prepared.borrow_mut().insert(key, known.clone());
+        known
     };
+    let text_of = |path: &str| -> String { prepared(Some(path)).text.clone() };
     let pairs = |paths: Vec<String>| Files::Listed(paths.into_iter().map(|path| (path.clone(), path)).collect());
     let files = match &scope {
         None => Files::Current,
@@ -1474,20 +1538,23 @@ fn write_clocktable(buffer: &mut Buffer, params: &Plist, context: &Context) -> R
         if params.block().is_none() && (start.is_none() || end.is_none()) {
             return Err("Clocktable `:step' can only be used with `:block' or `:tstart', `:tend'".to_string());
         }
-        steps(buffer, &params, context)?;
+        steps(buffer, &params, context, sources)?;
         return Ok(None);
     }
     let scope_name = scope.as_ref().and_then(Lisp::symbol);
     let tables = match &files {
         Files::Current => {
-            let region = scope_region(&buffer.text, buffer.point, scope_name)?;
-            vec![table_data(&buffer.text, region, None, context.path, &params, settings)?]
+            let current = prepared(None);
+            let point = sources.before_steps.as_ref().map_or(buffer.point, |(_, point)| *point);
+            let region = scope_region(&current.text, point, scope_name)?;
+            vec![table_data(&current, region, None, context.path, &params, settings)?]
         }
         Files::Listed(files) => {
             let mut tables = Vec::new();
             for (name, path) in files {
-                let text = text_of(path);
-                tables.push(table_data(&text, (0, text.len()), Some(name), Some(path), &params, settings)?);
+                let file = prepared(Some(path));
+                let all = (0, file.text.len());
+                tables.push(table_data(&file, all, Some(name), Some(path), &params, settings)?);
             }
             tables
         }
@@ -1848,9 +1915,14 @@ fn link_parts(text: &str) -> Option<(String, Option<String>)> {
     Some((found[1].to_string(), found.get(2).map(|m| m.as_str().to_string())))
 }
 
+/// The most tables a clock table in steps makes. Emacs has no limit, but
+/// a window from the year 1 in days makes 740,000 tables and would take
+/// hours; days over 27 years are fewer.
+const MOST_STEPS: usize = 10_000;
+
 /// `org-clocktable-steps`: a table for each day, week, month… of the
 /// window, each under a line that says when it starts.
-fn steps(buffer: &mut Buffer, params: &Plist, context: &Context) -> Result<(), String> {
+fn steps(buffer: &mut Buffer, params: &Plist, context: &Context, sources: &Sources) -> Result<(), String> {
     let settings = context.settings;
     let step = params.get("step").map(Lisp::print).unwrap_or_default();
     let header = match step.as_str() {
@@ -1897,19 +1969,11 @@ fn steps(buffer: &mut Buffer, params: &Plist, context: &Context) -> Result<(), S
         let time = DateTime { day: minutes.div_euclid(1440), minute: minutes.rem_euclid(1440) };
         format_timestamp(time, with_time, true, "")
     };
-    let mut start = start;
-    while start < end {
-        if buffer.point > 0 && buffer.text.as_bytes()[buffer.point - 1] != b'\n' {
-            buffer.text.insert(buffer.point, '\n');
-            buffer.point += 1;
-        }
-        let line = format!("\n{header}{}\n", stamp(start, false));
-        buffer.text.insert_str(buffer.point, &line);
-        buffer.point += line.len();
-        let table_begin = line_start(&buffer.text, buffer.point - 1);
+    // Where the step that starts at `start` ends.
+    let next_of = |start: i64| {
         let date = Date::from_day(start.div_euclid(1440));
         let dow = crate::date::weekday(start.div_euclid(1440)) as i64;
-        let next = match step.as_str() {
+        match step.as_str() {
             "day" => encode(date.year, date.month, date.day + 1, extend),
             "week" => {
                 let offset = if dow == week_start { 7 } else { (week_start - dow).rem_euclid(7) };
@@ -1925,14 +1989,39 @@ fn steps(buffer: &mut Buffer, params: &Plist, context: &Context) -> Result<(), S
             "month" => encode(date.year, date.month + 1, month_start, 0),
             "quarter" => encode(date.year, date.month + 3, month_start, 0),
             _ => encode(date.year + 1, 1, 1, extend),
-        };
+        }
+    };
+    let mut count = 0;
+    let mut at = start;
+    while at < end {
+        count += 1;
+        if count > MOST_STEPS {
+            return Err(format!("Clocktable `:step' makes more than {MOST_STEPS} tables"));
+        }
+        at = next_of(at);
+    }
+    // The file with the table as it is before the steps, read once.
+    let before = Rc::new(Prepared::new(buffer.text.clone(), context.path, settings));
+    let sources =
+        Sources { before_steps: Some((before, buffer.point)), prepared: RefCell::new(sources.prepared.take()) };
+    let mut start = start;
+    while start < end {
+        if buffer.point > 0 && buffer.text.as_bytes()[buffer.point - 1] != b'\n' {
+            buffer.text.insert(buffer.point, '\n');
+            buffer.point += 1;
+        }
+        let line = format!("\n{header}{}\n", stamp(start, false));
+        buffer.text.insert_str(buffer.point, &line);
+        buffer.point += line.len();
+        let table_begin = line_start(&buffer.text, buffer.point - 1);
+        let next = next_of(start);
         let mut each = params.clone();
         each.set("header", Lisp::Str(String::new()));
         each.set("step", Lisp::Symbol("nil".to_string()));
         each.set("block", Lisp::Symbol("nil".to_string()));
         each.set("tstart", Lisp::Str(stamp(start, true)));
         each.set("tend", Lisp::Str(stamp(end.min(next), true)));
-        let time = write_clocktable(buffer, &each, context)?;
+        let time = write_clocktable(buffer, &each, context, &sources)?;
         // The `#+END:` line of the block.
         let end_line = END.find_at(&buffer.text, buffer.point).map_or(buffer.text.len(), |found| found.start());
         let mut end_line_start = end_line;
