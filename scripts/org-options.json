@@ -264,7 +264,7 @@
   "org-agenda-query-register": "emacs-only",
   "org-stuck-projects": "setting",
   "org-agenda-skip-function-global": "lisp",
-  "org-agenda-restriction-lock-highlight-subtree": "emacs-only",
+  "org-agenda-restriction-lock-highlight-subtree": ["absent", "How the restriction lock (~C-c C-x <~) marks the subtree it restricts the agenda to: there is no restriction lock."],
   "org-agenda-skip-comment-trees": "setting",
   "org-agenda-todo-list-sublevels": "setting",
   "org-agenda-todo-ignore-with-date": "setting",
@@ -453,7 +453,7 @@
   "org-clock-x11idle-program-name": "emacs-only",
   "org-clock-goto-before-context": "emacs-only",
   "org-clock-display-default-range": "setting",
-  "org-clock-auto-clockout-timer": "emacs-only",
+  "org-clock-auto-clockout-timer": ["absent", "Clocking out after so many seconds idle."],
   "org-clock-ask-before-exiting": "emacs-only"
  },
  "org-colview.el": {
@@ -768,7 +768,7 @@
   "org-occur-hook": "lisp",
   "org-self-insert-cluster-for-undo": "emacs-only",
   "org-highlight-links": ["missing", "Which kinds of links (bracket, angle, plain, radio, tag, date, footnote) are colored: the server colors all of them."],
-  "org-mark-ring-length": "emacs-only",
+  "org-mark-ring-length": ["absent", "How many places the mark ring (~C-c %~, ~C-c &~) keeps: there is no mark ring."],
   "org-todo-keywords": "setting",
   "org-todo-interpretation": "setting",
   "org-use-fast-todo-selection": "setting",
@@ -881,9 +881,9 @@
   "org-image-actual-width": "setting",
   "org-agenda-inhibit-startup": "emacs-only",
   "org-agenda-ignore-properties": "emacs-only",
-  "org-yank-image-save-method": "emacs-only",
+  "org-yank-image-save-method": ["absent", "Where an image pasted into a file is saved, to be linked."],
   "org-yank-image-file-name-function": "emacs-only",
-  "org-yank-dnd-method": "emacs-only",
+  "org-yank-dnd-method": ["absent", "What dropping a file into a file does: attach it, copy it, or link to it."],
   "org-yank-dnd-default-attach-method": "emacs-only"
  },
  "ox-ascii.el": {

@@ -32,8 +32,10 @@ pub const LANGUAGE: &str = "org-agenda";
 pub enum Query {
     /// The agenda for `span`, including the day `start`, or today.
     Agenda { start: Option<Day>, span: Span },
-    /// The global TODO list.
-    Todo,
+    /// The global TODO list, or with `keywords` (`NEXT|WAIT`, as
+    /// `org-todo-list` reads them with `T` in the agenda menu) the entries
+    /// with those keywords.
+    Todo { keywords: Option<String> },
     /// `org-tags-view` from the agenda menu (`m`, `M`): the entries a
     /// match string matches, only open TODO entries with `todo_only`.
     Tags { matching: String, todo_only: bool },

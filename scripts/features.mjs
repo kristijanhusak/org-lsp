@@ -125,6 +125,7 @@ export const AREAS = [
       ['Headlines past a done or TODO keyword, and the lines of quote and verse blocks, in their own look (`org-fontify-done-headline`, `org-fontify-todo-headline`, `org-fontify-quote-and-verse-blocks`)', true, { helix: 'no' }],
       ['Emphasis in the looks of `org-emphasis-alist` (bold, italic, underline, strike-through, code and verbatim, not colors), or none (`org-fontify-emphasized-text`); keywords such as `#+TITLE:` and the braces of macros hidden (`org-hidden-keywords`, `org-hide-macro-markers`)', true, { sublime: 'part', zed: 'part', helix: 'no' }],
       ['How many looks headline levels take, and past the last the first again or the last for all (`org-n-level-faces`, `org-cycle-level-faces`); a headline\'s look to the edge of the window, for looks with a background (`org-fontify-whole-heading-line`, where the editor can draw it)', true, { vim: 'part', sublime: 'part', zed: 'part', helix: 'no' }],
+      ['Turning pretty entities on and off by command (`C-c C-x \\`, `org-toggle-pretty-entities`): `#+STARTUP: entitiespretty` and `org_pretty_entities` do', false],
     ],
     editors: {
       vim: ['part', 'A headline\'s line colored to the edge (`org_fontify_whole_heading_line`) is a sign without text, which shows the sign column. A line with a long link wraps as if the link\'s hidden target took room: Vim counts concealed text when it wraps.'],
@@ -176,6 +177,7 @@ export const AREAS = [
       ['Showing the context of the cursor (`org-reveal`, `C-c C-r`): its entry, the next headline, its siblings and its ancestors, the other folds left as they are; `org.reveal.siblings` (`C-u`) each level with its children, `org.reveal.tree` (`C-u C-u`) the parent\'s whole tree', true, { zed: 'no' }],
       ['`TAB` on a new, empty headline or item changing its level (`org-cycle-level-after-item/entry-creation`), and at the start of the file cycling the file (`org-cycle-global-at-bob`); list items folding, as part of the outline or not at all (`org-cycle-include-plain-lists`); headlines folding to a level (`org-cycle-max-level`)', true, { neovim: 'part', vim: 'part', zed: 'no' }],
       ['The other options of cycling (`org-cycle-emulate-tab`, `org-fold-show-context-detail`: the context shown after a jump is always the same, `org-fold-catch-invisible-edits`)', false],
+      ['`C-c TAB` off a table (`org-fold-show-children`), `C-c C-k` (`org-kill-note-or-show-branches`) and `C-c C-TAB` (`org-force-cycle-archived`)', false],
     ],
     editors: {
       neovim: ['part', 'Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline\'s own text that Neovim\'s fold levels do not make. `<Tab>` changes the level of a new entry in Normal mode; in Insert mode it is a tab.'],
@@ -235,6 +237,10 @@ export const AREAS = [
       ['Sparse trees that tell case apart (`org-occur-case-fold-search`), and by a kind of date, cycled with `c` (`org-sparse-tree-default-date-type`)', true],
       ['Sparse trees without their matches highlighted (`org-highlight-sparse-tree-matches`)', true],
       ['The highlights of a sparse tree and the times of `C-c C-x C-d` gone with the next change, or kept, following the text, until `C-c C-c` (`org-remove-highlights-with-change`); those of a sparse tree by tags or a property kept either way, as `org-scan-tags` keeps them', true],
+      ['`M-<up>` and `M-<down>` dragging a paragraph, a block or another element (`org-drag-element-backward`, `-forward`)', false],
+      ['Org\'s element commands: `M-{`, `M-}` (`org-backward-element`, `org-forward-element`), `C-c C-^`, `C-c C-_` (`org-up-element`, `org-down-element`), `C-M-t` (`org-transpose-element`), `M-h` (`org-mark-element`), `C-c @` (`org-mark-subtree`)', false],
+      ['Filling as Org fills (`M-q`, `org-fill-paragraph`, and auto-fill, `org-auto-fill-function`), knowing items, comments, tables and headlines', false],
+      ['`C-c :` (`org-toggle-fixed-width`), `C-c C-x v` (`org-copy-visible`), and the mark ring (`C-c %`, `C-c &`: `org-mark-ring-push`, `org-mark-ring-goto`)', false],
     ],
     editors: {
       vscode: ['part', 'VS Code does not tell an extension which folds are closed: `C-k` on a folded headline is VS Code\'s own (`org-ctrl-k-protect-subtree`), and a subtree cut or copied folded is not folded again when it is pasted.'],
@@ -288,6 +294,10 @@ export const AREAS = [
       ['Two spaces after chosen bullets, a bullet of their own for indented items, a wider indent for sub-items (`org-list-two-spaces-after-bullet-regexp`, `org-list-demote-modify-bullet`, `org-list-indent-offset`)', true],
       ['Turning off the automatic rules, and cookies counting every box below them (`org-list-automatic-rules`, `org-checkbox-hierarchical-statistics`)', true],
       ['Lettered items (`a.`, `B)`) and one terminator for numbers (`org-list-allow-alphabetical`, `org-plain-list-ordered-item-terminator`)', true],
+      ['`C-u C-c C-c` adding or removing a checkbox, `C-u C-u C-c C-c` setting it to `[-]` (`org-toggle-checkbox` with a prefix)', false],
+      ['Radio checkbox lists (`org-list-checkbox-radio-mode`, `org-toggle-radio-button`, `#+ATTR_ORG: :radio t`)', false],
+      ['`C-c C-*` turning a list into a subtree (`org-list-make-subtree`)', false],
+      ['`C-c #` (`org-update-statistics-cookies`) as a key of its own, and `C-u C-c #` for every cookie of the file: here `C-c C-c` on a cookie', false],
     ],
     editors: {
       zed: ['part', '`RET` stays Zed\'s own, and so do Shift and Alt with the arrows, which cycle bullets and move items in Org.'],
@@ -374,6 +384,7 @@ export const AREAS = [
       ['A sparse tree by tags', true],
       ['Faces of particular tags in headlines (`org-tag-faces`)', true, { sublime: 'no', zed: 'no', helix: 'no' }],
       ['The TODO keywords in the tag selection (`org-fast-tag-selection-include-todo`, a variable Org calls undocumented)', false],
+      ['Group tags shown and hidden in headlines (`C-c C-x q`, `org-toggle-tags-groups`)', false],
     ],
     editors: {
       sublime: ['part', 'Faces of particular tags are not shown: Sublime Text colors text by its color scheme only.'],
@@ -403,6 +414,7 @@ export const AREAS = [
       ['Custom properties hidden and shown (`org-custom-properties`, `org-toggle-custom-properties-visibility`, `org.custom.properties.toggle`): their lines hidden whole, where the editor can hide a line', true, { vim: 'no', vscode: 'no', sublime: 'part', zed: 'no', helix: 'no' }],
       ['IDs made as `org-id-method`, `org-id-prefix`, `org-id-ts-format` and `org-id-include-domain` say', true],
       ['IDs looked for where `org-id-track-globally`, `org-id-search-archives`, `org-id-extra-files` and `org-id-locations-file` say; `id:` links completing to `org-id-completion-targets`', true],
+      ['In column view, `s` (`org-columns-edit-attributes`) and `M-S-<right>` (`org-columns-new`)', false],
     ],
     editors: {
       vim: ['part', 'Column view\'s header is in the window\'s status line, shown when the window has one (`laststatus`). Custom properties are not hidden (`org.custom.properties.toggle`): Vim cannot hide a line, a closed fold still shows a line of its own, and concealing a line\'s text leaves the line, empty.'],
@@ -439,6 +451,7 @@ export const AREAS = [
       ['Removing a scheduled date or a deadline (`C-u C-c C-s`, `C-u C-c C-d`)', true, { zed: 'no', helix: 'no' }],
       ['Setting a delay or a warning period (`C-u C-u C-c C-s`, `C-u C-u C-c C-d`)', true],
       ['A day that ends after midnight (`org-extend-today-until`): the agenda\'s today, the date prompt, the times capture puts in and its datetree, `.+` and `++` repeaters', true],
+      ['`C-c C-y` (`org-evaluate-time-range`) and `C-c <` (`org-date-from-calendar`)', false],
     ],
     editors: {
       sublime: ['part', 'Dates are typed, without the calendar: the package asks with an input panel.'],
@@ -471,7 +484,7 @@ export const AREAS = [
     name: 'Agenda',
     emacs: [
       ['Day, week, fortnight, month and year views, going to a date', true],
-      ['The list of TODO entries', true],
+      ['The list of TODO entries, every open one (`t`) or those of the keywords asked for (`T`, `KWD1|KWD2`)', true],
       ['The lines under the heading of the TODO list, a tags match and a search that name Emacs\'s keys (`Press ‘N r’ (e.g. ‘0 r’) to search again: (0)[ALL] (1)TODO …`, `Press ‘C-u r’ to search again`, `Press ‘[’, ‘]’ to add/sub word …`), and `N r` itself: left out, the keys being the editor\'s; `T` in the agenda dispatcher asks for the keyword instead', false],
       ['Directories of agenda files read by a regexp (`org-agenda-file-regexp`); a listed file that is not there asked about, removed or aborting, or left out (`org-agenda-skip-unavailable-files`)', true],
       ['Tag, property and group tag searches', true],
@@ -494,7 +507,7 @@ export const AREAS = [
       ['Log mode, with or without notes (`org-agenda-log-mode-add-notes`), and the clock report, with a header (`org-agenda-clock-report-header`) and any clock table parameters (`org-agenda-clockreport-parameter-plist`)', true],
       ['Priority cookies highlighted, or the rest of their lines, the highest in bold and the lowest in italic (`org-agenda-fontify-priorities`)', true],
       ['Archives mode; archived trees in every view without it (`org-agenda-skip-archived-trees`)', true],
-      ['Going to a date (`j`) with its own reading of a date to come (`org-agenda-jump-prefer-future`)', true],
+      ['Going to a date (`J`; Emacs\'s `j`, which moves the cursor in modal editors, and the agenda\'s keys are the same in every editor) with its own reading of a date to come (`org-agenda-jump-prefer-future`)', true],
       ['Inactive timestamps in the agenda once (`[`, `v [`: `org-agenda-include-inactive-timestamps`)', true],
       ['Changing an entry from the agenda: state, priority, tags, dates, notes, refile, archive, clock', true],
       ['A date of the past moved one day later goes to today (`org-agenda-move-date-from-past-immediately-to-today`)', true],
@@ -509,6 +522,12 @@ export const AREAS = [
       ['Column view as soon as the agenda is made (`org-agenda-view-columns-initially`)', true, { sublime: 'no', zed: 'no', helix: 'no' }],
       ['Writing the agenda to a file (`C-x C-w`): `.org` and plain text; in plain text, some lines of each entry\'s text under its line (`org-agenda-add-entry-text-maxlines`)', true],
       ['Appointment reminders (`org-agenda-to-appt`, through Emacs\'s `appt.el`): today\'s entries with a time, checked each minute, the reminders shown as messages', true, { zed: 'no' }],
+      ['The agenda dispatcher\'s `/` (`org-occur-in-agenda-files`), `e` (`org-store-agenda-views`, the `:exports` of custom commands), and `<` and `>` (the view restricted to the buffer or the subtree)', false],
+      ['The restriction lock (`C-c C-x <`, `C-c C-x >`: `org-agenda-set-restriction-lock`, `org-agenda-remove-restriction-lock`, `org-agenda-restriction-lock-highlight-subtree`)', false],
+      ['Agenda keys with no command: `J` (`org-agenda-clock-goto`; `J` goes to a date here), `T` (`org-agenda-show-tags`), `>` (`org-agenda-date-prompt`), `M-<up>` and `M-<down>` (`org-agenda-drag-line-backward`, `-forward`), `C-c C-x b` (`org-agenda-tree-to-indirect-buffer`), `G` (`org-agenda-toggle-time-grid`), `!` (`org-agenda-toggle-deadlines`), `~` (`org-agenda-limit-interactively`), `A` (`org-agenda-append-agenda`), `P` (`org-agenda-show-priority`), `C-c C-a` (`org-attach` from the agenda), `C-/` (`org-agenda-undo`), `C-c C-x C-e` (`org-clock-modify-effort-estimate`), `g` (`org-agenda-redo-all`) and `v SPC` (`org-agenda-reset-view`)', false],
+      ['The calendar\'s keys in the agenda: `c` (`org-agenda-goto-calendar`), `C` (`org-agenda-convert-date`), `M` (`org-agenda-phases-of-moon`), `S` (`org-agenda-sunrise-sunset`), `H` (`org-agenda-holidays`)', false],
+      ['Changing the list of agenda files from a file: `C-c [` (`org-agenda-file-to-front`), `C-c ]` (`org-remove-file`), `C-,` and `C-\'` (`org-cycle-agenda-files`)', false],
+      ['Writing the agenda as `.html`, `.ps`, `.pdf` or `.ics` (Emacs\'s htmlize, ps-print and ox-icalendar): refused, with a message', false],
     ],
     editors: {
       sublime: ['part', 'Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot. The days of a habit\'s graph take the colors of text, not Org\'s backgrounds: Sublime Text colors a token by its color scheme.'],
@@ -523,6 +542,7 @@ export const AREAS = [
       { text: 'Tags at the right edge of the window, following it as it is resized', only: ['neovim', 'vim', 'sublime'] },
       { text: 'With `org_modules = ["org-habit"]`, a habit\'s consistency graph shows its days on the backgrounds of `org-habit`\'s faces: blue before it is due, green in its time to be done, yellow on the day it is due by, red past it, paler for the days the `-future` faces are for', cmd: 'org.agenda.list', in: 'global', not: ['sublime', 'helix'] },
       { text: 'The TODO list, a tag search (`work+urgent`), a word search', cmd: 'org.agenda.dispatch', in: 'global' },
+      { text: '`T` in the agenda menu, then `WAIT`, lists the entries in `WAIT` alone; `TODO|WAIT` both', cmd: 'org.agenda.dispatch', in: 'global' },
       { text: 'With `org_super_agenda_mode` on and `org_super_agenda_groups` set (`[{ name = "Today", time-grid = true }, { auto-category = true }]`), each day of the agenda is in groups under their headers, and the TODO list too', cmd: 'org.agenda.list', in: 'global' },
       { text: 'With `org_agenda_prefix_format` `{ todo = " %-12:c%-4(org-entry-get nil \"EFFORT\") " }`, the TODO list shows each entry\'s effort after its category, `nil` without one (needs Emacs)', cmd: 'org.agenda.todos', in: 'global' },
       { text: 'Column view in the agenda covers each entry\'s line with its columns and sums the efforts on the header; `e` on an effort changes it in the entry\'s file; `q` turns it off (needs Emacs)', in: 'agenda', cmd: 'org.agenda.columns', only: ['neovim', 'vim', 'vscode'] },
@@ -569,6 +589,10 @@ export const AREAS = [
       ['A note when the clock stops (`org-log-note-clock-out`), in a note buffer', true],
       ['Clock times rounded (`org-clock-rounding-minutes`), clocks started when the last stopped (`org-clock-continuously`)', true],
       ['Clock tables with `org-clocktable-defaults`, words in other languages (`org-clock-clocktable-language-setup`) and the running clock counted (`org-clock-report-include-clocking-task`)', true],
+      ['`S-M-<up>` and `S-M-<down>` on a `CLOCK:` line shifting both its timestamps (`org-clock-timestamps-up`, `-down`), and `C-S-<up>`, `C-S-<down>` there', false],
+      ['`C-c C-c` anywhere on a `CLOCK:` line counting its duration again (`org-clock-update-time-maybe`): here only on one of its timestamps', false],
+      ['Changing the effort of the clocked entry (`C-c C-x C-e`, `org-clock-modify-effort-estimate`)', false],
+      ['Clocking out after a time idle (`org-clock-auto-clockout-timer`)', false],
     ],
     editors: {
       zed: ['part', 'No clock in the status line: Zed has no place there for an extension\'s text. In the agenda, the clocked entry\'s line has the background of `org-agenda-clocking` under its text, not to the window\'s edge: Zed lets no extension highlight a line, only give its tokens a background, and the tokens end with the text.'],
@@ -607,6 +631,7 @@ export const AREAS = [
       ['`%:keyword` (the properties of the link `%a` makes: `:annotation`, `:initial`, and an `id:` link\'s `:link`, `:description`, `:type`)', true],
       ['Template contexts (`org-capture-templates-contexts`)', true],
       ['Capturing from the agenda with the date of the line (`org-capture-use-agenda-date`)', true],
+      ['The prefix arguments of `org-capture`: `C-u` goes to the template\'s target (`org-capture-goto-target`), `C-u C-u` to the entry stored last (`org-capture-goto-last-stored`), `C-0` inserts at the cursor', false],
     ],
     editors: {
       zed: ['part', `For a template's prompts, ${ZED_TEXT}. The capture buffer's tab stays open once the entry is filed: Zed lets no server close a tab.`],
@@ -827,6 +852,7 @@ export const AREAS = [
       ['Highlighting and checking (`org-lint`)', true],
       ['Creating a footnote (`C-c C-x f`, through Emacs)', true, { helix: 'no' }],
       ['Renumbering, sorting, normalizing and deleting footnotes (through Emacs)', true, { helix: 'no' }],
+      ['`C-c C-c` on a footnote reference or definition going to the other (`org-footnote-action` through `org-ctrl-c-ctrl-c`): `C-c C-x f` does', false],
     ],
     editors: {
       helix: ['part', 'Making footnotes and their menu are left out: they are not among Helix\'s code actions. Following them works.'],
@@ -861,6 +887,9 @@ export const AREAS = [
       ['Moving the field with the shifted cursor keys (through Emacs)', true],
       ['Importing and exporting tables (`org-table-import`, `org-table-export`, through Emacs)', true],
       ['Plotting with gnuplot as the `#+PLOT:` lines say (`org-plot/gnuplot`, `C-c \" g`, through Emacs with gnuplot.el and gnuplot), and a column of bars in the table (`orgtbl-ascii-plot`, `C-c \" a`, through Emacs)', true],
+      ['`C-c }` (`org-table-toggle-coordinate-overlays`), `C-#` (`org-table-rotate-recalc-marks`), transposing a table (`org-table-transpose-table-at-point`), and follow mode (`org-table-follow-field-mode`)', false],
+      ['table.el tables (`C-c ~`, `org-table-create-with-table.el`)', false],
+      ['Tables and lists in other modes: `orgtbl-mode`, radio tables and radio lists (`#+ORGTBL: SEND`, `org-list-send-list`)', false],
     ],
     editors: {
       sublime: ['part', 'A shrunk column shows its whole text and `…`: Sublime Text cannot hide text in a view.'],
@@ -935,6 +964,7 @@ export const AREAS = [
       ['Detangling (`org-babel-detangle`, through Emacs): the code of a file tangled with `:comments link` put back into the blocks of this file it came from, the file asked for among those this file tangles to', true, { zed: 'no', helix: 'no' }],
       ['Moving between blocks (`C-c C-v n`, `C-c C-v p`, `C-c C-v g`, `C-c M-f`, `C-c M-b`; through Emacs)', true, { helix: 'no' }],
       ['The Library of Babel (`C-c C-v i`, through Emacs)', true],
+      ['The rest of `C-c C-v`: `I` (`org-babel-view-src-block-info`), `v` (`org-babel-expand-src-block`), `c` (`org-babel-check-src-block`), `j` (`org-babel-insert-header-arg`), `l` and `z` (`org-babel-load-in-session`, `org-babel-switch-to-session`), `a` (`org-babel-sha1-hash`), `d` (`org-babel-demarcate-block`), `o` (`org-babel-open-src-block-result`), `h` (`org-babel-mark-block`), `x` (`org-babel-do-key-sequence-in-edit-buffer`), `f` (`org-babel-tangle-file`), `r` (`org-babel-goto-named-result`), `u` (`org-babel-goto-src-block-head`)', false],
     ],
     editors: {
       zed: ['part', 'Detangling (`org.babel.detangle`) is left out: it has no key in keymap.json and is not among the code actions.'],
@@ -1165,6 +1195,7 @@ export const AREAS = [
       ['Previews of `attachment:` links (the file found through Emacs, `org-attach-expand`)', true],
       ['The width an image shows at (`org-image-actual-width`, `#+ATTR_ORG: :width`, the `ORG-IMAGE-ACTUAL-WIDTH` property) and the most (`org-image-max-width`)', true],
       ['The images of `http:` and `https:` links (`org-display-remote-inline-images`: `download` each time they show, or `cache` once for the session), downloaded with `curl` into a private directory as `org-resource-download-policy` and `org-safe-remote-resources` allow, after asking as `org--confirm-resource-safe` does (`y`, `n`, `f`, `d`, `!`), but not when a file opens. Emacs shows remote files (TRAMP) so, which org-lsp has not, and not URLs; the regexps the answers `!`, `d` and `f` add are kept for the session, not saved with Customize', true],
+      ['Pasting and dropping images into a file, saved and linked (`org-yank-image-save-method`, `org-yank-dnd-method`)', false],
     ],
     editors: {
       neovim: ['part', 'From Neovim 0.13 (`vim.ui.img`), in a terminal with the Kitty graphics protocol: an image shows below its line, not over the link; images other than PNG need ImageMagick.'],

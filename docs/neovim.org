@@ -133,27 +133,27 @@ question and answer it, as in Emacs; keys pasted a few milliseconds after
 
 | Feature | Parity | What does not work, and why |
 |---+---+---|
-| [[file:parity.org::#highlighting][Highlighting]] | 100% |  |
-| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 82% | Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline's own text that Neovim's fold levels do not make. ~<Tab>~ changes the level of a new entry in Normal mode; in Insert mode it is a tab. |
-| [[file:parity.org::#headings-and-structure][Headings and structure]] | 96% |  |
-| [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 93% |  |
+| [[file:parity.org::#highlighting][Highlighting]] | 95% |  |
+| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 75% | Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline's own text that Neovim's fold levels do not make. ~<Tab>~ changes the level of a new entry in Normal mode; in Insert mode it is a tab. |
+| [[file:parity.org::#headings-and-structure][Headings and structure]] | 84% |  |
+| [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 74% |  |
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% |  |
 | [[file:parity.org::#priorities][Priorities]] | 100% |  |
-| [[file:parity.org::#tags][Tags]] | 88% |  |
-| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% |  |
-| [[file:parity.org::#dates-and-times][Dates and times]] | 100% |  |
-| [[file:parity.org::#agenda][Agenda]] | 97% |  |
-| [[file:parity.org::#clocking][Clocking]] | 100% |  |
-| [[file:parity.org::#capture][Capture]] | 100% |  |
+| [[file:parity.org::#tags][Tags]] | 78% |  |
+| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 91% |  |
+| [[file:parity.org::#dates-and-times][Dates and times]] | 91% |  |
+| [[file:parity.org::#agenda][Agenda]] | 84% |  |
+| [[file:parity.org::#clocking][Clocking]] | 78% |  |
+| [[file:parity.org::#capture][Capture]] | 92% |  |
 | [[file:parity.org::#org-protocol][org-protocol]] | 86% |  |
 | [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 94% |  |
 | [[file:parity.org::#a-journal-org-journal][A journal (org-journal)]] | 93% |  |
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% |  |
 | [[file:parity.org::#links][Links]] | 96% |  |
-| [[file:parity.org::#footnotes][Footnotes]] | 100% |  |
-| [[file:parity.org::#tables][Tables]] | 100% |  |
+| [[file:parity.org::#footnotes][Footnotes]] | 80% |  |
+| [[file:parity.org::#tables][Tables]] | 86% |  |
 | [[file:parity.org::#table-formulas][Table formulas]] | 100% |  |
-| [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% |  |
+| [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 92% |  |
 | [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% |  |
 | [[file:parity.org::#citations][Citations]] | 82% |  |
 | [[file:parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% |  |
@@ -163,8 +163,8 @@ question and answer it, as in Emacs; keys pasted a few milliseconds after
 | [[file:parity.org::#timers][Timers]] | 100% |  |
 | [[file:parity.org::#attachments][Attachments]] | 100% |  |
 | [[file:parity.org::#encryption][Encryption]] | 100% |  |
-| [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | From Neovim 0.13 (~vim.ui.img~), in a terminal with the Kitty graphics protocol: an image shows below its line, not over the link; images other than PNG need ImageMagick. |
-| *All of Org* | *97%* |  |
+| [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 83% | From Neovim 0.13 (~vim.ui.img~), in a terminal with the Kitty graphics protocol: an image shows below its line, not over the link; images other than PNG need ImageMagick. |
+| *All of Org* | *91%* |  |
 
 Parity is the share of what Emacs Org does in that area that works in Neovim, a feature that works only in part counts half, and all of Org is the mean of the areas. [[file:parity.org][parity.org]] lists the features, and where each editor falls short.
 
