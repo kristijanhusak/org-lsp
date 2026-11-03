@@ -45,6 +45,8 @@ local SERVER = 'org_lsp'
 --- `false`; commands that are not listed keep the server's default keys.
 --- `false` instead of a scope's table sets no keys in that scope.
 ---@class org_lsp.Mappings
+---@field disable_all? boolean Set none of the default keys, the server's and the plugin's: only the keys given here.
+---@field prefix? string What the default keys start with in place of `<Leader>o` (`<Leader>oa`, the agenda, is `<prefix>a`). Keys given here are taken as they are.
 ---@field global? table<string, string|string[]|false>|false Keys that work anywhere.
 ---@field org? table<string, string|string[]|false>|false Keys in Org files.
 ---@field agenda? table<string, string|string[]|false>|false Keys in the agenda.
@@ -83,6 +85,20 @@ local defaults = {
 
 ---@type org_lsp.Config
 M.config = vim.tbl_deep_extend('force', defaults, vim.g.org_lsp or {})
+
+--- The keys given in the configuration, without the plugin's defaults:
+--- what `disable_all` keeps, and what `prefix` leaves as it is.
+local given = {}
+
+--- Adds the keys of `config` to `given`.
+---@param config? org_lsp.Config
+local function give(config)
+  local mappings = type(config) == 'table' and config.mappings
+  if type(mappings) == 'table' then
+    given = vim.tbl_deep_extend('force', given, mappings)
+  end
+end
+give(vim.g.org_lsp)
 
 --- What the server announced about itself: commands, keys, looks. Set when
 --- the server has started.
@@ -881,16 +897,29 @@ end
 ---@return table<string, string[]> # command to keys
 ---@return table<string, boolean> # the keys that keep a meaning of their own
 local function keys_in(scope)
-  if not M.config.mappings or M.config.mappings[scope] == false then
+  local mappings = M.config.mappings
+  if not mappings or mappings[scope] == false then
     return {}, {}
+  end
+  -- `disable_all`: none of the default keys, only those given.
+  local defaults_too = not mappings.disable_all
+  -- `prefix`: the default keys under `<Leader>o` start with it instead.
+  local prefixed = function(lhs)
+    if type(mappings.prefix) == 'string' and vim.startswith(lhs, '<Leader>o') then
+      return mappings.prefix .. lhs:sub(#'<Leader>o' + 1)
+    end
+    return lhs
   end
   local keys, native = {}, {}
   for _, command in ipairs(M.manifest and M.manifest.commands or {}) do
     for _, key in ipairs(command.keys) do
       if key.preset == 'vim' and key['in'] == scope then
-        keys[command.command] = keys[command.command] or {}
-        table.insert(keys[command.command], key.key)
-        native[key.key] = key.native or nil
+        if defaults_too then
+          local lhs = prefixed(key.key)
+          keys[command.command] = keys[command.command] or {}
+          table.insert(keys[command.command], lhs)
+          native[lhs] = key.native or nil
+        end
         insert_keys[command.command] = key.mode == 'insert' or nil
         append_keys[command.command] = key.mode == 'append' or nil
       end
@@ -901,10 +930,15 @@ local function keys_in(scope)
   -- without it. `K` in the agenda stays Neovim's hover, which shows the
   -- line's entry (Emacs's `K`, `org.agenda.habits`, goes without a key).
   local mapped = scope == 'agenda' and { [vim.keycode('K')] = 'hover' } or {}
-  for name, key in pairs(M.config.mappings[scope] or {}) do
-    keys[name] = type(key) == 'table' and key or key and { key } or {}
-    for _, lhs in ipairs(keys[name]) do
-      mapped[vim.keycode(lhs)] = name
+  local own = type(given[scope]) == 'table' and given[scope] or {}
+  for name, key in pairs(mappings[scope] or {}) do
+    local mine = own[name] ~= nil
+    if mine or defaults_too then
+      local list = type(key) == 'table' and key or key and { key } or {}
+      keys[name] = mine and list or vim.tbl_map(prefixed, list)
+      for _, lhs in ipairs(keys[name]) do
+        mapped[vim.keycode(lhs)] = name
+      end
     end
   end
   for name, list in pairs(keys) do
@@ -1553,6 +1587,7 @@ end
 ---@param opts? org_lsp.Config
 function M.setup(opts)
   M.config = vim.tbl_deep_extend('force', M.config, opts or {})
+  give(opts)
   if started then
     set_keys('global')
     enable()

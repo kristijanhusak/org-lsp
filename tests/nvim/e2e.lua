@@ -1737,6 +1737,36 @@ wait('the note in the entry', function()
   return lines[3] == '  Looked at it'
 end)
 
+-- 16b. `disable_all`: only the keys given are set, none of the defaults;
+-- `prefix`: the default keys start with it in place of `<Leader>o`.
+require('org-lsp').setup({ mappings = { disable_all = true, org = { ['org.todo'] = '<C-t>' } } })
+local own_keys = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* TODO own' }, own_keys)
+vim.cmd.edit(own_keys)
+wait('the server to attach to a file with only its own keys', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+eq(vim.fn.maparg('<C-t>', 'n', false, true).desc, 'Change the TODO state', 'a key given is set')
+eq(
+  { vim.fn.maparg('cit', 'n'), vim.fn.maparg('gt', 'n'), vim.fn.maparg('cir', 'n'), vim.fn.maparg('<Tab>', 'n'), vim.fn.maparg('<Leader>ois', 'n') },
+  { '', '', '', '', '' },
+  'no default keys in Org files'
+)
+eq(vim.fn.maparg('<Leader>oa', 'n'), '', 'no default global keys')
+require('org-lsp').setup({ mappings = { disable_all = false, prefix = '<Leader>r' } })
+local prefixed = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* TODO prefixed' }, prefixed)
+vim.cmd.edit(prefixed)
+wait('the server to attach to a file with prefixed keys', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+eq(vim.fn.maparg('<Leader>ra', 'n', false, true).desc, 'Agenda commands', 'the global keys start with the prefix')
+eq(vim.fn.maparg('<Leader>ris', 'n', false, true).buffer, 1, 'the keys of Org files start with the prefix')
+eq({ vim.fn.maparg('<Leader>oa', 'n'), vim.fn.maparg('<Leader>ois', 'n') }, { '', '' }, 'not with <Leader>o')
+eq(vim.fn.maparg('<C-t>', 'n', false, true).buffer, 1, 'a key given stays as it is')
+eq(vim.fn.maparg('<Tab>', 'n', false, true).buffer, 1, 'keys of other shapes stay')
+require('org-lsp').setup({ mappings = { prefix = '<Leader>o' } })
+
 -- 17. `false` for a scope sets none of its keys, the plugin's own included.
 require('org-lsp').setup({ mappings = { org = false } })
 local bare = vim.fn.tempname() .. '.org'

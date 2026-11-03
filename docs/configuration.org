@@ -498,6 +498,10 @@ require('org-lsp').setup({
 
   -- Keys by scope; see docs/keys/neovim.org. `false` sets no keys at all.
   mappings = {
+    -- true: none of the default keys, only those given here.
+    disable_all = false,
+    -- What the default keys start with in place of `<Leader>o`.
+    prefix = '<Leader>o',
     global = {
       ['org.agenda.dispatch'] = '<Leader>oa',
       ['org.capture'] = '<Leader>oc',
