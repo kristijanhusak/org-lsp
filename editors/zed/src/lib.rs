@@ -9,6 +9,9 @@
 //! questions that want typed text (a date) cannot be asked.
 
 use std::fs;
+use std::io::Read;
+
+use sha2::{Digest, Sha256};
 
 use zed::settings::LspSettings;
 use zed_extension_api::{self as zed, serde_json, LanguageServerId, Result};
@@ -43,9 +46,9 @@ impl OrgLsp {
             (zed::Os::Windows, zed::Architecture::X8664) => "windows-x86_64",
             _ => return Err("org-lsp has no build for this platform; put `org-lsp` on PATH".to_string()),
         };
-        let (archive, kind, exe) = match os {
-            zed::Os::Windows => (format!("org-lsp-{platform}.zip"), zed::DownloadedFileType::Zip, "org-lsp.exe"),
-            _ => (format!("org-lsp-{platform}.tar.gz"), zed::DownloadedFileType::GzipTar, "org-lsp"),
+        let (archive, exe) = match os {
+            zed::Os::Windows => (format!("org-lsp-{platform}.zip"), "org-lsp.exe"),
+            _ => (format!("org-lsp-{platform}.tar.gz"), "org-lsp"),
         };
         let release = zed::github_release_by_tag_name(REPOSITORY, RELEASE)?;
         let asset = release
@@ -58,7 +61,15 @@ impl OrgLsp {
         let path = format!("{directory}/{exe}");
         if !fs::metadata(&path).is_ok_and(|stat| stat.is_file()) {
             zed::set_language_server_installation_status(id, &zed::LanguageServerInstallationStatus::Downloading);
-            zed::download_file(&asset.download_url, &directory, kind)?;
+            // The archive as it is, checked against the release's
+            // SHA256SUMS before it is unpacked, as scripts/install.sh
+            // checks it. Nothing is kept of one that fails.
+            let sums = release.assets.iter().find(|asset| asset.name == "SHA256SUMS");
+            let sums = sums.map(|sums| sums.download_url.as_str());
+            if let Err(error) = install(&asset.download_url, sums, &directory, &archive, exe) {
+                let _ = fs::remove_dir_all(&directory);
+                return Err(error);
+            }
             zed::make_file_executable(&path)?;
             // Earlier downloads go.
             if let Ok(entries) = fs::read_dir(".") {
@@ -73,6 +84,74 @@ impl OrgLsp {
         self.cached = Some(path.clone());
         Ok(path)
     }
+}
+
+/// Download `archive` from `url` into `directory`, check it against the
+/// release's SHA256SUMS at `sums` (a release without them is not checked,
+/// as with scripts/install.sh), and unpack the server `exe` from it.
+fn install(url: &str, sums: Option<&str>, directory: &str, archive: &str, exe: &str) -> Result<()> {
+    fs::create_dir_all(directory).map_err(|error| format!("{directory}: {error}"))?;
+    let file = format!("{directory}/{archive}");
+    zed::download_file(url, &file, zed::DownloadedFileType::Uncompressed)?;
+    let data = fs::read(&file).map_err(|error| format!("{file}: {error}"))?;
+    match sums {
+        Some(sums_url) => {
+            let sums_file = format!("{directory}/SHA256SUMS");
+            zed::download_file(sums_url, &sums_file, zed::DownloadedFileType::Uncompressed)?;
+            let sums = fs::read_to_string(&sums_file).map_err(|error| format!("{sums_file}: {error}"))?;
+            check(&data, archive, &sums, RELEASE)?;
+            let _ = fs::remove_file(&sums_file);
+        }
+        None => eprintln!("org-lsp: the {RELEASE} release has no SHA256SUMS: {archive} is not checked"),
+    }
+    let binary = unpack(&data, archive, exe)?;
+    let _ = fs::remove_file(&file);
+    let path = format!("{directory}/{exe}");
+    fs::write(&path, binary).map_err(|error| format!("{path}: {error}"))
+}
+
+/// Whether `data`, the release's file `name`, has the checksum the
+/// release's SHA256SUMS (`sums`) give it: what is wrong, if not.
+fn check(data: &[u8], name: &str, sums: &str, release: &str) -> Result<()> {
+    let expected = sums.lines().find_map(|line| {
+        let (sum, listed) = line.trim_end().split_once(char::is_whitespace)?;
+        (listed.trim_start().trim_start_matches('*') == name).then(|| sum.to_ascii_lowercase())
+    });
+    // The files built together are all in SHA256SUMS: one that is not is
+    // left from an older build (a platform whose build failed).
+    let Some(expected) = expected else {
+        return Err(format!(
+            "{name} is not in the SHA256SUMS of the {release} release: it is not from the same build, so it is \
+             not installed"
+        ));
+    };
+    let actual: String = Sha256::digest(data).iter().map(|byte| format!("{byte:02x}")).collect();
+    if actual != expected {
+        return Err(format!("{name} does not match its checksum in SHA256SUMS: the download is broken"));
+    }
+    Ok(())
+}
+
+/// The server `exe` out of the archive `data`, a `.zip` or a `.tar.gz`.
+fn unpack(data: &[u8], archive: &str, exe: &str) -> Result<Vec<u8>> {
+    let broken = |error: &dyn std::fmt::Display| format!("{archive}: {error}");
+    let mut binary = Vec::new();
+    if archive.ends_with(".zip") {
+        let mut files = zip::ZipArchive::new(std::io::Cursor::new(data)).map_err(|error| broken(&error))?;
+        let mut file = files.by_name(exe).map_err(|_| format!("no {exe} in {archive}"))?;
+        file.read_to_end(&mut binary).map_err(|error| broken(&error))?;
+        return Ok(binary);
+    }
+    let mut files = tar::Archive::new(flate2::read::GzDecoder::new(data));
+    for entry in files.entries().map_err(|error| broken(&error))? {
+        let mut entry = entry.map_err(|error| broken(&error))?;
+        let path = entry.path().map_err(|error| broken(&error))?.into_owned();
+        if path.to_str().is_some_and(|path| path.trim_start_matches("./") == exe) {
+            entry.read_to_end(&mut binary).map_err(|error| broken(&error))?;
+            return Ok(binary);
+        }
+    }
+    Err(format!("no {exe} in {archive}"))
 }
 
 impl zed::Extension for OrgLsp {
@@ -137,3 +216,62 @@ impl zed::Extension for OrgLsp {
 }
 
 zed::register_extension!(OrgLsp);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tar_gz(name: &str, content: &[u8]) -> Vec<u8> {
+        let mut out = Vec::new();
+        {
+            let encoder = flate2::write::GzEncoder::new(&mut out, flate2::Compression::default());
+            let mut files = tar::Builder::new(encoder);
+            let mut header = tar::Header::new_gnu();
+            header.set_size(content.len() as u64);
+            header.set_mode(0o755);
+            header.set_cksum();
+            files.append_data(&mut header, name, content).unwrap();
+            files.into_inner().unwrap().finish().unwrap();
+        }
+        out
+    }
+
+    fn sum(data: &[u8]) -> String {
+        Sha256::digest(data).iter().map(|byte| format!("{byte:02x}")).collect()
+    }
+
+    #[test]
+    fn checks_the_archive_against_the_release_sums() {
+        let data = tar_gz("org-lsp", b"server");
+        let name = "org-lsp-linux-x86_64.tar.gz";
+        let sums = format!("{}  install.sh\n{}  {name}\n", "1".repeat(64), sum(&data));
+        assert_eq!(check(&data, name, &sums, "nightly"), Ok(()));
+        // As `sha256sum -b` writes it.
+        assert_eq!(check(&data, name, &format!("{} *{name}\n", sum(&data).to_uppercase()), "nightly"), Ok(()));
+        let broken = format!("{}  {name}\n", "0".repeat(64));
+        assert_eq!(
+            check(&data, name, &broken, "nightly"),
+            Err(format!("{name} does not match its checksum in SHA256SUMS: the download is broken"))
+        );
+        let unlisted = format!("{}  org-lsp-other.tar.gz\n", sum(&data));
+        assert!(check(&data, name, &unlisted, "v0.2.0")
+            .unwrap_err()
+            .starts_with(&format!("{name} is not in the SHA256SUMS of the v0.2.0 release")));
+    }
+
+    #[test]
+    fn unpacks_the_server() {
+        assert_eq!(unpack(&tar_gz("org-lsp", b"server"), "a.tar.gz", "org-lsp"), Ok(b"server".to_vec()));
+        assert_eq!(unpack(&tar_gz("./org-lsp", b"server"), "a.tar.gz", "org-lsp"), Ok(b"server".to_vec()));
+        assert_eq!(unpack(&tar_gz("other", b"x"), "a.tar.gz", "org-lsp"), Err("no org-lsp in a.tar.gz".to_string()));
+        let mut zipped = std::io::Cursor::new(Vec::new());
+        {
+            use std::io::Write;
+            let mut files = zip::ZipWriter::new(&mut zipped);
+            files.start_file("org-lsp.exe", zip::write::SimpleFileOptions::default()).unwrap();
+            files.write_all(b"server").unwrap();
+            files.finish().unwrap();
+        }
+        assert_eq!(unpack(zipped.get_ref(), "a.zip", "org-lsp.exe"), Ok(b"server".to_vec()));
+    }
+}
