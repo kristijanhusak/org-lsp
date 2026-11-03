@@ -13,6 +13,9 @@ org-syntax = { path = "../org-syntax" }
 # through a large file some 25 times slower (radio links, on every change).
 regex = { version = "1.13.1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case", "unicode-gencat"] }
 unicode-width = "0.2"
+# Looking for a few bytes through a large text: the keyword lines, the
+# clock lines, on every change.
+memchr = "2.8"
 unicode-normalization = "0.1"
 serde_json = { version = "1", features = ["preserve_order"] }
 

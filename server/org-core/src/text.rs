@@ -232,13 +232,36 @@ mod line_end_tests {
 /// finds them, those of its setup files (`#+SETUPFILE:`, in `keywords`)
 /// first: keywords, so not lines inside a block whose contents Org does
 /// not parse (source, example, export, comment and verse blocks).
+/// Where `needle` is in `text`, without overlaps, as `match_indices`
+/// finds it, sooner.
+pub fn find_all<'a>(text: &'a str, needle: &'a str) -> impl Iterator<Item = usize> + 'a {
+    memchr::memmem::find_iter(text.as_bytes(), needle.as_bytes())
+}
+
+/// The lines of `text` that start with `prefix` after blanks (spaces and
+/// tabs), from it on, as `text.lines()` has them, in order: found by
+/// looking for `prefix` rather than going through every line.
+pub fn lines_starting_with<'a>(text: &'a str, prefix: &'a str) -> impl Iterator<Item = &'a str> + 'a {
+    find_all(text, prefix).filter_map(move |at| {
+        let start = text[..at].rfind('\n').map_or(0, |newline| newline + 1);
+        if !text[start..at].bytes().all(|byte| byte == b' ' || byte == b'\t') {
+            return None;
+        }
+        let end = text[at..].find('\n').map_or(text.len(), |newline| at + newline);
+        // `lines()` leaves a `\r` at the very end.
+        let line = &text[at..end];
+        Some(if end < text.len() { line.strip_suffix('\r').unwrap_or(line) } else { line })
+    })
+}
+
 pub fn startup_words<'a>(text: &'a str, keywords: &'a org_syntax::TodoKeywords) -> Vec<&'a str> {
     let mut words: Vec<&str> = keywords.setup_values("STARTUP").flat_map(str::split_whitespace).collect();
     // The line that ends the block the line is in (`#+end_src`), written
     // once for the block, not for each of its lines.
     let mut inside: Option<String> = None;
-    for line in text.lines() {
-        let line = line.trim_start_matches([' ', '\t']);
+    // Only lines that start with `#+` count: the others neither start nor
+    // end a block, nor say `#+STARTUP:`.
+    for line in lines_starting_with(text, "#+") {
         match &inside {
             Some(end) => {
                 if line.get(..end.len()).is_some_and(|start| start.eq_ignore_ascii_case(end)) {
@@ -274,6 +297,22 @@ mod startup_tests {
             super::startup_words(text, &org_syntax::TodoKeywords::default()),
             ["overview", "indent", "hidestars"]
         );
+    }
+
+    /// The lines that start with `#+` are those `lines()` gives, found
+    /// without going through the others.
+    #[test]
+    fn finds_the_lines_that_start_with_a_prefix() {
+        let texts =
+            ["#+a\n  #+b x #+c\n\t#+d\r\nx #+e\n#+#+f\n\n #+g\r", "", "#+", "\r\n#+a\r\r\n#+b", "no prefix at all\n"];
+        for text in texts {
+            let slow: Vec<&str> = text
+                .lines()
+                .map(|line| line.trim_start_matches([' ', '\t']))
+                .filter(|line| line.starts_with("#+"))
+                .collect();
+            assert_eq!(super::lines_starting_with(text, "#+").collect::<Vec<_>>(), slow, "{text:?}");
+        }
     }
 }
 

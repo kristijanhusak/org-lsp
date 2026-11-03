@@ -105,6 +105,9 @@ impl Document {
         // text is parsed again.
         let whole = usize::from(self.parse.syntax().text_range().end()) == self.text.len();
         let mut parse = whole.then(|| self.parse.clone());
+        // Whether `text` is still the document's: the text before the
+        // first edit is then the document's own, not copied again.
+        let mut unedited = true;
         for change in changes {
             match change.range {
                 Some(range) => {
@@ -115,8 +118,12 @@ impl Document {
                     let narrowed = Change::between(&text[start..end], &change.text);
                     let (start, end) = (start + narrowed.start, start + narrowed.end);
                     changed.push(Change { start, end, length: narrowed.length });
-                    let before = parse.is_some().then(|| text.clone());
+                    let before = parse.is_some().then(|| before(&self.text, &text, unedited));
                     text.replace_range(start..end, &change.text[narrowed.start..narrowed.start + narrowed.length]);
+                    unedited = false;
+                    // Later changes in the same notification refer to the
+                    // new text.
+                    index.edit(&text, start, end, narrowed.length);
                     parse = parse.zip(before).and_then(|(parse, before)| {
                         std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                             parse.edit(&before, start, end, &text, todo)
@@ -138,8 +145,9 @@ impl Document {
                         changed.push(Change { start, end, length: run.new_text.len() });
                         // The text before the run, only while the parse is
                         // still edited where each run is.
-                        let before = parse.is_some().then(|| text.clone());
+                        let before = parse.is_some().then(|| before(&self.text, &text, unedited));
                         text.replace_range(start..end, &run.new_text);
+                        unedited = false;
                         parse = parse.zip(before).and_then(|(parse, before)| {
                             std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                                 parse.edit(&before, start, end, &text, todo)
@@ -153,10 +161,10 @@ impl Document {
                         text = change.text;
                         parse = None;
                     }
+                    unedited = false;
+                    index = LineIndex::new(&text);
                 }
             }
-            // Later changes in the same notification refer to the new text.
-            index = LineIndex::new(&text);
         }
         let parse = parse.unwrap_or_else(|| {
             std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| org_syntax::parse(&text, todo)))
@@ -164,6 +172,16 @@ impl Document {
         });
         *self = Document { version, text, index, parse };
         changed
+    }
+}
+
+/// The text before an edit, for `Parse::edit`: the document's own while
+/// `text` is still a copy of it, else a copy of `text`.
+fn before<'a>(own: &'a str, text: &str, unedited: bool) -> std::borrow::Cow<'a, str> {
+    if unedited {
+        std::borrow::Cow::Borrowed(own)
+    } else {
+        std::borrow::Cow::Owned(text.to_string())
     }
 }
 
