@@ -191,6 +191,43 @@ wait('the folds it opens with', function()
   return vim.fn.foldclosed(10) == 9
 end)
 eq({ vim.fn.foldclosed(3), vim.fn.foldclosed(6), vim.fn.foldclosed(8) }, { 3, -1, 7 }, 'startup folds: drawer and childless headlines')
+-- A headline folded before it ever showed open keeps its colors. Neovim
+-- then marks only the first token of a closed fold's first line
+-- (`check_fold` in its semantic_tokens.lua), which depends on when the
+-- tokens come; the state it leaves is made here by hand: the stars marked,
+-- the rest not.
+local never_open = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* TODO Folded first', 'text', '* Other', 'more' }, never_open)
+vim.cmd.edit(never_open)
+local never_open_buf = vim.api.nvim_get_current_buf()
+wait('its tokens drawn', function()
+  local tokens = vim.lsp.semantic_tokens.get_at_pos(never_open_buf, 0, 7) or {}
+  return #tokens > 0 and tokens[1].marked
+end)
+vim.cmd('normal! zM')
+check(vim.fn.foldclosed(1) == 1, 'the headline folded')
+for col = 2, 18 do
+  for _, token in ipairs(vim.lsp.semantic_tokens.get_at_pos(never_open_buf, 0, col) or {}) do
+    token.marked = false
+    local namespace = vim.api.nvim_create_namespace('nvim.lsp.semantic_tokens:' .. token.client_id)
+    for _, found in ipairs(vim.api.nvim_buf_get_extmarks(never_open_buf, namespace, { 0, token.start_col }, { 0, token.start_col }, {})) do
+      vim.api.nvim_buf_del_extmark(never_open_buf, namespace, found[1])
+    end
+  end
+end
+vim.cmd('redraw')
+local never_folded = vim.api.nvim_win_call(0, function()
+  vim.v.foldstart = 1
+  return require('org-lsp.folds').foldtext()
+end)
+check(vim.tbl_contains(never_folded[3][2], '@lsp.type.todoKeyword.org'), 'the TODO keyword of a headline never open in its color')
+check(vim.tbl_contains(never_folded[5][2], '@lsp.typemod.headline.level1.org'), 'its title in the color of its level')
+wait('the face of its TODO keyword once drawn', function()
+  return vim.iter(vim.api.nvim_buf_get_extmarks(never_open_buf, -1, { 0, 0 }, { 0, -1 }, { details = true })):any(function(found)
+    return found[4].hl_group == 'OrgLspTodoFace_TODO'
+  end)
+end)
+vim.cmd.edit(startup)
 -- A window closed before the server's folds come back (a command that
 -- shows a file for a moment, as setting a deadline from the agenda does).
 local brief = vim.fn.tempname() .. '.org'

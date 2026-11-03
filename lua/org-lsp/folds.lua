@@ -249,6 +249,66 @@ local function token_groups(marks, row, width)
   end
 end
 
+--- The highlight groups Neovim gives semantic token `token`, by its
+--- type and modifiers, with the priority of each over the others'.
+---@param token table
+---@param filetype string
+---@return [string, integer][]
+local function token_looks(token, filetype)
+  local base = (vim.hl or vim.highlight).priorities.semantic_tokens
+  local looks = { { ('@lsp.type.%s.%s'):format(token.type, filetype), base } }
+  for modifier in pairs(token.modifiers) do
+    table.insert(looks, { ('@lsp.mod.%s.%s'):format(modifier, filetype), base + 1 })
+    table.insert(looks, { ('@lsp.typemod.%s.%s.%s'):format(token.type, modifier, filetype), base + 2 })
+  end
+  return looks
+end
+
+--- The semantic tokens over `row` that Neovim has not marked. It marks no
+--- token in a closed fold, and of the fold's first line only the first
+--- (`check_fold` in its semantic_tokens.lua): a headline folded before
+--- it ever showed open would show in `Folded`, past its stars.
+---@param bufnr integer
+---@param row integer
+---@param width integer
+---@return table[]
+local function unmarked(bufnr, row, width)
+  local tokens, seen = {}, {}
+  for col = 0, width - 1 do
+    for _, token in ipairs(vim.lsp.semantic_tokens.get_at_pos(bufnr, row, col) or {}) do
+      if not token.marked and not seen[token] then
+        seen[token] = true
+        table.insert(tokens, token)
+      end
+    end
+  end
+  return tokens
+end
+
+--- Mark `tokens` of buffer `bufnr` as Neovim marks a token it draws, and
+--- tell `LspTokenUpdate` of them, for the faces and the hidden text that
+--- go with them.
+---@param bufnr integer
+---@param tokens table[]
+local function mark(bufnr, tokens)
+  if not vim.api.nvim_buf_is_valid(bufnr) then
+    return
+  end
+  for _, token in ipairs(tokens) do
+    if not token.marked then
+      for _, look in ipairs(token_looks(token, vim.bo[bufnr].filetype)) do
+        vim.lsp.semantic_tokens.highlight_token(token, bufnr, token.client_id, look[1], { priority = look[2] })
+      end
+      token.marked = true
+      vim.api.nvim_exec_autocmds('LspTokenUpdate', {
+        buffer = bufnr,
+        modeline = false,
+        data = { token = token, client_id = token.client_id },
+      })
+    end
+  end
+end
+
 --- 'foldtext' of Org windows: a closed fold shows its first line as it
 --- shows open, highlighted, its hidden text hidden and what stands in for
 --- it shown, then `org-ellipsis`, as Emacs shows a folded heading.
@@ -259,6 +319,20 @@ function M.foldtext()
   local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1] or ''
   local concealed, inline = {}, {}
   local marks = vim.api.nvim_buf_get_extmarks(bufnr, -1, { row, 0 }, { row, -1 }, { details = true, overlap = true })
+  -- The tokens Neovim left unmarked show in their groups now, and are
+  -- marked once the screen is drawn: marks set while it is drawn would
+  -- not show on it.
+  local missing = unmarked(bufnr, row, #line)
+  if #missing > 0 then
+    for _, token in ipairs(missing) do
+      for _, look in ipairs(token_looks(token, vim.bo[bufnr].filetype)) do
+        table.insert(marks, { 0, token.line, token.start_col, { hl_group = look[1], end_row = token.end_line, end_col = token.end_col, priority = look[2] } })
+      end
+    end
+    vim.schedule(function()
+      mark(bufnr, missing)
+    end)
+  end
   local groups_at = token_groups(marks, row, #line)
   for _, mark in ipairs(marks) do
     local col, details = mark[3], mark[4]
