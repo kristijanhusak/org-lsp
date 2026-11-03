@@ -77,6 +77,33 @@ function! s:not_a_release() abort
   call assert_true(executable(org_lsp#download#path()), 'the server downloaded before stays')
 endfunction
 
+" `:OrgLspDownload` of `release`, once it is over.
+function! s:download_release(release) abort
+  let g:org_lsp.release = a:release
+  messages clear
+  OrgLspDownload
+  call s:until('the download of ' . a:release, {-> !org_lsp#download#running()}, 30000)
+endfunction
+
+" An archive that does not match the release's SHA256SUMS, or that they do
+" not list, is not installed: the server downloaded before stays.
+function! s:checked() abort
+  let platform = org_lsp#download#platform()
+  let before = org_lsp#download#version()
+  call s:download_release('v9.0.0-broken')
+  call assert_match('org-lsp-' . platform . '.tar.gz does not match its checksum in SHA256SUMS: the download is broken', s:messages())
+  call assert_equal(before, org_lsp#download#version(), 'the server downloaded before stays')
+  call assert_false(isdirectory(org_lsp#download#dir() . '/staging'), 'the refused archive is cleaned up')
+  call s:download_release('v9.0.0-unlisted')
+  call assert_match('is not in the SHA256SUMS of the v9.0.0-unlisted release', s:messages())
+  call assert_equal(before, org_lsp#download#version(), 'the server downloaded before stays')
+  " A release without SHA256SUMS is installed unchecked, as
+  " scripts/install.sh does, and says so.
+  call s:download_release('v9.0.0-unchecked')
+  call assert_match('the v9.0.0-unchecked release has no SHA256SUMS: org-lsp-' . platform . '.tar.gz is not checked', s:messages())
+  call assert_match('^v9.0.0-unchecked ', org_lsp#download#version())
+endfunction
+
 " From a timer: vimrc sources this file with execute(), which is silent,
 " and a silent message is not kept in the message history.
 function! s:main(...) abort
@@ -85,6 +112,7 @@ function! s:main(...) abort
   call s:test(':OrgLspDownload downloads it again', function('s:again'))
   call s:test('a release that does not exist is an error', function('s:missing'))
   call s:test('a release that is no release name is refused', function('s:not_a_release'))
+  call s:test('the archive is checked against SHA256SUMS', function('s:checked'))
   for error in v:errors
     call add(s:results, 'not ok - ' . error)
   endfor
