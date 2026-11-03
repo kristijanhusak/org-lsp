@@ -1399,7 +1399,7 @@ pub const SETTINGS: &[Setting] = &[
             r#"boolean, "time""#,
             "",
             "org-agenda-jump-prefer-future",
-            "How the agenda's `j` (`org.agenda.goto.date`) reads a date typed without a year or month, as \
+            "How going to a date in the agenda (`org.agenda.goto.date`, `J`; Emacs's `j`) reads a date typed without a year or month, as \
              `org_read_date_prefer_future` does for every other prompt.",
         )
     },

@@ -2419,7 +2419,7 @@ impl Options {
         }
     }
 
-    /// `org-agenda-jump-prefer-future`: how the agenda's `j` reads a date,
+    /// `org-agenda-jump-prefer-future`: how going to a date in the agenda (`J`, Emacs's `j`) reads a date,
     /// when not as every other prompt does.
     pub fn agenda_jump_prefer_future(&self) -> Option<PreferFuture> {
         prefer_future(&self.agenda_jump_prefer_future)

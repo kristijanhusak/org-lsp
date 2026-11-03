@@ -3925,8 +3925,9 @@ org_agenda_dim_blocked_tasks = true
 :CUSTOM_ID: org_agenda_jump_prefer_future
 :END:
 
-How the agenda's ~j~ (~org.agenda.goto.date~) reads a date typed without a
-year or month, as ~org_read_date_prefer_future~ does for every other prompt.
+How going to a date in the agenda (~org.agenda.goto.date~, ~J~; Emacs's ~j~)
+reads a date typed without a year or month, as ~org_read_date_prefer_future~
+does for every other prompt.
 
 - Org's option :: ~org-agenda-jump-prefer-future~
 - Type :: boolean, "time"

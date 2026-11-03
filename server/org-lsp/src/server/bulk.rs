@@ -456,7 +456,7 @@ impl Server {
             }
             "S" => {
                 let query = self.view.as_ref().map(|open| open.view.query.clone());
-                if !matches!(query, Some(views::Query::Agenda { .. } | views::Query::Todo)) {
+                if !matches!(query, Some(views::Query::Agenda { .. } | views::Query::Todo { .. })) {
                     return Err("Can't scatter tasks in this agenda view".into());
                 }
                 // `read-number` with 7 for its default: in the prompt, the

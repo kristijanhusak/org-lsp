@@ -6719,7 +6719,7 @@ impl Server {
         let one = |kind| vec![views::Block { kind, header: None, config: self.agenda.clone() }];
         Ok(match query {
             Query::Agenda { start, span } => one(views::BlockKind::Agenda { start: *start, span: *span }),
-            Query::Todo => one(views::BlockKind::Todo { keywords: None }),
+            Query::Todo { keywords } => one(views::BlockKind::Todo { keywords: keywords.clone() }),
             Query::Tags { matching, todo_only } => {
                 one(views::BlockKind::Tags { matcher: org_core::agenda::Matcher::new(matching), todo_only: *todo_only })
             }
@@ -8177,7 +8177,7 @@ impl Server {
         None
     }
 
-    /// How the prompt of the command `id` reads a date: the agenda's `j`
+    /// How the prompt of the command `id` reads a date: the agenda's `J` (Emacs's `j`)
     /// with `org-agenda-jump-prefer-future`.
     fn read_date_of(&self, id: &str) -> ReadDateSettings {
         // `org-roam-dailies-capture-date` binds `org-read-date-prefer-future`
@@ -8563,7 +8563,7 @@ impl Server {
             commands::AGENDA_TODOS => {
                 self.agenda_filters = self.new_view_filters();
                 self.agenda_marks.clear();
-                Ok(self.open_view(Query::Todo)?)
+                Ok(self.open_view(Query::Todo { keywords: None })?)
             }
             commands::AGENDA_REDO => {
                 self.view.as_ref().ok_or("No agenda is open")?;
@@ -8774,6 +8774,15 @@ impl Server {
         if get("ask").as_deref() == Some("search") {
             return self.search(input.unwrap_or_default(), prefix == "S");
         }
+        // `org-todo-list` with `C-u`: the keywords read as `KWD1|KWD2`,
+        // none for every open entry.
+        if get("ask").as_deref() == Some("keyword") {
+            let keywords = input.map(|input| input.trim().to_string()).filter(|input| !input.is_empty());
+            self.agenda_filters = self.new_view_filters();
+            self.agenda_marks.clear();
+            self.open_view(Query::Todo { keywords })?;
+            return Ok(Value::Null);
+        }
         let keys = format!("{prefix}{}", input.as_deref().unwrap_or(""));
         // The commands offered where the menu was asked for, each with the
         // key of the command it stands for.
@@ -8813,6 +8822,7 @@ impl Server {
         let built_in = [
             ("a", commands::title(commands::AGENDA_LIST)),
             ("t", commands::title(commands::AGENDA_TODOS)),
+            ("T", "Entries with special TODO kwd"),
             ("m", "Match a TAGS/PROP/TODO query"),
             ("M", "Like m, but only TODO entries"),
             ("s", "Search for keywords"),
@@ -8847,6 +8857,14 @@ impl Server {
                     "prompt": "Match",
                     "value": "",
                     "context": { "keys": keys, "ask": "match" },
+                } }))
+            }
+            "T" => {
+                return Ok(json!({ "input": {
+                    "kind": "text",
+                    "prompt": "Keyword (or KWD1|KWD2|...)",
+                    "value": "",
+                    "context": { "keys": keys, "ask": "keyword" },
                 } }))
             }
             "s" | "S" => return Ok(self.search_input(&keys, "")),
@@ -9366,7 +9384,7 @@ impl Server {
         match open.view.blocks.get(block).copied().flatten() {
             Some((start, span)) => Ok((block, start, span)),
             None => Err(match open.view.query {
-                Query::Todo => "The TODO list has no dates to move through",
+                Query::Todo { .. } => "The TODO list has no dates to move through",
                 Query::Tags { .. } => "A tags view has no dates to move through",
                 Query::Search { .. } => "A search view has no dates to move through",
                 Query::Stuck => "The stuck projects have no dates to move through",
