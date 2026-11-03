@@ -22,7 +22,19 @@ case "$(uname -sm)" in
 esac
 mkdir -p "$work/releases/nightly" "$work/staged"
 cp "$server" "$work/staged/org-lsp"
-tar -czf "$work/releases/nightly/org-lsp-$platform.tar.gz" -C "$work/staged" org-lsp
+archive="org-lsp-$platform.tar.gz"
+tar -czf "$work/releases/nightly/$archive" -C "$work/staged" org-lsp
+sum="$(sha256sum "$work/releases/nightly/$archive" | cut -d' ' -f1)"
+zeros="$(printf '0%.0s' $(seq 64))"
+printf '%s  %s\n%s  install.sh\n' "$sum" "$archive" "$zeros" > "$work/releases/nightly/SHA256SUMS"
+# Releases whose archive does not match its SHA256SUMS, is not in them,
+# and that has none.
+for release in v9.0.0-broken v9.0.0-unlisted v9.0.0-unchecked; do
+  mkdir -p "$work/releases/$release"
+  cp "$work/releases/nightly/$archive" "$work/releases/$release/"
+done
+printf '%s  %s\n' "$zeros" "$archive" > "$work/releases/v9.0.0-broken/SHA256SUMS"
+printf '%s  org-lsp-other.tar.gz\n' "$sum" > "$work/releases/v9.0.0-unlisted/SHA256SUMS"
 cp -R "$root/editors/vim" "$work/plugin"
 
 # No `org-lsp` on PATH.
