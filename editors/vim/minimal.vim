@@ -1,15 +1,17 @@
 " A minimal vimrc for trying the Vim plugin from a checkout of this
-" repository, with vim-plug and yegappan/lsp in a temporary folder:
+" repository, wherever it is, with vim-plug and yegappan/lsp in a temporary
+" folder:
 "
 "   cargo build --release -p org-lsp
-"   vim -N -u editors/vim/minimal.vim ~/org/todo.org
+"   vim -N -u path/to/org-lsp/editors/vim/minimal.vim ~/org/todo.org
 "
 " It sets no Org options: the server reads your own configuration
 " (`~/.config/org-lsp/config.toml`).
 set nocompatible
 
 let s:root = '/tmp/org-lsp-vim'
-let s:org_lsp = expand('~/github/org-lsp')   " the checkout, also below
+" The checkout this file is in, wherever it is (editors/vim/minimal.vim).
+let s:org_lsp = fnamemodify(resolve(expand('<sfile>:p')), ':h:h:h')
 
 " vim-plug, fetched once into the temporary folder.
 if !filereadable(s:root . '/autoload/plug.vim')
@@ -20,8 +22,9 @@ let &runtimepath = s:root . ',' . &runtimepath
 
 call plug#begin(s:root . '/plugged')
 Plug 'yegappan/lsp'
-" A literal path: Plug evaluates its arguments where `s:` names are unknown.
-Plug '~/github/org-lsp', {'rtp': 'editors/vim'}
+" plug#() rather than `Plug`, which evaluates its arguments where `s:`
+" names are unknown.
+call plug#(s:org_lsp, {'rtp': 'editors/vim'})
 call plug#end()
 
 " Install the client on the first start, before the plugins load.
