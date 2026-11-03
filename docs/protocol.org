@@ -300,7 +300,9 @@ And these notifications:
   (~{ "props": [[":link", "https://…"], …] }~), which each question's
   ~context~ carries on. Without it, the server runs the command itself and
   asks as for a client without org-lsp's code (~window/showMessageRequest~,
-  a rename).
+  a rename). A client runs only one of the server's own commands, those it
+  announced (~org.*~ of ~executeCommandProvider~), and ignores any other:
+  never one of the editor's or of another extension's.
 - ~org-lsp/clock~ :: The clock that runs, for a status line: ~null~ when
   none does, or ~{ "heading", "minutes", "effort", "text", "uri", "line" }~,
   the entry's headline, the minutes clocked on it so far (since

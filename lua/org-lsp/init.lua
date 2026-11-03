@@ -227,6 +227,18 @@ local function server_command(id)
   end
 end
 
+--- Whether the server of `client_id` announced command `id` among its own
+--- (`org.*`, `executeCommandProvider`): the commands it may ask to run
+--- (`org-lsp/runCommand`).
+---@param client_id integer
+---@param id string
+---@return boolean
+function M.announced(client_id, id)
+  local client = vim.lsp.get_client_by_id(client_id)
+  local provider = client and client.server_capabilities and client.server_capabilities.executeCommandProvider
+  return vim.startswith(id, 'org.') and type(provider) == 'table' and vim.tbl_contains(provider.commands or {}, id)
+end
+
 --- Run a command: one of the editor's own, or one of the server's, which
 --- is told where the cursor is.
 ---@param name string e.g. 'org.todo.next'

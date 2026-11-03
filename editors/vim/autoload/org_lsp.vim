@@ -2207,8 +2207,11 @@ function! org_lsp#handle_notification(method, params) abort
   elseif a:method ==# 'org-lsp/folds'
     call s:journal_folds(a:params)
   elseif a:method ==# 'org-lsp/runCommand' && type(a:params) == v:t_dict && type(get(a:params, 'command', 0)) == v:t_string
+        \ && a:params.command =~# '^org\.'
     " A command to run as from its key, where the cursor is, outside the
-    " client's callback: a capture an org-protocol URL started.
+    " client's callback: a capture an org-protocol URL started. Only one
+    " of the server's own (`org.*`), which go to the server: never one of
+    " the plugin's (`quit`).
     let Run = {-> org_lsp#run(a:params.command, {'argument': get(a:params, 'argument', {})})}
     call timer_start(0, {-> Run()})
   elseif a:method ==# 'org-lsp/message' && type(a:params) == v:t_dict

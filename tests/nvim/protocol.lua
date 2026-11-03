@@ -79,6 +79,26 @@ wait('the message in Neovim', function()
   return vim.tbl_contains(messages, message)
 end)
 
+-- The server may ask to run only commands it announced: not one of
+-- another plugin's (`vim.lsp.commands`), nor an `org.` id it did not
+-- announce.
+local ran = {}
+vim.lsp.commands['other.plugin.command'] = function()
+  table.insert(ran, 'other.plugin.command')
+end
+vim.lsp.commands['org.not.announced'] = function()
+  table.insert(ran, 'org.not.announced')
+end
+local client = vim.lsp.get_clients({ bufnr = bufnr, name = 'org_lsp' })[1]
+local run_command = require('org-lsp.view').handlers['org-lsp/runCommand']
+for _, id in ipairs({ 'other.plugin.command', 'org.not.announced' }) do
+  run_command(nil, { command = id, argument = {} }, { client_id = client.id, method = 'org-lsp/runCommand' })
+end
+vim.wait(300)
+eq(ran, {}, 'commands the server did not announce are not run')
+check(require('org-lsp').announced(client.id, 'org.capture'), 'org.capture is announced')
+check(not require('org-lsp').announced(client.id, 'other.plugin.command'), 'another plugin command is not')
+
 -- capture: the capture buffer, with what the URL brought.
 protocol('org-protocol://capture?template=w&url=https%3A%2F%2Forgmode.org%2Fmanual%2F&title=The+Org+Manual&body=Selected+text')
 local capture
