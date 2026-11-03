@@ -1,7 +1,9 @@
 //! The command port: how a key reaches the server in an editor whose keys
 //! cannot run a language server's command, but can run a program (Zed's
-//! tasks). The server listens on a local port from the start, and writes
-//! a script in a place of the user's own that sends a command there:
+//! tasks). The server listens from the start (on Unix on a socket beside
+//! the script, in a directory only the user may enter; elsewhere on a
+//! local TCP port), and writes a script in a place of the user's own that
+//! sends a command there:
 //!
 //! ```text
 //! ~/.local/state/org-lsp/agenda-command COMMAND [ROW COLUMN [FILE]]
@@ -17,7 +19,8 @@
 //! is fixed, so that the editor's keys can name it: the server whose
 //! agenda the cursor was last in makes it its own. The script holds a
 //! token the server checks, so that no other user's program can run
-//! commands; the script is the owner's alone.
+//! commands (where a TCP port is open to them all); the script is the
+//! owner's alone.
 //!
 //! The script stays when the server stops. Run then, it finds no server,
 //! opens the Org file last opened, in its folder, with the editor's
@@ -26,8 +29,9 @@
 //! that starts takes the script over only when no other answers there.
 
 use std::io::{BufRead, BufReader, Read, Write};
-use std::net::{SocketAddr, TcpListener, TcpStream};
+use std::net::{SocketAddr, TcpStream};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use serde::Deserialize;
 use serde_json::json;
@@ -50,11 +54,69 @@ struct Sent {
     file: Option<PathBuf>,
 }
 
+/// Where a port listens: on Unix a socket in a directory only the user
+/// may enter, which no other user can connect to; elsewhere a local TCP
+/// port, which the token keeps to the user.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Address {
+    Tcp(SocketAddr),
+    #[cfg(unix)]
+    Socket(PathBuf),
+}
+
+impl Address {
+    /// The address as `org-lsp command` takes it: a socket's path, or
+    /// `HOST:PORT`.
+    fn parse(text: &str) -> Option<Address> {
+        #[cfg(unix)]
+        if text.contains('/') {
+            return Some(Address::Socket(PathBuf::from(text)));
+        }
+        text.parse().ok().map(Address::Tcp)
+    }
+
+    fn text(&self) -> String {
+        match self {
+            Address::Tcp(address) => address.to_string(),
+            #[cfg(unix)]
+            Address::Socket(path) => path.display().to_string(),
+        }
+    }
+
+    /// A connection to the port, or why there is none (no server listens
+    /// there any more).
+    fn connect(&self, timeout: Duration) -> std::io::Result<Box<dyn Stream>> {
+        match self {
+            Address::Tcp(address) => Ok(Box::new(TcpStream::connect_timeout(address, timeout)?)),
+            #[cfg(unix)]
+            Address::Socket(path) => Ok(Box::new(std::os::unix::net::UnixStream::connect(path)?)),
+        }
+    }
+}
+
+/// A connection to or from the port.
+trait Stream: Read + Write + Send {
+    fn set_read_timeout(&self, timeout: Option<Duration>) -> std::io::Result<()>;
+}
+
+impl Stream for TcpStream {
+    fn set_read_timeout(&self, timeout: Option<Duration>) -> std::io::Result<()> {
+        TcpStream::set_read_timeout(self, timeout)
+    }
+}
+
+#[cfg(unix)]
+impl Stream for std::os::unix::net::UnixStream {
+    fn set_read_timeout(&self, timeout: Option<Duration>) -> std::io::Result<()> {
+        std::os::unix::net::UnixStream::set_read_timeout(self, timeout)
+    }
+}
+
 /// An open port: where it listens, the token it asks for, and whether it
 /// is to stop listening.
 #[derive(Debug, Clone)]
 pub struct Port {
-    address: SocketAddr,
+    address: Address,
     token: String,
     closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
@@ -75,24 +137,92 @@ pub fn script_path() -> Option<PathBuf> {
     Some(PathBuf::from(home).join(".local").join("state").join("org-lsp").join(name))
 }
 
-/// Listen on a local port for commands, which go to `sender`.
-pub fn open(sender: crossbeam_channel::Sender<Command>) -> std::io::Result<Port> {
-    let listener = TcpListener::bind(("127.0.0.1", 0))?;
-    let port = Port { address: listener.local_addr()?, token: token(), closed: Default::default() };
-    let (token, closed) = (port.token.clone(), port.closed.clone());
-    std::thread::Builder::new().name("org-lsp-port".to_string()).spawn(move || {
-        for stream in listener.incoming().flatten() {
-            if closed.load(std::sync::atomic::Ordering::SeqCst) {
-                return;
-            }
-            if let Some(command) = receive(stream, &token) {
-                if sender.send(command).is_err() {
+/// Listen for commands, which go to `sender`: on Unix on a socket in
+/// `directory` (the script's), made only the user's; elsewhere on a local
+/// port.
+pub fn open(directory: &Path, sender: crossbeam_channel::Sender<Command>) -> std::io::Result<Port> {
+    let token = token();
+    let closed: std::sync::Arc<std::sync::atomic::AtomicBool> = Default::default();
+    let done = closed.clone();
+    #[cfg(unix)]
+    {
+        let (socket, listener) = bind_socket(directory, &token)?;
+        let port = Port { address: Address::Socket(socket), token: token.clone(), closed };
+        std::thread::Builder::new().name("org-lsp-port".to_string()).spawn(move || {
+            for stream in listener.incoming().flatten() {
+                if done.load(std::sync::atomic::Ordering::SeqCst) {
                     return;
                 }
+                if let Some(command) = receive(Box::new(stream), &token) {
+                    if sender.send(command).is_err() {
+                        return;
+                    }
+                }
             }
+        })?;
+        Ok(port)
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = directory;
+        let listener = std::net::TcpListener::bind(("127.0.0.1", 0))?;
+        let port = Port { address: Address::Tcp(listener.local_addr()?), token: token.clone(), closed };
+        std::thread::Builder::new().name("org-lsp-port".to_string()).spawn(move || {
+            for stream in listener.incoming().flatten() {
+                if done.load(std::sync::atomic::Ordering::SeqCst) {
+                    return;
+                }
+                if let Some(command) = receive(Box::new(stream), &token) {
+                    if sender.send(command).is_err() {
+                        return;
+                    }
+                }
+            }
+        })?;
+        Ok(port)
+    }
+}
+
+/// A socket of this server's in `directory`, made only the user's (a
+/// private directory of `/tmp` when its name would be too long there, as
+/// for org-protocol's), the sockets left by servers that stopped without
+/// taking theirs away gone.
+#[cfg(unix)]
+fn bind_socket(directory: &Path, token: &str) -> std::io::Result<(PathBuf, std::os::unix::net::UnixListener)> {
+    use std::os::unix::fs::PermissionsExt;
+    create_private_dir(directory)?;
+    let name = format!("port-{}-{}.sock", std::process::id(), &token[..8]);
+    let bind = |directory: &Path| {
+        remove_stale_sockets(directory);
+        let socket = directory.join(&name);
+        let _ = std::fs::remove_file(&socket);
+        std::os::unix::net::UnixListener::bind(&socket).map(|listener| (socket, listener))
+    };
+    let (socket, listener) = match bind(directory) {
+        Ok(bound) => bound,
+        Err(error) if error.kind() != std::io::ErrorKind::InvalidInput => return Err(error),
+        Err(error) => crate::protocol::short_socket_directory()
+            .and_then(|short| bind(&short))
+            .map_err(|short| std::io::Error::new(error.kind(), format!("{error}; in /tmp: {short}")))?,
+    };
+    std::fs::set_permissions(&socket, std::fs::Permissions::from_mode(0o600))?;
+    Ok((socket, listener))
+}
+
+/// Take away the sockets of ports in `directory` that no server listens on.
+#[cfg(unix)]
+fn remove_stale_sockets(directory: &Path) {
+    for entry in std::fs::read_dir(directory).into_iter().flatten().flatten() {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        let path = entry.path();
+        if name.starts_with("port-")
+            && name.ends_with(".sock")
+            && std::os::unix::net::UnixStream::connect(&path)
+                .is_err_and(|error| error.kind() == std::io::ErrorKind::ConnectionRefused)
+        {
+            let _ = std::fs::remove_file(&path);
         }
-    })?;
-    Ok(port)
+    }
 }
 
 impl Port {
@@ -114,27 +244,30 @@ impl Port {
         self.closed.store(true, std::sync::atomic::Ordering::SeqCst);
         // The listener waits for a connection: this one ends the wait. Then
         // the port answers no more, for a server that starts next.
-        let timeout = std::time::Duration::from_millis(300);
+        let timeout = Duration::from_millis(300);
         for _ in 0..100 {
-            if TcpStream::connect_timeout(&self.address, timeout).is_err() {
-                return;
+            if self.address.connect(timeout).is_err() {
+                break;
             }
-            std::thread::sleep(std::time::Duration::from_millis(10));
+            #[cfg(unix)]
+            if let Address::Socket(path) = &self.address {
+                let _ = std::fs::remove_file(path);
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(10));
         }
     }
 
     /// Whether the script at `path` sends to this port.
     pub fn owns(&self, path: &Path) -> bool {
-        sent_to(path).is_some_and(|(address, _)| address == self.address.to_string())
+        sent_to(path).is_some_and(|(address, _)| address == self.address.text())
     }
 
     /// Whether the script at `path` sends to another server that answers.
     pub fn answered_elsewhere(&self, path: &Path) -> bool {
         sent_to(path).is_some_and(|(address, _)| {
-            address != self.address.to_string()
-                && address.parse().is_ok_and(|address: SocketAddr| {
-                    TcpStream::connect_timeout(&address, std::time::Duration::from_millis(300)).is_ok()
-                })
+            address != self.address.text()
+                && Address::parse(&address).is_some_and(|address| address.connect(Duration::from_millis(300)).is_ok())
         })
     }
 }
@@ -186,7 +319,7 @@ pub(crate) fn on_path(name: &str) -> Option<PathBuf> {
 }
 
 /// Read one command, and answer whether it is taken.
-fn receive(mut stream: TcpStream, token: &str) -> Option<Command> {
+fn receive(mut stream: Box<dyn Stream>, token: &str) -> Option<Command> {
     // The port takes one command at a time: one that never comes, or
     // comes a byte at a time, must not keep the others out. The whole
     // line has two seconds.
@@ -204,7 +337,7 @@ fn receive(mut stream: TcpStream, token: &str) -> Option<Command> {
     }
     let line = line.split(|byte| *byte == b'\n').next().unwrap_or_default();
     let sent: Option<Sent> = serde_json::from_slice(line).ok();
-    let command = sent.filter(|sent| sent.token == token).map(|sent| Command {
+    let command = sent.filter(|sent| same(&sent.token, token)).map(|sent| Command {
         command: sent.command,
         position: sent.line.zip(sent.character),
         file: sent.file,
@@ -213,9 +346,18 @@ fn receive(mut stream: TcpStream, token: &str) -> Option<Command> {
     command
 }
 
-/// A token no other process can guess: the hash keys of the standard
-/// library are random per process.
+/// A token no other process can guess, 32 hexadecimal digits: 16 bytes
+/// of the system's randomness (`/dev/urandom`). Where there is none to
+/// read (Windows), the hash keys of the standard library, which it takes
+/// from the system's randomness once per thread, through SipHash.
 pub(crate) fn token() -> String {
+    #[cfg(unix)]
+    {
+        let mut bytes = [0u8; 16];
+        if std::fs::File::open("/dev/urandom").and_then(|mut random| random.read_exact(&mut bytes)).is_ok() {
+            return bytes.iter().map(|byte| format!("{byte:02x}")).collect();
+        }
+    }
     use std::hash::{BuildHasher, Hasher};
     let part = |salt: u64| {
         let mut hasher = std::collections::hash_map::RandomState::new().build_hasher();
@@ -226,6 +368,12 @@ pub(crate) fn token() -> String {
         hasher.finish()
     };
     format!("{:016x}{:016x}", part(std::process::id().into()), part(1))
+}
+
+/// Whether `given` is `token`, in a time that does not tell how much of it
+/// was right.
+fn same(given: &str, token: &str) -> bool {
+    given.len() == token.len() && given.bytes().zip(token.bytes()).fold(0, |differ, (a, b)| differ | (a ^ b)) == 0
 }
 
 /// The options of `org-lsp command` that say how to start a server.
@@ -241,10 +389,11 @@ fn start_options(start: &Start, quote: fn(&Path) -> String) -> String {
 }
 
 #[cfg(unix)]
-fn script(address: &SocketAddr, token: &str, start: &Start) -> std::io::Result<String> {
+fn script(address: &Address, token: &str, start: &Start) -> std::io::Result<String> {
     let quote = |path: &Path| format!("'{}'", path.display().to_string().replace('\'', r"'\''"));
     let exe = quote(&std::env::current_exe()?);
     let options = start_options(start, quote);
+    let address = quote(Path::new(&address.text()));
     // The token goes in the environment, which only the user can read,
     // not on the command line, which every user can.
     Ok(format!(
@@ -254,10 +403,11 @@ fn script(address: &SocketAddr, token: &str, start: &Start) -> std::io::Result<S
 }
 
 #[cfg(not(unix))]
-fn script(address: &SocketAddr, token: &str, start: &Start) -> std::io::Result<String> {
+fn script(address: &Address, token: &str, start: &Start) -> std::io::Result<String> {
     let quote = |path: &Path| format!("\"{}\"", path.display());
     let exe = quote(&std::env::current_exe()?);
     let options = start_options(start, quote);
+    let address = address.text();
     Ok(format!(
         "@rem Runs a command of an org-lsp: COMMAND [ROW COLUMN [FILE]].\r\n\
          @set {TOKEN_VARIABLE}={token}\r\n\
@@ -273,13 +423,32 @@ const TOKEN_VARIABLE: &str = "ORG_LSP_TOKEN";
 /// the last two words before the command's own arguments, the token in
 /// `TOKEN_VARIABLE` when the second is `-`.
 fn address_and_token(text: &str) -> Option<(String, String)> {
-    let words: Vec<&str> = text.lines().last()?.split_whitespace().collect();
+    let words = shell_words(text.lines().last()?);
     let [.., address, token, _] = words.as_slice() else { return None };
-    let token = match *token {
+    let token = match token.as_str() {
         "-" => text.split_whitespace().find_map(|word| word.strip_prefix(TOKEN_VARIABLE)?.strip_prefix('='))?,
         token => token,
     };
-    Some((address.to_string(), token.to_string()))
+    Some((address.clone(), token.to_string()))
+}
+
+/// The words of a line of the script, as the shell splits them: quotes
+/// (`'…'`, `"…"`) and a backslash keep spaces in a word, and go.
+fn shell_words(line: &str) -> Vec<String> {
+    let mut words = Vec::new();
+    let mut word: Option<String> = None;
+    let mut chars = line.chars();
+    while let Some(c) = chars.next() {
+        match c {
+            ' ' | '\t' => words.extend(word.take()),
+            '\'' => word.get_or_insert_default().extend(chars.by_ref().take_while(|c| *c != '\'')),
+            '"' if cfg!(unix) => word.get_or_insert_default().extend(chars.by_ref().take_while(|c| *c != '"')),
+            '\\' if cfg!(unix) => word.get_or_insert_default().extend(chars.next()),
+            c => word.get_or_insert_default().push(c),
+        }
+    }
+    words.extend(word);
+    words
 }
 
 #[cfg(unix)]
@@ -371,8 +540,9 @@ pub fn send(arguments: &[String]) -> Result<(), String> {
 
 /// Send `sent` to the server at `address`.
 fn deliver(address: &str, sent: &serde_json::Value) -> Result<(), Failure> {
-    let mut stream =
-        TcpStream::connect(address).map_err(|error| Failure::Unreachable(format!("{address}: {error}")))?;
+    let unreachable = |error: std::io::Error| Failure::Unreachable(format!("{address}: {error}"));
+    let to = Address::parse(address).ok_or_else(|| Failure::Refused(format!("not an address: {address}")))?;
+    let mut stream = to.connect(Duration::from_secs(5)).map_err(unreachable)?;
     stream.write_all(format!("{sent}\n").as_bytes()).map_err(|error| Failure::Refused(error.to_string()))?;
     let mut answer = String::new();
     BufReader::new(stream).read_line(&mut answer).map_err(|error| Failure::Refused(error.to_string()))?;
@@ -419,7 +589,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&directory);
         let script = directory.join("state").join("agenda-command");
         let (sender, receiver) = crossbeam_channel::unbounded();
-        let port = open(sender).unwrap();
+        let port = open(script.parent().unwrap(), sender).unwrap();
         port.claim(&script, &Start::default()).unwrap();
         let text = std::fs::read_to_string(&script).unwrap();
         let (address, token) = address_and_token(&text).unwrap();
@@ -460,8 +630,14 @@ mod tests {
             assert_eq!(std::fs::metadata(script.parent().unwrap()).unwrap().permissions().mode() & 0o777, 0o700);
             // The script runs `org-lsp command` with its own path and the
             // port, the token in its environment, off the command line.
-            assert!(text.contains(&format!(" command --script \"$0\" {address} - \"$@\"")), "{text}");
+            assert!(text.contains(&format!(" command --script \"$0\" '{address}' - \"$@\"")), "{text}");
             assert!(text.contains(&format!("{TOKEN_VARIABLE}={token} exec ")), "{text}");
+            // The port is a socket beside the script, only the user's.
+            let socket = PathBuf::from(&address);
+            assert_eq!(socket.parent(), script.parent(), "{address}");
+            assert_eq!(std::fs::metadata(&socket).unwrap().permissions().mode() & 0o777, 0o600);
+            port.close();
+            assert!(!socket.exists());
         }
         std::fs::remove_dir_all(directory).unwrap();
     }
@@ -486,16 +662,21 @@ mod tests {
             std::fs::set_permissions(&editor, std::fs::Permissions::from_mode(0o755)).unwrap();
         }
         let start = Start { file: Some(file.clone()), folder: Some(directory.clone()), editor: Some(editor.clone()) };
-        // A server that stopped: its port is closed.
+        // A server that stopped: its socket is there, but no one listens.
+        let state = script.parent().unwrap();
+        create_private_dir(state).unwrap();
         let gone = {
-            let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
-            Port { address: listener.local_addr().unwrap(), token: token(), closed: Default::default() }
+            let socket = state.join("port-1-gone.sock");
+            drop(std::os::unix::net::UnixListener::bind(&socket).unwrap());
+            Port { address: Address::Socket(socket), token: token(), closed: Default::default() }
         };
         gone.claim(&script, &start).unwrap();
         // The new server takes the script over a moment after the editor
         // opened the file.
         let (sender, receiver) = crossbeam_channel::unbounded();
-        let new = open(sender).unwrap();
+        let new = open(state, sender).unwrap();
+        // It took the stopped server's socket away.
+        assert!(!state.join("port-1-gone.sock").exists());
         // The script's server does not answer: a new one may take it over.
         assert!(!new.answered_elsewhere(&script));
         let (watched, claimed) = (opened.clone(), script.clone());
@@ -533,8 +714,42 @@ mod tests {
         let new = taker.join().unwrap();
         assert!(new.owns(&script));
         let (third_sender, _third_receiver) = crossbeam_channel::unbounded();
-        let third = open(third_sender).unwrap();
+        let third = open(state, third_sender).unwrap();
         assert!(third.answered_elsewhere(&script) && !third.owns(&script));
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    /// The token is the system's randomness, and is compared whole.
+    #[test]
+    fn tokens_are_random_and_compared_whole() {
+        let (one, two) = (token(), token());
+        assert_eq!(one.len(), 32);
+        assert!(one.chars().all(|c| c.is_ascii_hexdigit()), "{one}");
+        assert_ne!(one, two);
+        assert!(same(&one, &one.clone()));
+        assert!(!same(&one, &two));
+        assert!(!same(&one[..31], &one));
+        assert!(!same("", &one));
+    }
+
+    /// A socket in a directory whose name has a space and a quote: the
+    /// script names it so that the shell, and `org-lsp command`, read it
+    /// whole.
+    #[cfg(unix)]
+    #[test]
+    fn names_a_socket_whose_path_has_spaces() {
+        let directory = std::env::temp_dir().join(format!("org-lsp-port 'quoted' {}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        let script = directory.join("agenda-command");
+        let (sender, receiver) = crossbeam_channel::unbounded();
+        let port = open(&directory, sender).unwrap();
+        port.claim(&script, &Start::default()).unwrap();
+        assert!(port.owns(&script));
+        let (address, token) = address_and_token(&std::fs::read_to_string(&script).unwrap()).unwrap();
+        assert!(address.starts_with(&directory.display().to_string()), "{address}");
+        send(&[address, token, "org.agenda.list".to_string()]).unwrap();
+        assert_eq!(receiver.recv().unwrap().command, "org.agenda.list");
+        port.close();
         std::fs::remove_dir_all(directory).unwrap();
     }
 }

@@ -6356,9 +6356,19 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
         // The token is in the script's environment, off the command line.
         assert_eq!(words[words.len() - 2], "-");
         let token = text.split_whitespace().find_map(|word| word.strip_prefix("ORG_LSP_TOKEN=")).unwrap();
-        (words[words.len() - 3].clone(), token.to_string())
+        // The address quoted, as a path is (on Unix, the socket's).
+        (words[words.len() - 3].trim_matches('\'').to_string(), token.to_string())
     };
     let (address, token) = sent_to(&script_path);
+    // On Unix, a socket beside the script, which only the user may use.
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::{FileTypeExt, PermissionsExt};
+        let socket = std::fs::metadata(&address).unwrap();
+        assert!(socket.file_type().is_socket(), "{address}");
+        assert_eq!(socket.permissions().mode() & 0o777, 0o600);
+        assert_eq!(std::path::Path::new(&address).parent(), script_path.parent());
+    }
     // The agenda's file is in a place of its own beside the script, the
     // same one each time, for Zed to open again when it starts.
     assert!(agenda_path.starts_with(script_path.parent().unwrap().join("agenda")), "{}", agenda_path.display());
