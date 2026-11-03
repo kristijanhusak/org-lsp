@@ -510,6 +510,9 @@ struct Context {
     /// from the keys of modal editors (`<Leader><CR>`).
     #[serde(default)]
     below: bool,
+    /// For tangling: the files (and modes) the question `Tangle to …?`
+    /// asked about, which a yes lets it write.
+    tangled: Option<Vec<String>>,
     /// What the editor would paste, for the commands that read it
     /// (`"clipboard": true` in the manifest).
     clipboard: Option<String>,
@@ -3069,6 +3072,59 @@ fn write_tangled(file: &org_core::tangle::File, remove_first: Option<bool>) -> s
         std::fs::set_permissions(&file.path, std::fs::Permissions::from_mode(mode)).map_err(failed)?;
     }
     Ok(())
+}
+
+/// The step of the question `Tangle to …?`.
+const TANGLE_STEP: &str = "tangle";
+
+/// Where writing `path` lands: its links followed, and for the part that
+/// is not there yet (`:mkdirp`), `..` taken back.
+fn tangle_destination(path: &Path) -> PathBuf {
+    let path = written_path(path);
+    let mut rest: Vec<std::ffi::OsString> = Vec::new();
+    let mut there = path.as_path();
+    loop {
+        if let Ok(found) = std::fs::canonicalize(there) {
+            let mut landed = found;
+            for part in rest.iter().rev() {
+                if part == ".." {
+                    landed.pop();
+                } else if part != "." {
+                    landed.push(part);
+                }
+            }
+            return landed;
+        }
+        match (there.parent(), there.file_name()) {
+            (Some(parent), Some(name)) => {
+                rest.push(name.to_os_string());
+                there = parent;
+            }
+            // `..` and `.` have no name: kept as they are.
+            (Some(parent), None) => {
+                rest.push(
+                    there.components().next_back().map(|part| part.as_os_str().to_os_string()).unwrap_or_default(),
+                );
+                there = parent;
+            }
+            _ => return path,
+        }
+    }
+}
+
+/// Why a tangled file's mode is asked about: setuid, setgid, or writable
+/// by every user.
+fn risky_mode(mode: Option<u32>) -> Option<&'static str> {
+    let mode = mode?;
+    if mode & 0o4000 != 0 {
+        Some("setuid")
+    } else if mode & 0o2000 != 0 {
+        Some("setgid")
+    } else if mode & 0o002 != 0 {
+        Some("writable by all")
+    } else {
+        None
+    }
 }
 
 /// Whether byte `offset` is in a source block.
@@ -12117,6 +12173,39 @@ impl Server {
             }
             Err(message) => return Err(message.into()),
         };
+        // Unlike Emacs, files outside the file's directory, or given a mode
+        // that is setuid, setgid or writable by every user, are asked about
+        // first, once for them all: a block's header may come from someone
+        // else's text, and `:tangle` and `:tangle-mode` say any file and
+        // mode.
+        let directory = path.parent().map(tangle_destination).unwrap_or_default();
+        let asked: Vec<&org_core::tangle::File> = outcome
+            .files
+            .iter()
+            .filter(|file| !tangle_destination(&file.path).starts_with(&directory) || risky_mode(file.mode).is_some())
+            .collect();
+        let named: Vec<String> =
+            asked.iter().map(|file| format!("{} {:o}", file.path.display(), file.mode.unwrap_or(0))).collect();
+        if context.step.as_deref() == Some(TANGLE_STEP) && !matches!(context.input.as_deref(), Some("y" | "Y" | " ")) {
+            return Err("Abort".into());
+        }
+        let allowed = context.tangled.clone().filter(|_| context.step.as_deref() == Some(TANGLE_STEP));
+        if !named.is_empty() && named.iter().any(|file| !allowed.iter().flatten().any(|said| said == file)) {
+            let shown: Vec<String> = asked
+                .iter()
+                .map(|file| match risky_mode(file.mode) {
+                    Some(why) => format!("{} (mode {:o}, {why})", abbreviate_path(&file.path), file.mode.unwrap_or(0)),
+                    None => abbreviate_path(&file.path),
+                })
+                .collect();
+            return Ok(json!({ "input": {
+                "kind": "key",
+                "prompt": format!("Tangle to {}? ", shown.join(", ")),
+                "value": "",
+                "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
+                "context": { "step": TANGLE_STEP, "tangled": named },
+            } }));
+        }
         for file in &outcome.files {
             write_tangled(file, self.tangle_remove_first)?;
         }
@@ -17555,6 +17644,20 @@ mod tests {
         assert_eq!(std::fs::metadata(&name).unwrap().permissions().mode() & 0o777, 0o700);
         assert_eq!(named.made(), Some(name.as_path()));
         std::fs::remove_dir(&name).unwrap();
+    }
+
+    /// The modes of tangled files asked about, and where a file not made
+    /// yet lands.
+    #[test]
+    fn tells_risky_modes_and_where_tangled_files_land() {
+        assert_eq!(risky_mode(Some(0o4755)), Some("setuid"));
+        assert_eq!(risky_mode(Some(0o2755)), Some("setgid"));
+        assert_eq!(risky_mode(Some(0o666)), Some("writable by all"));
+        assert_eq!(risky_mode(Some(0o775)), None);
+        assert_eq!(risky_mode(None), None);
+        let temp = std::fs::canonicalize(std::env::temp_dir()).unwrap();
+        let missing = std::env::temp_dir().join("org-lsp-not-there/a/../../b/c.sh");
+        assert_eq!(tangle_destination(&missing), temp.join("b/c.sh"));
     }
 
     /// `org-babel-tangle-remove-file-before-write`: with `t` a link to the
