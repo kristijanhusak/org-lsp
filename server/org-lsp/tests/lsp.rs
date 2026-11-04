@@ -263,6 +263,63 @@ fn semantic_tokens_full_and_range() {
     client.shutdown();
 }
 
+/// To a client that asks for them, the tokens that changed since the
+/// last it got (`semanticTokens/full/delta`); to one that does not,
+/// all of them, with no result ID, as before.
+#[test]
+fn semantic_tokens_delta() {
+    let full_of = |client: &mut Client| {
+        let full = client.raw_request("textDocument/semanticTokens/full", json!({ "textDocument": { "uri": uri() } }));
+        full.response_result.unwrap()
+    };
+    let mut plain = Client::start(json!({ "experimental": { "orgClient": false } }), Value::Null);
+    let provider = serde_json::to_value(&plain.initialize.capabilities.semantic_tokens_provider).unwrap();
+    assert_eq!(provider["full"], true);
+    plain.open(&uri(), DOCUMENT);
+    assert_eq!(full_of(&mut plain).get("resultId"), None);
+    plain.shutdown();
+
+    let tokens = json!({
+        "requests": { "full": { "delta": true } },
+        "tokenTypes": [],
+        "tokenModifiers": [],
+        "formats": ["relative"]
+    });
+    let delta = json!({ "textDocument": { "semanticTokens": tokens } });
+    let mut client = Client::start(delta, Value::Null);
+    let provider = serde_json::to_value(&client.initialize.capabilities.semantic_tokens_provider).unwrap();
+    assert_eq!(provider["full"], json!({ "delta": true }));
+    client.open(&uri(), DOCUMENT);
+    let first = full_of(&mut client);
+    let id = first["resultId"].as_str().unwrap().to_string();
+    let mut data: Vec<u64> = first["data"].as_array().unwrap().iter().map(|n| n.as_u64().unwrap()).collect();
+    client.notify::<DidChangeTextDocument>(DidChangeTextDocumentParams {
+        text_document: VersionedTextDocumentIdentifier { uri: uri(), version: 2 },
+        content_changes: vec![TextDocumentContentChangeEvent {
+            range: Some(Range::new(Position::new(1, 0), Position::new(1, 0))),
+            range_length: None,
+            text: "* New *one*\n".to_string(),
+        }],
+    });
+    let asked = json!({ "textDocument": { "uri": uri() }, "previousResultId": id });
+    let delta = client.raw_request("textDocument/semanticTokens/full/delta", asked.clone()).response_result.unwrap();
+    assert_ne!(delta["resultId"], json!(id));
+    let edits = delta["edits"].as_array().unwrap();
+    assert_eq!(edits.len(), 1);
+    let (start, count) = (edits[0]["start"].as_u64().unwrap() as usize, edits[0]["deleteCount"].as_u64().unwrap());
+    let numbers: Vec<u64> = edits[0]["data"].as_array().unwrap().iter().map(|n| n.as_u64().unwrap()).collect();
+    assert!(numbers.len() < data.len());
+    data.splice(start..start + count as usize, numbers);
+    let now = full_of(&mut client);
+    let all: Vec<u64> = now["data"].as_array().unwrap().iter().map(|n| n.as_u64().unwrap()).collect();
+    assert_eq!(data, all);
+    // An ID the server no longer has: all the tokens.
+    let again = client.raw_request("textDocument/semanticTokens/full/delta", asked).response_result.unwrap();
+    assert_eq!(again["data"], now["data"]);
+    assert!(again.get("edits").is_none());
+    client.shutdown();
+}
+
 #[test]
 fn folding_ranges() {
     let mut client = Client::start(json!({}), Value::Null);
