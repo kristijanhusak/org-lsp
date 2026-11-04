@@ -1709,7 +1709,8 @@ fn roam_paths(roam: &crate::config::RoamSettings) -> Vec<PathBuf> {
     let directory = crate::server::roam::expand(&roam.directory);
     let mut names = Vec::new();
     crate::server::roam::list_files(&directory, "", 0, &mut names);
-    names.retain(|name| org_core::roam::is_roam_file(name, &roam.files));
+    let roam_file = org_core::roam::roam_files(&roam.files);
+    names.retain(|name| roam_file(name));
     org_core::roam::sync_order(&mut names);
     names.iter().map(|name| directory.join(name)).collect()
 }

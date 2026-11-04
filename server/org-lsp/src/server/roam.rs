@@ -8,7 +8,7 @@
 //! The server reads the files again when they change, in the editor or on
 //! disk, instead of keeping org-roam's SQLite database.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -86,7 +86,8 @@ pub(crate) fn disk_db(
     let directory = expand(&settings.directory);
     let mut names = Vec::new();
     list_files(&directory, "", 0, &mut names);
-    names.retain(|name| roam::is_roam_file(name, &settings.files));
+    let roam_file = roam::roam_files(&settings.files);
+    names.retain(|name| roam_file(name));
     roam::sync_order(&mut names);
     let mut db = Db::default();
     db.directory = format!("{}/", directory.display()).replace("//", "/");
@@ -361,7 +362,8 @@ impl Server {
         let Some(roam) = self.roam.as_ref() else { return Vec::new() };
         let mut names = Vec::new();
         list_files(&roam.directory, "", 0, &mut names);
-        names.retain(|name| roam::is_roam_file(name, &roam.settings.files));
+        let roam_file = roam::roam_files(&roam.settings.files);
+        names.retain(|name| roam_file(name));
         roam::sync_order(&mut names);
         names.iter().map(|name| roam.directory.join(name)).collect()
     }
@@ -373,7 +375,8 @@ impl Server {
         let (directory, settings) = (roam.directory.clone(), roam.settings.files.clone());
         let mut names = Vec::new();
         list_files(&directory, "", 0, &mut names);
-        names.retain(|name| roam::is_roam_file(name, &settings));
+        let roam_file = roam::roam_files(&settings);
+        names.retain(|name| roam_file(name));
         roam::sync_order(&mut names);
         // The files open in the editor, by path: the editor may spell a
         // URI differently.
@@ -385,7 +388,7 @@ impl Server {
         let mut db = Db::default();
         db.directory = format!("{}/", directory.display()).replace("//", "/");
         let mut mtimes: HashMap<String, u64> = HashMap::new();
-        let mut seen = Vec::new();
+        let mut seen = HashSet::new();
         for name in names {
             let path = directory.join(&name);
             let file = path.to_string_lossy().to_string();
@@ -425,7 +428,7 @@ impl Server {
                 }
             };
             db.add(&file, data);
-            seen.push(path);
+            seen.insert(path);
         }
         if let Some(roam) = self.roam.as_mut() {
             roam.files.retain(|path, _| seen.contains(path));
