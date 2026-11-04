@@ -6,6 +6,7 @@
 //! last one registered first), and their reports are sorted by place, as
 //! `org-lint--generate-reports` sorts them.
 
+use std::cell::OnceCell;
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 
@@ -63,7 +64,11 @@ struct Doc<'a> {
     text: &'a str,
     parse: &'a Parse,
     root: SyntaxNode,
-    elements: Elements,
+    /// The elements (`elements`) and the nodes of the tree
+    /// (`descendants`), made once, when a checker first asks.
+    elements: OnceCell<Elements>,
+    nodes: OnceCell<Vec<SyntaxNode>>,
+    links: OnceCell<Vec<LinkInfo>>,
     context: &'a Context<'a>,
 }
 
@@ -110,20 +115,21 @@ fn keyword_value(node: &SyntaxNode) -> String {
     token(node, SyntaxKind::KEYWORD_VALUE).unwrap_or_default().trim().to_string()
 }
 
-/// The keywords that are elements of their own, not affiliated ones.
-fn keywords(root: &SyntaxNode) -> impl Iterator<Item = SyntaxNode> {
-    standalone_keywords(root).filter(|node| keyword_key(node) != "CALL")
+/// The keywords among `nodes` that are elements of their own, not
+/// affiliated ones.
+fn keywords(nodes: impl Iterator<Item = SyntaxNode>) -> impl Iterator<Item = SyntaxNode> {
+    standalone_keywords(nodes).filter(|node| keyword_key(node) != "CALL")
 }
 
-/// The keyword lines that are elements, `#+CALL:` among them (a
-/// `babel-call` to `org-element`).
-fn standalone_keywords(root: &SyntaxNode) -> impl Iterator<Item = SyntaxNode> {
-    root.descendants().filter(|node| node.kind() == SyntaxKind::KEYWORD && !ast::is_affiliated_keyword(node))
+/// The keyword lines among `nodes` that are elements, `#+CALL:` among
+/// them (a `babel-call` to `org-element`).
+fn standalone_keywords(nodes: impl Iterator<Item = SyntaxNode>) -> impl Iterator<Item = SyntaxNode> {
+    nodes.filter(|node| node.kind() == SyntaxKind::KEYWORD && !ast::is_affiliated_keyword(node))
 }
 
-/// The `#+CALL:` lines.
-fn babel_calls(root: &SyntaxNode) -> impl Iterator<Item = SyntaxNode> {
-    standalone_keywords(root).filter(|node| keyword_key(node) == "CALL")
+/// The `#+CALL:` lines among `nodes`.
+fn babel_calls(nodes: impl Iterator<Item = SyntaxNode>) -> impl Iterator<Item = SyntaxNode> {
+    standalone_keywords(nodes).filter(|node| keyword_key(node) == "CALL")
 }
 
 /// A node property's key, as written, and its value.
@@ -211,9 +217,25 @@ fn duplicates<K: Eq + std::hash::Hash + Clone>(items: Vec<(K, usize)>, message: 
     out
 }
 
-impl Doc<'_> {
+impl<'a> Doc<'a> {
+    fn new(text: &'a str, parse: &'a Parse, context: &'a Context<'a>) -> Doc<'a> {
+        let (elements, nodes, links) = (OnceCell::new(), OnceCell::new(), OnceCell::new());
+        Doc { text, parse, root: parse.syntax(), elements, nodes, links, context }
+    }
+
+    /// The elements of the text, as `org-element-at-point` finds them.
+    fn elements(&self) -> &Elements {
+        self.elements.get_or_init(|| Elements::new(self.text, &self.root))
+    }
+
+    /// Every node of the tree, as `root.descendants()` walks it: walked
+    /// once for all the checkers.
+    fn descendants(&self) -> impl Iterator<Item = SyntaxNode> + '_ {
+        self.nodes.get_or_init(|| self.root.descendants().collect()).iter().cloned()
+    }
+
     fn at(&self, at: usize) -> Option<&'static str> {
-        self.elements.at(at).map(|element| element.kind)
+        self.elements().at(at).map(|element| element.kind)
     }
 
     // ----- checkers
@@ -229,7 +251,6 @@ impl Doc<'_> {
 
     fn duplicate_custom_id(&self) -> Found {
         let items = self
-            .root
             .descendants()
             .filter(|node| node.kind() == SyntaxKind::NODE_PROPERTY)
             .filter_map(|node| {
@@ -242,7 +263,6 @@ impl Doc<'_> {
 
     fn duplicate_name(&self) -> Found {
         let items = self
-            .root
             .descendants()
             .filter(is_element)
             .filter_map(|node| {
@@ -266,7 +286,6 @@ impl Doc<'_> {
 
     fn duplicate_target(&self) -> Found {
         let items = self
-            .root
             .descendants()
             .filter(|node| node.kind() == SyntaxKind::TARGET)
             .map(|node| {
@@ -280,7 +299,6 @@ impl Doc<'_> {
 
     fn duplicate_footnote_definition(&self) -> Found {
         let items = self
-            .root
             .descendants()
             .filter(|node| node.kind() == SyntaxKind::FOOTNOTE_DEFINITION)
             .filter_map(|node| {
@@ -295,7 +313,7 @@ impl Doc<'_> {
         const AFFILIATED: [&str; 11] = [
             "CAPTION", "DATA", "HEADER", "HEADERS", "LABEL", "NAME", "PLOT", "RESNAME", "SOURCE", "SRCNAME", "TBLNAME",
         ];
-        keywords(&self.root)
+        keywords(self.descendants())
             .filter_map(|node| {
                 let key = keyword_key(&node);
                 let attr = key.strip_prefix("ATTR_").is_some_and(|rest| {
@@ -308,14 +326,14 @@ impl Doc<'_> {
     }
 
     fn regular_keyword_before_affiliated(&self) -> Found {
-        keywords(&self.root)
+        keywords(self.descendants())
             .filter_map(|node| {
                 let (begin, end) = range(&node);
                 // No blank line after it.
                 if end < self.text.len() && self.text[end..].starts_with(['\n']) {
                     return None;
                 }
-                let next = self.elements.at(end)?;
+                let next = self.elements().at(end)?;
                 (next.begin != begin && next.begin < next.post_affiliated).then(|| {
                     (
                         begin,
@@ -340,7 +358,8 @@ impl Doc<'_> {
         for captures in OBSOLETE.captures_iter(self.text) {
             let (Some(whole), Some(key)) = (captures.get(0), captures.get(1)) else { continue };
             let key = key.as_str().to_ascii_uppercase();
-            let affiliated = self.elements.at(whole.end()).is_some_and(|element| whole.end() < element.post_affiliated);
+            let affiliated =
+                self.elements().at(whole.end()).is_some_and(|element| whole.end() < element.post_affiliated);
             if affiliated {
                 let instead = match key.as_str() {
                     "HEADERS" => "HEADER",
@@ -379,7 +398,7 @@ impl Doc<'_> {
             .filter(|name| *name != "dir")
             .collect();
         let mut out = Vec::new();
-        for node in self.root.descendants() {
+        for node in self.descendants() {
             match node.kind() {
                 SyntaxKind::KEYWORD if !ast::is_affiliated_keyword(&node) && keyword_key(&node) == "PROPERTY" => {
                     let value = keyword_value(&node);
@@ -413,7 +432,7 @@ impl Doc<'_> {
 
     /// The blocks: the node, its type as written and its parameters.
     fn blocks(&self) -> impl Iterator<Item = (SyntaxNode, String, String)> + '_ {
-        self.root.descendants().filter(|node| node.kind() == SyntaxKind::BLOCK).map(|node| {
+        self.descendants().filter(|node| node.kind() == SyntaxKind::BLOCK).map(|node| {
             let (name, parameters) = block_type(&node);
             (node, name, parameters)
         })
@@ -448,7 +467,7 @@ impl Doc<'_> {
     }
 
     fn deprecated_category_setup(&self) -> Found {
-        keywords(&self.root)
+        keywords(self.descendants())
             .filter(|node| keyword_key(node) == "CATEGORY")
             .skip(1)
             .map(|node| {
@@ -460,17 +479,21 @@ impl Doc<'_> {
             .collect()
     }
 
-    fn links(&self) -> Vec<LinkInfo> {
-        self.root
-            .descendants()
-            .filter(|node| matches!(node.kind(), SyntaxKind::LINK | SyntaxKind::PLAIN_LINK | SyntaxKind::ANGLE_LINK))
-            .map(|node| link_info(&node))
-            .collect()
+    /// The links, read once for the checkers of links.
+    fn links(&self) -> &[LinkInfo] {
+        self.links.get_or_init(|| {
+            self.descendants()
+                .filter(|node| {
+                    matches!(node.kind(), SyntaxKind::LINK | SyntaxKind::PLAIN_LINK | SyntaxKind::ANGLE_LINK)
+                })
+                .map(|node| link_info(&node))
+                .collect()
+        })
     }
 
     fn invalid_coderef_link(&self) -> Found {
         self.links()
-            .into_iter()
+            .iter()
             .filter(|link| link.kind == "coderef")
             .filter(|link| crate::open::search(self.text, self.parse, &format!("({})", link.path)).is_err())
             .map(|link| (link.start, format!("Unknown coderef \"{}\"", link.path)))
@@ -480,7 +503,7 @@ impl Doc<'_> {
     fn invalid_custom_id_link(&self) -> Found {
         let ids = self.headline_ids();
         self.links()
-            .into_iter()
+            .iter()
             .filter(|link| link.kind == "custom-id" && !ids.contains(&link.path))
             .map(|link| (link.start, format!("Unknown custom ID \"{}\"", link.path)))
             .collect()
@@ -488,7 +511,7 @@ impl Doc<'_> {
 
     fn invalid_id_link(&self) -> Found {
         self.links()
-            .into_iter()
+            .iter()
             .filter(|link| link.kind == "id" && (self.context.id_known)(&link.path) == Some(false))
             .map(|link| (link.start, format!("Unknown ID \"{}\"", link.path)))
             .collect()
@@ -497,7 +520,7 @@ impl Doc<'_> {
     /// The `ID` and `CUSTOM_ID` of the headlines.
     fn headline_ids(&self) -> HashSet<String> {
         let mut out = HashSet::new();
-        for headline in self.root.descendants().filter(|node| node.kind() == SyntaxKind::HEADLINE) {
+        for headline in self.descendants().filter(|node| node.kind() == SyntaxKind::HEADLINE) {
             let Some(drawer) = headline
                 .children()
                 .find(|child| child.kind() == SyntaxKind::SECTION)
@@ -525,7 +548,7 @@ impl Doc<'_> {
         let upper = |words: Vec<String>| words.into_iter().map(|word| word.to_uppercase()).collect::<Vec<_>>();
         static COOKIE: LazyLock<Regex> =
             LazyLock::new(|| Regex::new(r"\[[0-9]*(?:%|/[0-9]*)\]").expect("a valid regex"));
-        for node in self.root.descendants() {
+        for node in self.descendants() {
             match node.kind() {
                 SyntaxKind::HEADLINE => {
                     let raw = headline_raw_value(&node);
@@ -565,7 +588,7 @@ impl Doc<'_> {
             abbreviations.iter().any(|abbreviation| abbreviation == key)
         };
         self.links()
-            .into_iter()
+            .iter()
             .filter(|link| link.kind == "fuzzy" && !abbreviated(&link.path))
             .filter(|link| {
                 let kind = link.path.split_once(':').map(|(kind, _)| kind);
@@ -596,7 +619,7 @@ impl Doc<'_> {
 
     fn confusing_brackets(&self) -> Found {
         self.links()
-            .into_iter()
+            .iter()
             .filter(|link| {
                 // After the link and the blanks that follow it.
                 let rest = &self.text[link.end..];
@@ -608,7 +631,7 @@ impl Doc<'_> {
 
     fn brackets_inside_description(&self) -> Found {
         self.links()
-            .into_iter()
+            .iter()
             .filter_map(|link| {
                 let (start, end) = link.description?;
                 let description = &self.text[start..end];
@@ -627,8 +650,7 @@ impl Doc<'_> {
     }
 
     fn special_property_in_properties_drawer(&self) -> Found {
-        self.root
-            .descendants()
+        self.descendants()
             .filter(|node| node.kind() == SyntaxKind::NODE_PROPERTY)
             .filter_map(|node| {
                 let key = token(&node, SyntaxKind::PROPERTY_KEY).unwrap_or_default();
@@ -642,8 +664,7 @@ impl Doc<'_> {
     }
 
     fn obsolete_properties_drawer(&self) -> Found {
-        self.root
-            .descendants()
+        self.descendants()
             .filter(|node| node.kind() == SyntaxKind::DRAWER)
             .filter(|node| token(node, SyntaxKind::DRAWER_BEGIN).is_some_and(|begin| begin.trim() == ":PROPERTIES:"))
             .map(|node| (post_affiliated(self.text, &node), "Incorrect contents for PROPERTIES drawer".to_string()))
@@ -651,8 +672,7 @@ impl Doc<'_> {
     }
 
     fn invalid_effort_property(&self) -> Found {
-        self.root
-            .descendants()
+        self.descendants()
             .filter(|node| node.kind() == SyntaxKind::NODE_PROPERTY)
             .filter_map(|node| {
                 let (key, value) = node_property(&node);
@@ -664,8 +684,7 @@ impl Doc<'_> {
     }
 
     fn invalid_id_property(&self) -> Found {
-        self.root
-            .descendants()
+        self.descendants()
             .filter(|node| node.kind() == SyntaxKind::NODE_PROPERTY)
             .filter_map(|node| {
                 let (key, value) = node_property(&node);
@@ -677,8 +696,7 @@ impl Doc<'_> {
     }
 
     fn link_to_local_file(&self) -> Found {
-        self.root
-            .descendants()
+        self.descendants()
             .filter(|node| matches!(node.kind(), SyntaxKind::LINK | SyntaxKind::PLAIN_LINK | SyntaxKind::ANGLE_LINK))
             .filter_map(|node| {
                 let link = link_info(&node);
@@ -701,7 +719,7 @@ impl Doc<'_> {
     }
 
     fn non_existent_setupfile_parameter(&self) -> Found {
-        keywords(&self.root)
+        keywords(self.descendants())
             .filter(|node| keyword_key(node) == "SETUPFILE")
             .filter_map(|node| {
                 let value = keyword_value(&node);
@@ -719,7 +737,7 @@ impl Doc<'_> {
                 .build()
                 .expect("a valid regex")
         });
-        keywords(&self.root)
+        keywords(self.descendants())
             .filter(|node| keyword_key(node) == "INCLUDE")
             .filter_map(|node| {
                 let value = keyword_value(&node);
@@ -734,7 +752,6 @@ impl Doc<'_> {
 
     fn footnotes(&self) -> (Vec<Reference>, Vec<Definition>) {
         let references = self
-            .root
             .descendants()
             .filter(|node| node.kind() == SyntaxKind::FOOTNOTE_REFERENCE)
             .map(|node| {
@@ -750,7 +767,6 @@ impl Doc<'_> {
             })
             .collect();
         let definitions = self
-            .root
             .descendants()
             .filter(|node| node.kind() == SyntaxKind::FOOTNOTE_DEFINITION)
             .map(|node| {
@@ -888,7 +904,7 @@ impl Doc<'_> {
         while let Some(found) = DRAWER.find_at(self.text, from) {
             from = found.end().max(found.start() + 1);
             let name = found.as_str().trim_matches([' ', '\t']).to_string();
-            let Some(element) = self.elements.at(found.end()) else { continue };
+            let Some(element) = self.elements().at(found.end()) else { continue };
             match element.kind {
                 "drawer" => {
                     if let Some((_, end)) = element.contents {
@@ -938,8 +954,7 @@ impl Doc<'_> {
     }
 
     fn quote_section(&self) -> Found {
-        self.root
-            .descendants()
+        self.descendants()
             .filter(|node| node.kind() == SyntaxKind::HEADLINE)
             .filter(|node| {
                 let raw = headline_raw_value(node);
@@ -951,7 +966,7 @@ impl Doc<'_> {
 
     fn file_application(&self) -> Found {
         self.links()
-            .into_iter()
+            .iter()
             .filter_map(|link| {
                 let application = link.raw.split(':').next()?.strip_prefix("file+")?.to_string();
                 Some((link.start, format!("Deprecated \"file+{application}\" link type")))
@@ -962,7 +977,7 @@ impl Doc<'_> {
     fn percent_encoding_link_escape(&self) -> Found {
         static PERCENT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"%(..)?").expect("a valid regex"));
         self.links()
-            .into_iter()
+            .iter()
             .filter(|link| link.bracket)
             .filter(|link| {
                 let path = &link.path;
@@ -976,8 +991,7 @@ impl Doc<'_> {
     }
 
     fn spurious_colons(&self) -> Found {
-        self.root
-            .descendants()
+        self.descendants()
             .filter(|node| node.kind() == SyntaxKind::HEADLINE)
             .filter(|node| {
                 let line = headline_line(self.text, node);
@@ -994,7 +1008,7 @@ impl Doc<'_> {
     }
 
     fn non_existent_bibliography(&self) -> Found {
-        keywords(&self.root)
+        keywords(self.descendants())
             .filter(|node| keyword_key(node) == "BIBLIOGRAPHY")
             .filter_map(|node| {
                 let file = strip_quotes(&keyword_value(&node));
@@ -1005,8 +1019,8 @@ impl Doc<'_> {
     }
 
     fn missing_print_bibliography(&self) -> Found {
-        let cites = self.root.descendants().any(|node| node.kind() == SyntaxKind::CITATION);
-        let printed = keywords(&self.root).any(|node| keyword_key(&node) == "PRINT_BIBLIOGRAPHY");
+        let cites = self.descendants().any(|node| node.kind() == SyntaxKind::CITATION);
+        let printed = keywords(self.descendants()).any(|node| keyword_key(&node) == "PRINT_BIBLIOGRAPHY");
         if cites && !printed {
             vec![(self.text.len(), "Possibly missing \"PRINT_BIBLIOGRAPHY\" keyword".to_string())]
         } else {
@@ -1015,8 +1029,7 @@ impl Doc<'_> {
     }
 
     fn mismatched_planning_repeaters(&self) -> Found {
-        self.root
-            .descendants()
+        self.descendants()
             .filter(|node| node.kind() == SyntaxKind::PLANNING)
             .filter_map(|node| {
                 let text = node.text().to_string();
@@ -1039,8 +1052,7 @@ impl Doc<'_> {
     }
 
     fn planning_inactive(&self) -> Found {
-        self.root
-            .descendants()
+        self.descendants()
             .filter(|node| node.kind() == SyntaxKind::PLANNING)
             .filter_map(|node| {
                 let text = node.text().to_string();
@@ -1062,7 +1074,7 @@ impl Doc<'_> {
     /// blocks, in order, with their headers.
     fn babel_datums(&self) -> Vec<Datum> {
         let mut out = Vec::new();
-        for node in self.root.descendants() {
+        for node in self.descendants() {
             match node.kind() {
                 SyntaxKind::KEYWORD if !ast::is_affiliated_keyword(&node) && keyword_key(&node) == "CALL" => {
                     let call = parse_call(self.text, &node);
@@ -1111,7 +1123,7 @@ impl Doc<'_> {
     }
 
     fn invalid_babel_call_block(&self) -> Found {
-        babel_calls(&self.root)
+        babel_calls(self.descendants())
             .filter_map(|node| {
                 let call = parse_call(self.text, &node);
                 let at = post_affiliated(self.text, &node);
@@ -1149,7 +1161,7 @@ impl Doc<'_> {
                 }
             }
         };
-        for node in self.root.descendants() {
+        for node in self.descendants() {
             match node.kind() {
                 SyntaxKind::KEYWORD if !ast::is_affiliated_keyword(&node) && keyword_key(&node) == "PROPERTY" => {
                     static HEADER_ARGS: LazyLock<Regex> = LazyLock::new(|| {
@@ -1270,7 +1282,7 @@ impl Doc<'_> {
         static ITEM: LazyLock<Regex> =
             LazyLock::new(|| Regex::new(r"(.+?):(\(.*?\)|\S+)?[ \t]*").expect("a valid regex"));
         let mut out = Vec::new();
-        for node in keywords(&self.root).filter(|node| keyword_key(node) == "OPTIONS") {
+        for node in keywords(self.descendants()).filter(|node| keyword_key(node) == "OPTIONS") {
             let value = keyword_value(&node);
             let at = post_affiliated(self.text, &node);
             for captures in ITEM.captures_iter(&value) {
@@ -1290,7 +1302,7 @@ impl Doc<'_> {
     fn misspelled_export_option(&self) -> Found {
         use crate::lint_tables::{BACKEND_OPTIONS, COMMON_OPTIONS, DEFAULT_PROPERTIES};
         let mut out = Vec::new();
-        for node in self.root.descendants().filter(|node| node.kind() == SyntaxKind::NODE_PROPERTY) {
+        for node in self.descendants().filter(|node| node.kind() == SyntaxKind::NODE_PROPERTY) {
             let key = token(&node, SyntaxKind::PROPERTY_KEY).unwrap_or_default();
             let key = key.trim().trim_start_matches(':').trim_end_matches(':').to_string();
             let common = COMMON_OPTIONS.contains(&key.as_str());
@@ -1320,12 +1332,12 @@ impl Doc<'_> {
         static COOKIE: LazyLock<Regex> =
             LazyLock::new(|| Regex::new(r"\[#([A-Z]|[0-9]|[1-5][0-9]|6[0-4])\] ?").expect("a valid regex"));
         static BAD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A\[#([^\[\]]*)(\]*)").expect("a valid regex"));
-        let priorities = keywords(&self.root)
+        let priorities = keywords(self.descendants())
             .find(|node| keyword_key(node) == "PRIORITIES")
             .and_then(|node| crate::priority::Priorities::from_keyword(&keyword_value(&node)))
             .unwrap_or(self.context.priorities);
         let mut out = Vec::new();
-        for node in self.root.descendants().filter(|node| node.kind() == SyntaxKind::HEADLINE) {
+        for node in self.descendants().filter(|node| node.kind() == SyntaxKind::HEADLINE) {
             let line = headline_line(self.text, &node);
             let after = self.after_keyword(line);
             // `org-priority-regexp` starts with `.*?`: the first cookie of
@@ -1388,7 +1400,7 @@ impl Doc<'_> {
 
     fn item_number(&self) -> Found {
         let mut out = Vec::new();
-        for list in self.root.descendants().filter(|node| node.kind() == SyntaxKind::LIST) {
+        for list in self.descendants().filter(|node| node.kind() == SyntaxKind::LIST) {
             // The last item of the list with a counter, by position, and
             // its counter.
             let mut last: Option<(i64, String)> = None;
@@ -1442,8 +1454,7 @@ impl Doc<'_> {
     }
 
     fn extraneous_element_in_footnote_section(&self) -> Found {
-        self.root
-            .descendants()
+        self.descendants()
             .filter(|node| node.kind() == SyntaxKind::HEADLINE && headline_raw_value(node) == "Footnotes")
             .filter(|headline| {
                 let mut stack: Vec<SyntaxNode> = headline.children().collect();
@@ -1482,7 +1493,7 @@ impl Doc<'_> {
         static CENTER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r":center\s+(\S+)").expect("a valid regex"));
         static ALIGN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r":align\s+(\S+)").expect("a valid regex"));
         let mut out = Vec::new();
-        for paragraph in self.root.descendants().filter(|node| node.kind() == SyntaxKind::PARAGRAPH) {
+        for paragraph in self.descendants().filter(|node| node.kind() == SyntaxKind::PARAGRAPH) {
             // `(car (org-element-property :attr_org p))`: the first line.
             let Some(attributes) = paragraph
                 .children()
@@ -1523,7 +1534,7 @@ impl Doc<'_> {
     }
 
     fn invalid_cite_export_declaration(&self) -> Found {
-        keywords(&self.root)
+        keywords(self.descendants())
             .filter(|node| keyword_key(node) == "CITE_EXPORT")
             .filter_map(|node| {
                 let value = keyword_value(&node);
@@ -1544,6 +1555,10 @@ impl Doc<'_> {
         static PREFIX: LazyLock<Regex> =
             LazyLock::new(|| Regex::new(r"\[cite(?:/[/_a-z0-9-]+)?:").expect("a valid regex"));
         let mut out = Vec::new();
+        // Most texts cite nothing: their tokens are not looked at.
+        if !PREFIX.is_match(self.text) {
+            return out;
+        }
         for token in self.root.descendants_with_tokens().filter_map(|element| element.into_token()) {
             if token.kind() != SyntaxKind::TEXT || !PREFIX.is_match(token.text()) {
                 continue;
@@ -1623,8 +1638,7 @@ impl Doc<'_> {
     }
 
     fn timestamp_syntax(&self) -> Found {
-        self.root
-            .descendants()
+        self.descendants()
             .filter(|node| node.kind() == SyntaxKind::TIMESTAMP)
             .filter(|node| {
                 !node.ancestors().any(|ancestor| matches!(ancestor.kind(), SyntaxKind::PLANNING | SyntaxKind::CLOCK))
@@ -1646,8 +1660,7 @@ impl Doc<'_> {
     }
 
     fn clock_syntax(&self) -> Found {
-        self.root
-            .descendants()
+        self.descendants()
             .filter(|node| node.kind() == SyntaxKind::CLOCK)
             .filter_map(|node| {
                 let (start, end) = range(&node);
@@ -1690,7 +1703,7 @@ impl Doc<'_> {
         // The templates of the file's `#+MACRO:` lines, the last
         // definition of a name over the others.
         let mut defined: Vec<(String, String)> = Vec::new();
-        for node in keywords(&self.root).filter(|node| keyword_key(node) == "MACRO") {
+        for node in keywords(self.descendants()).filter(|node| keyword_key(node) == "MACRO") {
             let value = keyword_value(&node);
             let at = post_affiliated(self.text, &node);
             let name_end = value.find(char::is_whitespace).unwrap_or(value.len());
@@ -1716,7 +1729,7 @@ impl Doc<'_> {
             }
         }
         let input_file = (self.context.file_name)();
-        for node in self.root.descendants().filter(|node| node.kind() == SyntaxKind::MACRO) {
+        for node in self.descendants().filter(|node| node.kind() == SyntaxKind::MACRO) {
             let text = node.text().to_string();
             let inner = text.trim_start_matches("{{{").trim_end_matches("}}}");
             let (name, args) = match inner.find('(') {
@@ -1797,7 +1810,7 @@ impl Doc<'_> {
     fn wrong_include_link_parameter(&self) -> Found {
         static LOCATION: LazyLock<Regex> =
             LazyLock::new(|| Regex::new(r#"\A("[^\n]+?"|\S+)[ \t]*"#).expect("a valid regex"));
-        keywords(&self.root)
+        keywords(self.descendants())
             .filter(|node| keyword_key(node) == "INCLUDE")
             .filter_map(|node| {
                 let value = keyword_value(&node);
@@ -1839,11 +1852,10 @@ impl Doc<'_> {
         // only: most files have none.
         let outline = std::cell::OnceCell::new();
         let mut out = Vec::new();
-        for node in self.root.descendants().filter(is_element) {
+        for node in self.descendants().filter(is_element) {
             let (Some(results), Some(name)) = (element_results(&node), element_name(&node)) else { continue };
             let origin = if not_blank(&results) {
-                self.root
-                    .descendants()
+                self.descendants()
                     .filter(|other| other.kind() == SyntaxKind::BLOCK)
                     .find(|block| element_name(block).is_some_and(|block_name| words(&block_name) == words(&results)))
             } else {
@@ -2568,7 +2580,7 @@ pub fn checker_names() -> Vec<&'static str> {
 
 /// `org-lint` on `text`: the reports of every checker, by place.
 pub fn lint(text: &str, parse: &Parse, context: &Context) -> Vec<Report> {
-    let doc = Doc { text, parse, root: parse.syntax(), elements: Elements::new(text), context };
+    let doc = Doc::new(text, parse, context);
     let mut out = Vec::new();
     for (name, trust, check) in checkers() {
         for (offset, message) in check(&doc) {

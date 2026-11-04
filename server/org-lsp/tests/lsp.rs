@@ -2343,6 +2343,48 @@ fn lints_documents() {
     client.shutdown();
 }
 
+/// The lint of a long document runs on a thread of its own, the requests
+/// answered meanwhile;
+/// what it finds in a text changed since is not sent, and the last
+/// diagnostics are of the last version. For a client with none of
+/// org-lsp's code too.
+#[test]
+fn sends_the_diagnostics_of_the_last_version() {
+    let mut client = Client::start(json!({ "experimental": { "orgClient": false } }), json!({}));
+    let mut text = String::new();
+    // Long enough to be linted on a thread of its own.
+    for index in 0..4000 {
+        text.push_str(&format!("* H{index}\n[[*Missing{index}]] <2026-11-03 Tue>\n"));
+    }
+    client.open(&uri(), &text);
+    client.notify::<DidChangeTextDocument>(DidChangeTextDocumentParams {
+        text_document: VersionedTextDocumentIdentifier { uri: uri(), version: 2 },
+        content_changes: vec![TextDocumentContentChangeEvent {
+            range: Some(Range::new(Position::new(1, 3), Position::new(1, 10))),
+            range_length: None,
+            text: "Other".to_string(),
+        }],
+    });
+    let symbols =
+        client.raw_request("textDocument/documentSymbol", json!({ "textDocument": { "uri": uri().as_str() } }));
+    assert!(symbols.response_result.is_ok());
+    let published = loop {
+        let published = client.notification("textDocument/publishDiagnostics");
+        if published["version"] == 2 {
+            break published;
+        }
+        // The first text's, linted before the change came.
+        assert_eq!(published["version"], 1);
+        assert_eq!(published["diagnostics"][0]["message"], "Unknown fuzzy location \"Missing0\"");
+    };
+    assert_eq!(published["diagnostics"].as_array().unwrap().len(), 4000);
+    assert_eq!(published["diagnostics"][0]["message"], "Unknown fuzzy location \"Other0\"");
+    // Nothing after them.
+    let next = client.connection.receiver.recv_timeout(std::time::Duration::from_millis(1500));
+    assert!(next.is_err(), "{next:?}");
+    client.shutdown();
+}
+
 /// Citations (`oc-basic`): the bibliography of `#+BIBLIOGRAPHY:`, an
 /// unknown key marked with the keys close to it and one to put instead,
 /// a key's entry over it, where following it goes, and keys completed

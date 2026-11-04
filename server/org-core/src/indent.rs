@@ -262,8 +262,9 @@ pub struct ElementAt {
 }
 
 impl Elements {
-    pub fn new(text: &str) -> Elements {
-        Elements(Snapshot::new(text, &Settings::default()))
+    /// The elements of `text`, from its tree `root`.
+    pub fn new(text: &str, root: &SyntaxNode) -> Elements {
+        Elements(Snapshot::of(text, root, &Settings::default()))
     }
 
     /// `org-element-at-point` at `at`.
@@ -333,7 +334,11 @@ fn has_preserve_switch(node: &SyntaxNode) -> bool {
 
 impl Snapshot {
     fn new(text: &str, settings: &Settings) -> Self {
-        let root = org_syntax::parse(text, &TodoKeywords::default()).syntax();
+        Snapshot::of(text, &org_syntax::parse(text, &TodoKeywords::default()).syntax(), settings)
+    }
+
+    /// The snapshot of `text` from its tree `root`, parsed already.
+    fn of(text: &str, root: &SyntaxNode, settings: &Settings) -> Self {
         let mut snapshot = Snapshot {
             text: text.to_string(),
             elements: Vec::new(),
@@ -341,7 +346,7 @@ impl Snapshot {
             roots: Vec::new(),
             settings: settings.clone(),
         };
-        snapshot.collect(&root, None);
+        snapshot.collect(root, None);
         snapshot
     }
 
