@@ -441,7 +441,9 @@ macOS servers. The Release retry workflow
 (~.github/workflows/release-retry.yml~) runs such jobs again, up to
 three attempts in all; a run where a job ran and failed is left for you.
 The ~open-vsx~ job tries its upload three times too, as open-vsx.org
-sometimes does not answer in time.
+sometimes does not answer in time, and then succeeds when open-vsx.org
+has each platform's package of the version: it may keep a package
+without answering the upload.
 
 A release that failed is made again by running the workflow by hand on
 main with its tag (/Actions › Release › Run workflow/, ~tag~ ~v0.2.0~):

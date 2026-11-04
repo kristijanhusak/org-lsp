@@ -384,10 +384,25 @@ jobs:
         working-directory: editors/vscode
         # open-vsx.org sometimes does not answer an upload in time: up to
         # three tries, each skipping the packages that it already has.
+        # It may also keep a package and still not answer, or not answer
+        # whether it has one: the job then succeeds when open-vsx.org has
+        # each platform's package of this version (the tag's, whatever
+        # package.json says).
         run: |
           npm ci
           for try in 1 2 3; do
             npx --no-install ovsx publish --skip-duplicate --packagePath "$GITHUB_WORKSPACE"/dist/*.vsix && exit 0
             [ "$try" = 3 ] || sleep $((try * 60))
           done
-          exit 1
+          extension="$(node -p "require('./package.json').publisher")/$(node -p "require('./package.json').name")"
+          missing=0
+          for vsix in "$GITHUB_WORKSPACE"/dist/org-lsp-*.vsix; do
+            platform=$(basename "$vsix" .vsix); platform=${platform#org-lsp-}
+            if curl -fsS --retry 5 --retry-all-errors --retry-delay 30 -m 60 -o /dev/null \
+                "https://open-vsx.org/api/$extension/$platform/${TAG#v}"; then
+              echo "$platform: on Open VSX"
+            else
+              echo "$platform: not on Open VSX"; missing=1
+            fi
+          done
+          exit "$missing"
