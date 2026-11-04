@@ -16443,7 +16443,8 @@ impl Server {
     /// waits for it: it is done on a thread of its own, from a copy of the
     /// document, and sent once done (`linted`) unless the document changed
     /// meanwhile. A document being linted is linted again once that is
-    /// done.
+    /// done. A short one is linted at once, its diagnostics sent before
+    /// the next message is read, as the lint holds nothing up.
     fn publish_diagnostics(&mut self, key: &str) {
         if self.linting.contains_key(key) {
             if !self.diagnostics_due.iter().any(|due| due == key) {
@@ -16470,6 +16471,12 @@ impl Server {
             keys,
             lint,
         };
+        if copy.text.len() <= LINT_AT_ONCE_MOST {
+            let (version, key) = (document.version, key.to_string());
+            let diagnostics = copy.diagnostics();
+            self.publish_linted(key, version, uri, Ok(diagnostics));
+            return;
+        }
         self.lint_generation += 1;
         let (generation, version, key) = (self.lint_generation, document.version, key.to_string());
         self.linting.insert(key.clone(), generation);
@@ -16506,6 +16513,18 @@ impl Server {
         if self.diagnostics_due.contains(&key) && self.diagnostics_at.is_none() {
             self.diagnostics_at = Some(std::time::Instant::now());
         }
+        self.publish_linted(key, version, uri, result);
+    }
+
+    /// The diagnostics of the document `key` as its `version` was linted,
+    /// sent while it is still so.
+    fn publish_linted(
+        &mut self,
+        key: String,
+        version: i32,
+        uri: Uri,
+        result: std::result::Result<Vec<lsp_types::Diagnostic>, String>,
+    ) {
         let mut diagnostics = match result {
             Ok(diagnostics) => diagnostics,
             Err(reason) => {
@@ -17871,6 +17890,9 @@ const DIAGNOSTICS_DELAY: std::time::Duration = std::time::Duration::from_millis(
 /// `DIAGNOSTICS_LONG_DOCUMENT` bytes.
 const DIAGNOSTICS_DELAY_LONG: std::time::Duration = std::time::Duration::from_secs(1);
 const DIAGNOSTICS_LONG_DOCUMENT: usize = 1 << 20;
+/// The longest document linted at once rather than on a thread of its
+/// own (a few milliseconds).
+const LINT_AT_ONCE_MOST: usize = 64 << 10;
 /// The longest messages other than changes put the diagnostics off, from
 /// the last change.
 const DIAGNOSTICS_MOST: std::time::Duration = std::time::Duration::from_secs(1);

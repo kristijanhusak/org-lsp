@@ -2343,7 +2343,8 @@ fn lints_documents() {
     client.shutdown();
 }
 
-/// The lint runs on a thread of its own, the requests answered meanwhile;
+/// The lint of a long document runs on a thread of its own, the requests
+/// answered meanwhile;
 /// what it finds in a text changed since is not sent, and the last
 /// diagnostics are of the last version. For a client with none of
 /// org-lsp's code too.
@@ -2351,7 +2352,8 @@ fn lints_documents() {
 fn sends_the_diagnostics_of_the_last_version() {
     let mut client = Client::start(json!({ "experimental": { "orgClient": false } }), json!({}));
     let mut text = String::new();
-    for index in 0..2000 {
+    // Long enough to be linted on a thread of its own.
+    for index in 0..4000 {
         text.push_str(&format!("* H{index}\n[[*Missing{index}]] <2026-11-03 Tue>\n"));
     }
     client.open(&uri(), &text);
@@ -2375,7 +2377,7 @@ fn sends_the_diagnostics_of_the_last_version() {
         assert_eq!(published["version"], 1);
         assert_eq!(published["diagnostics"][0]["message"], "Unknown fuzzy location \"Missing0\"");
     };
-    assert_eq!(published["diagnostics"].as_array().unwrap().len(), 2000);
+    assert_eq!(published["diagnostics"].as_array().unwrap().len(), 4000);
     assert_eq!(published["diagnostics"][0]["message"], "Unknown fuzzy location \"Other0\"");
     // Nothing after them.
     let next = client.connection.receiver.recv_timeout(std::time::Duration::from_millis(1500));
