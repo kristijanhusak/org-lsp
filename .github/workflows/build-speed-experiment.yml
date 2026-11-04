@@ -1,0 +1,49 @@
+# Temporary: measures how long the server takes to build in each setup.
+# Publishes nothing; deleted with its branch.
+name: build-speed-experiment
+on:
+  push:
+    branches: [claude/build-speed-experiment]
+permissions:
+  contents: read
+jobs:
+  measure:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: windows-msvc-cgu1, os: windows-latest, target: x86_64-pc-windows-msvc, cgu: '1' }
+          - { name: windows-msvc-cgu16, os: windows-latest, target: x86_64-pc-windows-msvc, cgu: '16' }
+          - { name: linux-xwin-msvc-cgu16, os: ubuntu-latest, target: x86_64-pc-windows-msvc, cgu: '16', xwin: true }
+          - { name: linux-musl-cgu16, os: ubuntu-latest, target: x86_64-unknown-linux-musl, cgu: '16' }
+    runs-on: ${{ matrix.os }}
+    env:
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: ${{ matrix.cgu }}
+      CARGO_PROFILE_RELEASE_LTO: thin
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal --target ${{ matrix.target }}
+          rustup default stable
+      - name: Install musl
+        if: contains(matrix.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: Install cargo-xwin
+        if: matrix.xwin
+        run: |
+          sudo apt-get update && sudo apt-get install -y clang lld llvm
+          pip install cargo-xwin
+      - name: Build, then build the workspace's crates again, timed
+        shell: bash
+        run: |
+          build() { if [ -n "${{ matrix.xwin }}" ]; then cargo xwin build --release --locked -p org-lsp --target ${{ matrix.target }}; else cargo build --release --locked -p org-lsp --target ${{ matrix.target }}; fi; }
+          s=$(date +%s); build; e=$(date +%s); full=$((e-s))
+          cargo clean --release --target ${{ matrix.target }} -p org-lsp -p org-core -p org-syntax
+          s=$(date +%s); build; e=$(date +%s); crates=$((e-s))
+          exe=$(ls target/${{ matrix.target }}/release/org-lsp target/${{ matrix.target }}/release/org-lsp.exe 2>/dev/null | head -1)
+          line="${{ matrix.name }}: everything ${full}s, our crates ${crates}s, $(wc -c < "$exe") bytes"
+          echo "$line"; echo "$line" >> "$GITHUB_STEP_SUMMARY"
