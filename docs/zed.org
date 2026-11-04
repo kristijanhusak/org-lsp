@@ -32,8 +32,10 @@ Restart Zed afterwards; run the script again to update.
 Without the script, the extension starts ~org-lsp~ from your PATH, or else
 downloads the server of its own release for your platform once (~v0.2.0~
 for version 0.2.0 of the extension, the nightly build for the nightly
-one), which needs the repository to be public; ~lsp.org-lsp.binary.path~
-names a server binary of your own. To work on the extension, run *zed:
+one), which needs the repository to be public. The archive is checked
+against the release's ~SHA256SUMS~ before it is unpacked, as
+~scripts/install.sh~ checks it: one that does not match is not installed.
+~lsp.org-lsp.binary.path~ names a server binary of your own. To work on the extension, run *zed:
 install dev extension* and pick ~editors/zed~ of a checkout (Zed builds it
 with Rust).
 
