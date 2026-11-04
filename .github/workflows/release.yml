@@ -83,13 +83,6 @@ jobs:
             target: x86_64-pc-windows-msvc
             vscode: win32-x64
     runs-on: ${{ matrix.os }}
-    # The nightly build compiles on every core of the runner (Windows' is
-    # the slowest), as the release profile's single codegen unit and LTO
-    # compile the server's crate on one; a version tag is built as
-    # Cargo.toml says.
-    env:
-      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: ${{ (startsWith(github.ref, 'refs/tags/') || startsWith(inputs.tag, 'v')) && '1' || '16' }}
-      CARGO_PROFILE_RELEASE_LTO: ${{ (startsWith(github.ref, 'refs/tags/') || startsWith(inputs.tag, 'v')) && 'thin' || 'false' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -100,15 +93,17 @@ jobs:
         run: |
           rustup toolchain install stable --profile minimal --target ${{ matrix.target }}
           rustup default stable
-      # The dependencies built before, for this target and this profile.
+      # The dependencies built before, for this target. A version tag and
+      # the nightly build are built alike, so a tag takes the cache the
+      # last push to main left.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: release-${{ matrix.target }}-${{ (startsWith(github.ref, 'refs/tags/') || startsWith(inputs.tag, 'v')) && 'tag' || 'nightly' }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys: release-${{ matrix.target }}-${{ (startsWith(github.ref, 'refs/tags/') || startsWith(inputs.tag, 'v')) && 'tag' || 'nightly' }}-
+          key: release-${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: release-${{ matrix.target }}-
       # The version is the tag's (`v0.2.0` sets 0.2.0), written where
       # scripts/version.sh writes it, whatever the files say; the lock files
       # it updates offline need their crates.

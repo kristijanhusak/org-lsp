@@ -9,9 +9,11 @@ license = "GPL-3.0-or-later"
 repository = "https://github.com/kristijanhusak/org-lsp"
 publish = false
 
+# Cargo's 16 codegen units, not one: one made the server's crates take
+# 2.8 times as long to build (463 s against 167 s on four cores) for a
+# binary a tenth smaller (17.3 MB against 19.2) and no faster.
 [profile.release]
 lto = "thin"
-codegen-units = 1
 strip = true
 
 # Line numbers alone in the debug builds' backtraces: each test binary
