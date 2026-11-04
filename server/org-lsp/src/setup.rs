@@ -55,7 +55,8 @@ pub fn keywords(path: Option<&Path>, text: &str) -> Vec<Setting> {
 /// Whether `text` may have a `#+SETUPFILE:` line: most documents have
 /// none, and are read no further.
 fn mentions_setup_file(text: &str) -> bool {
-    text.as_bytes().windows(12).any(|window| window.eq_ignore_ascii_case(b"#+setupfile:"))
+    org_core::text::find_all(text, "#+")
+        .any(|at| text.as_bytes()[at..].get(..12).is_some_and(|window| window.eq_ignore_ascii_case(b"#+setupfile:")))
 }
 
 /// The settings of the setup file `value` names, from `directory`, and of
