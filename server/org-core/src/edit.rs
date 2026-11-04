@@ -299,7 +299,7 @@ pub fn run(
                 (Some(note), false) => todo::NoteText::Write(note),
                 (None, false) => todo::NoteText::Ask,
             };
-            todo::change_state_noted(text, keywords, offset, target, &settings.todo, call.now, note)
+            todo::change_state_noted_in(text, Some(parse), keywords, offset, target, &settings.todo, call.now, note)
                 .map(|changed| Outcome {
                     text: changed.text,
                     cursor: None,
@@ -433,8 +433,9 @@ pub fn run(
             );
             Ok(unplaced(counted))
         }
-        Command::Checkbox => crate::checkbox::toggle(
+        Command::Checkbox => crate::checkbox::toggle_in(
             text,
+            &parse.syntax(),
             parse.todo_keywords(),
             offset,
             settings.todo.tags_column,
@@ -442,9 +443,13 @@ pub fn run(
         )
         .map(unplaced),
         Command::Table(mode) => {
-            let outline = crate::outline::Outline::new(parse, text, "");
-            let entry = outline.entry_at(offset);
-            let property = |name: &str| outline.entry_property(entry, name, true);
+            // The outline only for a formula that reads a property: most
+            // tables have none, and most places are in no table.
+            let outline = std::cell::OnceCell::new();
+            let property = |name: &str| {
+                let outline = outline.get_or_init(|| crate::outline::Outline::new(parse, text, ""));
+                outline.entry_property(outline.entry_at(offset), name, true)
+            };
             // The `#+CONSTANTS:` of the setup files (`#+SETUPFILE:`), which
             // the file's own come before and the options' after.
             let mut formulas = settings.todo.table.formulas.clone();

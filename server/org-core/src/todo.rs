@@ -413,6 +413,12 @@ pub(crate) struct Editor<'a> {
     /// `org-inhibit-logging` and `org-inhibit-blocking` `t`: the state
     /// changes with nothing logged and nothing blocking it.
     quiet: bool,
+    /// The outline of the text as it last was (`outline`): made once for
+    /// each text, which a command asks several times.
+    outlined: std::cell::RefCell<Option<Outline>>,
+    /// The text the editor started from with its parse, when the caller
+    /// has one: the outline of that text is made from it.
+    parsed: Option<(&'a str, &'a org_syntax::Parse)>,
 }
 
 /// What is logged: `org-log-done`, `org-log-repeat`, `org-log-into-drawer`
@@ -658,7 +664,22 @@ impl<'a> Editor<'a> {
             log,
             clock_note_at: None,
             quiet: false,
+            outlined: std::cell::RefCell::new(None),
+            parsed: None,
         }
+    }
+
+    /// The outline of the whole text as it is now.
+    fn outline(&self) -> std::cell::Ref<'_, Outline> {
+        let made = self.outlined.borrow().as_ref().is_some_and(|outline| outline.text == self.text);
+        if !made {
+            let outline = match self.parsed.filter(|(text, _)| *text == self.text) {
+                Some((_, parse)) => Outline::new(parse, &self.text, ""),
+                None => Outline::new(&org_syntax::parse(&self.text, self.keywords), &self.text, ""),
+            };
+            *self.outlined.borrow_mut() = Some(outline);
+        }
+        std::cell::Ref::map(self.outlined.borrow(), |outline| outline.as_ref().expect("an outline"))
     }
 
     /// `org-todo` to `state` on the entry of [`Editor::heading`], as
@@ -1478,8 +1499,7 @@ impl<'a> Editor<'a> {
         if !settings.enforce_todo_dependencies {
             return None;
         }
-        let parse = org_syntax::parse(&self.text, self.keywords);
-        let outline = Outline::new(&parse, &self.text, "");
+        let outline = self.outline();
         let entries = &outline.entries;
         let index = outline.entry_at(self.heading)?;
         let open = |entry: usize| entries[entry].todo.is_some() && !entries[entry].done;
@@ -1520,8 +1540,13 @@ impl<'a> Editor<'a> {
 
     /// `org-entry-get` with inheritance and `literal-nil` at the entry.
     fn inherited(&self, name: &str) -> Option<String> {
-        let parse = org_syntax::parse(&self.text, self.keywords);
-        let outline = Outline::new(&parse, &self.text, "");
+        // A property no line of the text names has no value: the outline
+        // is not made for it.
+        let named = regex::RegexBuilder::new(&regex::escape(name)).case_insensitive(true).build();
+        if named.is_ok_and(|named| !named.is_match(&self.text)) {
+            return None;
+        }
+        let outline = self.outline();
         outline.inherited_literal(outline.entry_at(self.heading), name)
     }
 
@@ -2196,7 +2221,24 @@ pub fn change_state_noted(
     now: DateTime,
     note: NoteText,
 ) -> Result<Changed, String> {
+    change_state_noted_in(text, None, keywords, offset, target, settings, now, note)
+}
+
+/// [`change_state_noted`] in `text` parsed already as `parse`, with its
+/// keywords, when the caller has it.
+#[allow(clippy::too_many_arguments)]
+pub fn change_state_noted_in(
+    text: &str,
+    parse: Option<&org_syntax::Parse>,
+    keywords: &TodoKeywords,
+    offset: usize,
+    target: &Target,
+    settings: &Settings,
+    now: DateTime,
+    note: NoteText,
+) -> Result<Changed, String> {
     let mut editor = Editor::new(text, keywords, settings, now);
+    editor.parsed = parse.map(|parse| (text, parse));
     editor.go_to_heading(offset)?;
     editor.set_state(target, true)?;
     Ok(noted(editor, note))
@@ -2364,6 +2406,55 @@ mod tests {
 
     fn next(marked: &str) -> String {
         change(marked, Target::Next, &Settings::default()).unwrap()
+    }
+
+    /// A change made from the text's parse is the one made from the text
+    /// alone: with the properties that say how it is logged, inherited
+    /// or not, and with dependencies blocking it.
+    #[test]
+    fn changes_the_same_from_the_parse() {
+        let texts = [
+            "#+TODO: TODO(t!) WAIT(w@/!) | DONE(d!) CANCELLED(c@)\n* Top\n:PROPERTIES:\n:LOGGING: lognotedone\n\
+             :LOG_INTO_DRAWER: NOTES\n:END:\n** TODO Child\n*** TODO Grandchild\n** WAIT Other\n",
+            "#+PROPERTY: LOGGING nil\n* TODO A\nSCHEDULED: <2026-05-18 Mon +1w>\n* DONE B\n- [ ] box\n",
+            ":PROPERTIES:\n:log_into_drawer: t\n:END:\n* TODO A\n:PROPERTIES:\n:ORDERED: t\n:END:\n** TODO B\n** TODO C\n",
+            "* TODO plain\n** DONE done\n",
+        ];
+        let settings = [
+            Settings::default(),
+            Settings {
+                log_done: Some(Logging::Note),
+                enforce_todo_dependencies: true,
+                enforce_todo_checkbox_dependencies: true,
+                ..Settings::default()
+            },
+        ];
+        let now = DateTime::new(Date::new(2026, 5, 18), 10, 30);
+        for text in texts {
+            let keywords = TodoKeywords::from_document(text).unwrap_or_default();
+            let parse = org_syntax::parse(text, &keywords);
+            for settings in &settings {
+                for (offset, _) in text.match_indices('\n') {
+                    for target in [Target::Next, Target::Previous, Target::Cycle { head: None, repeated: false }] {
+                        let alone = change_state_noted(text, &keywords, offset, &target, settings, now, NoteText::Ask);
+                        let parsed = change_state_noted_in(
+                            text,
+                            Some(&parse),
+                            parse.todo_keywords(),
+                            offset,
+                            &target,
+                            settings,
+                            now,
+                            NoteText::Ask,
+                        );
+                        let show = |changed: Result<Changed, String>| {
+                            changed.map(|changed| (changed.text, format!("{:?}", changed.wants_note), changed.message))
+                        };
+                        assert_eq!(show(parsed), show(alone), "{text:?} at {offset}, {target:?}");
+                    }
+                }
+            }
+        }
     }
 
     #[test]
