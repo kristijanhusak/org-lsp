@@ -61,28 +61,27 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux binaries are static (musl): they run on any distribution.
+          # Each entry's `builds`: the server's target, the name of its
+          # archive (org-lsp-NAME.tar.gz or .zip) and VS Code's platform,
+          # one triple per build. Linux binaries are static (musl): they
+          # run on any distribution. One runner builds both macOS servers
+          # (an Apple Silicon one compiles for Intel too): macOS runners
+          # are the scarcest, and a job waiting for one too long fails.
           - os: ubuntu-latest
             name: linux-x86_64
-            target: x86_64-unknown-linux-musl
-            vscode: linux-x64
+            builds: x86_64-unknown-linux-musl:linux-x86_64:linux-x64
           - os: ubuntu-24.04-arm
             name: linux-arm64
-            target: aarch64-unknown-linux-musl
-            vscode: linux-arm64
+            builds: aarch64-unknown-linux-musl:linux-arm64:linux-arm64
           - os: macos-latest
-            name: macos-arm64
-            target: aarch64-apple-darwin
-            vscode: darwin-arm64
-          - os: macos-latest
-            name: macos-x86_64
-            target: x86_64-apple-darwin
-            vscode: darwin-x64
+            name: macos
+            builds: aarch64-apple-darwin:macos-arm64:darwin-arm64 x86_64-apple-darwin:macos-x86_64:darwin-x64
           - os: windows-latest
             name: windows-x86_64
-            target: x86_64-pc-windows-msvc
-            vscode: win32-x64
+            builds: x86_64-pc-windows-msvc:windows-x86_64:win32-x64
     runs-on: ${{ matrix.os }}
+    env:
+      BUILDS: ${{ matrix.builds }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -91,9 +90,11 @@ jobs:
       - name: Install Rust
         shell: bash
         run: |
-          rustup toolchain install stable --profile minimal --target ${{ matrix.target }}
+          targets=()
+          for build in $BUILDS; do targets+=(--target "${build%%:*}"); done
+          rustup toolchain install stable --profile minimal "${targets[@]}"
           rustup default stable
-      # The dependencies built before, for this target. A version tag and
+      # The dependencies built before, for these targets. A version tag and
       # the nightly build are built alike, so a tag takes the cache the
       # last push to main left.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -102,8 +103,8 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: release-${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys: release-${{ matrix.target }}-
+          key: release-${{ matrix.name }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: release-${{ matrix.name }}-
       # The version is the tag's (`v0.2.0` sets 0.2.0), written where
       # scripts/version.sh writes it, whatever the files say; the lock files
       # it updates offline need their crates.
@@ -115,26 +116,32 @@ jobs:
           cargo fetch --locked -q --manifest-path editors/zed/Cargo.toml
           scripts/version.sh "${TAG#v}"
       - name: Install musl
-        if: contains(matrix.target, 'musl')
+        if: contains(matrix.builds, 'musl')
         run: sudo apt-get update && sudo apt-get install -y musl-tools
       # The commit a released server says it was built from (the one
       # checked out: a tag's, also when run by hand on main); without it
-      # the server says it is a build of its own (`-dev`).
+      # the server says it is a build of its own (`-dev`). One cargo for
+      # all of the entry's targets, which it builds side by side.
       - name: Build the server
         shell: bash
-        run: ORG_LSP_COMMIT=$(git rev-parse HEAD) cargo build --release --locked -p org-lsp --target ${{ matrix.target }}
+        run: |
+          targets=()
+          for build in $BUILDS; do targets+=(--target "${build%%:*}"); done
+          ORG_LSP_COMMIT=$(git rev-parse HEAD) cargo build --release --locked -p org-lsp "${targets[@]}"
 
       - name: Archive the server
         shell: bash
         run: |
-          exe=org-lsp; [[ "${{ matrix.target }}" == *windows* ]] && exe=org-lsp.exe
-          dir="target/${{ matrix.target }}/release"
-          if [[ "$exe" == *.exe ]]; then
-            (cd "$dir" && 7z a "$GITHUB_WORKSPACE/org-lsp-${{ matrix.name }}.zip" "$exe")
-          else
-            tar -czf "org-lsp-${{ matrix.name }}.tar.gz" -C "$dir" "$exe"
-          fi
-          echo "EXE=$dir/$exe" >> "$GITHUB_ENV"
+          for build in $BUILDS; do
+            IFS=: read -r target name vscode <<< "$build"
+            exe=org-lsp; [[ "$target" == *windows* ]] && exe=org-lsp.exe
+            dir="target/$target/release"
+            if [[ "$exe" == *.exe ]]; then
+              (cd "$dir" && 7z a "$GITHUB_WORKSPACE/org-lsp-$name.zip" "$exe")
+            else
+              tar -czf "org-lsp-$name.tar.gz" -C "$dir" "$exe"
+            fi
+          done
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -145,15 +152,21 @@ jobs:
         run: |
           npm ci
           npm run build
-          npm run bundle-server -- "../../$EXE"
-          npx vsce package --no-dependencies --baseContentUrl https://github.com/kristijanhusak/org-lsp/blob/HEAD/editors/vscode --baseImagesUrl https://github.com/kristijanhusak/org-lsp/raw/HEAD/editors/vscode --target "${{ matrix.vscode }}" --out "../../org-lsp-${{ matrix.vscode }}.vsix"
+          for build in $BUILDS; do
+            IFS=: read -r target name vscode <<< "$build"
+            exe=org-lsp; [[ "$target" == *windows* ]] && exe=org-lsp.exe
+            rm -rf server
+            npm run bundle-server -- "../../target/$target/release/$exe"
+            npx vsce package --no-dependencies --baseContentUrl https://github.com/kristijanhusak/org-lsp/blob/HEAD/editors/vscode --baseImagesUrl https://github.com/kristijanhusak/org-lsp/raw/HEAD/editors/vscode --target "$vscode" --out "../../org-lsp-$vscode.vsix"
+          done
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: org-lsp-${{ matrix.name }}
           path: |
-            org-lsp-${{ matrix.name }}.*
-            org-lsp-${{ matrix.vscode }}.vsix
+            org-lsp-*.tar.gz
+            org-lsp-*.zip
+            org-lsp-*.vsix
           if-no-files-found: error
 
   zed:
@@ -369,6 +382,12 @@ jobs:
       - name: Publish the VS Code packages on Open VSX
         if: env.OVSX_PAT != ''
         working-directory: editors/vscode
+        # open-vsx.org sometimes does not answer an upload in time: up to
+        # three tries, each skipping the packages that it already has.
         run: |
           npm ci
-          npx --no-install ovsx publish --skip-duplicate --packagePath "$GITHUB_WORKSPACE"/dist/*.vsix
+          for try in 1 2 3; do
+            npx --no-install ovsx publish --skip-duplicate --packagePath "$GITHUB_WORKSPACE"/dist/*.vsix && exit 0
+            [ "$try" = 3 ] || sleep $((try * 60))
+          done
+          exit 1
