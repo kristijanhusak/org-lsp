@@ -207,7 +207,7 @@ impl Parse {
                     .map(|child| child.to_owned())
                     .chain(headline.children_with_tokens().filter(|child| child.kind() == SyntaxKind::HEADLINE).map(
                         |child| match child {
-                            rowan::NodeOrToken::Node(node) => rowan::NodeOrToken::Node(node.green().into_owned()),
+                            rowan::NodeOrToken::Node(node) => rowan::NodeOrToken::Node(node.green().to_owned()),
                             rowan::NodeOrToken::Token(token) => rowan::NodeOrToken::Token(token.green().to_owned()),
                         },
                     ))
@@ -220,7 +220,7 @@ impl Parse {
                 let children = parsed.children().map(|child| child.to_owned()).chain(
                     root.children()
                         .filter(|child| child.kind() == SyntaxKind::HEADLINE)
-                        .map(|child| rowan::NodeOrToken::Node(child.green().into_owned())),
+                        .map(|child| rowan::NodeOrToken::Node(child.green().to_owned())),
                 );
                 rowan::GreenNode::new(SyntaxKind::DOCUMENT.into(), children.collect::<Vec<_>>())
             }

@@ -612,7 +612,7 @@ pub fn code_blocks_keeping(root: &SyntaxNode, text: &str, kept: &mut CodeBlocksK
         std::mem::take(&mut kept.0).into_iter().map(|(green, blocks)| (address(&green), (green, blocks))).collect();
     let mut out = Vec::new();
     for node in root.children() {
-        let green = node.green().into_owned();
+        let green = node.green().to_owned();
         let start = usize::from(node.text_range().start());
         let blocks = match before.remove(&address(&green)) {
             Some((_, blocks)) => blocks,
