@@ -42,6 +42,17 @@ impl Default for Settings {
 /// `org-roam-file-p`: whether the file at `relative` (to the directory,
 /// with `/` between directories) is one of org-roam's.
 pub fn is_roam_file(relative: &str, settings: &Settings) -> bool {
+    roam_files(settings)(relative)
+}
+
+/// [`is_roam_file`] of many names: the regexps of `exclude` made once.
+pub fn roam_files(settings: &Settings) -> impl Fn(&str) -> bool + '_ {
+    let excluded: Vec<Regex> =
+        settings.exclude.iter().filter_map(|pattern| crate::agenda::matcher::emacs_regex(pattern)).collect();
+    move |relative| is_roam_file_with(relative, settings, &excluded)
+}
+
+fn is_roam_file_with(relative: &str, settings: &Settings, excluded: &[Regex]) -> bool {
     let extension = |name: &str| -> Option<String> {
         let base = name.rsplit('/').next().unwrap_or(name);
         let at = base.rfind('.').filter(|at| *at > 0)?;
@@ -52,12 +63,7 @@ pub fn is_roam_file(relative: &str, settings: &Settings) -> bool {
         ext = extension(&relative[..relative.len() - 4]);
     }
     let valid = ext.is_some_and(|ext| settings.extensions.contains(&ext));
-    let excluded = settings
-        .exclude
-        .iter()
-        .filter_map(|pattern| crate::agenda::matcher::emacs_regex(pattern))
-        .any(|regex| regex.is_match(relative));
-    valid && !excluded
+    valid && !excluded.iter().any(|regex| regex.is_match(relative))
 }
 
 /// The order `org-roam-db-sync` reads files in, given their names

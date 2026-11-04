@@ -5,6 +5,8 @@
 //! the nodes (`org-roam-complete-link-at-point`,
 //! `org-roam-complete-everywhere`).
 
+use std::collections::HashMap;
+
 use lsp_types::{Range, TextEdit, Uri};
 use org_core::roam::{edit, Db};
 use org_core::{edit as org_edit, Refusal};
@@ -27,6 +29,28 @@ pub(super) fn node_named(db: &Db, name: &str) -> Result<Option<String>, String> 
         [id] => Ok(Some(id.to_string())),
         _ => Err(format!("Multiple nodes exist with title or alias \"{name}\"")),
     }
+}
+
+/// `node_named` of every title and alias at once: the `ID` of the one
+/// node of each, those of several nodes left out.
+fn nodes_named(db: &Db) -> HashMap<&str, &str> {
+    let mut ids: HashMap<&str, Vec<&str>> = HashMap::new();
+    for (_, node) in &db.nodes {
+        ids.entry(node.title.as_str()).or_default().push(node.id.as_str());
+    }
+    for (id, alias) in &db.aliases {
+        ids.entry(alias.as_str()).or_default().push(id.as_str());
+    }
+    ids.into_iter()
+        .filter_map(|(name, mut ids)| {
+            ids.sort();
+            ids.dedup();
+            match ids.as_slice() {
+                [id] => Some((name, *id)),
+                _ => None,
+            }
+        })
+        .collect()
 }
 
 /// `org-roam--get-titles`: every title and alias, once.
@@ -305,10 +329,11 @@ impl Server {
         };
         let Ok((db, _)) = self.roam_db() else { return Vec::new() };
         let range = Range::new(index.position(&text, start, encoding), index.position(&text, end, encoding));
+        let named = nodes_named(&db);
         titles(&db)
             .into_iter()
             .filter_map(|title| {
-                let id = node_named(&db, &title).ok().flatten()?;
+                let id = *named.get(title.as_str())?;
                 let new_text = match (wrap, closed) {
                     (true, _) => format!("[[id:{id}][{title}]]"),
                     (false, true) => format!("id:{id}][{title}"),
@@ -324,5 +349,38 @@ impl Server {
                 })
             })
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every title's node at once, as `node_named` finds each: none for a
+    /// title or alias of several nodes.
+    #[test]
+    fn names_the_nodes_of_every_title() {
+        let mut db = Db::default();
+        let files = [
+            ("a.org", ":PROPERTIES:\n:ID: a\n:ROAM_ALIASES: Both Alias\n:END:\n#+title: A\n* B\n:PROPERTIES:\n:ID: b\n:END:\n"),
+            ("c.org", ":PROPERTIES:\n:ID: c\n:ROAM_ALIASES: Both\n:END:\n#+title: Same\n"),
+            ("d.org", ":PROPERTIES:\n:ID: d\n:ROAM_ALIASES: Same\n:END:\n#+title: D\n* D\n:PROPERTIES:\n:ID: e\n:END:\n"),
+        ];
+        for (file, text) in files {
+            let parse = org_syntax::parse(text, &org_syntax::TodoKeywords::default());
+            let outline = org_core::outline::Outline::new(&parse, text, file);
+            db.add(file, org_core::roam::scan(text, &parse, &outline, file));
+        }
+        let named = nodes_named(&db);
+        let titles = titles(&db);
+        assert!(titles.len() >= 6, "{titles:?}");
+        for title in titles {
+            let one = node_named(&db, &title).ok().flatten();
+            assert_eq!(named.get(title.as_str()).map(|id| id.to_string()), one, "{title}");
+        }
+        assert_eq!(named.get("Alias"), Some(&"a"));
+        assert_eq!(named.get("Both"), None);
+        assert_eq!(named.get("Same"), None);
+        assert_eq!(named.get("D"), None);
     }
 }
