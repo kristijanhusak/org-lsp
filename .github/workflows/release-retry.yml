@@ -1,0 +1,49 @@
+# Runs a Release run's failed jobs again when GitHub never started them:
+# a job no runner of its kind takes in time fails with "The job was not
+# acquired by Runner of type hosted even after multiple attempts" (macOS
+# runners, the scarcest, most often). A version tag's release is then not
+# made, and the nightly build lacks the platform. Up to three attempts in
+# all; a run where a job ran and failed is left as it is, and the nightly
+# build only while it is main's newest (a run of main again would cancel a
+# newer one, see release.yml's `concurrency`).
+name: Release retry
+
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+
+permissions:
+  actions: write
+
+jobs:
+  retry:
+    if: github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.run_attempt < 3
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      RUN: ${{ github.event.workflow_run.id }}
+      ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+      BRANCH: ${{ github.event.workflow_run.head_branch }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - name: Run the jobs no runner started again
+        run: |
+          # The jobs of this attempt that failed or were cancelled, each
+          # with its runner (0: none started it).
+          failed=$(gh api "repos/$REPO/actions/runs/$RUN/attempts/$ATTEMPT/jobs" --paginate \
+            --jq '.jobs[] | select(.conclusion == "failure" or .conclusion == "cancelled") | "\(.runner_id // 0) \(.name)"')
+          echo "$failed"
+          if [ -z "$failed" ] || grep -qv '^0 ' <<< "$failed"; then
+            echo "A job ran and failed, or none failed: not run again."
+            exit 0
+          fi
+          if [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
+            newest=$(gh run list --repo "$REPO" --workflow release.yml --branch "$BRANCH" --limit 1 --json databaseId --jq '.[0].databaseId')
+            if [ "$newest" != "$RUN" ]; then
+              echo "A newer run of $BRANCH (#$newest) builds the nightly release: this one is not run again."
+              exit 0
+            fi
+          fi
+          gh run rerun "$RUN" --failed --repo "$REPO"

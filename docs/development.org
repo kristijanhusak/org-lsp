@@ -434,6 +434,15 @@ the files on the release (its title and notes as written there), then
 publishes it. A tag pushed (~git push origin v0.2.0~) does the same, and
 the workflow makes the release.
 
+GitHub's runners are not always there: a job that no runner takes in
+time fails with /The job was not acquired by Runner of type hosted/
+(macOS runners, the scarcest, most often), so one runner builds both
+macOS servers. The Release retry workflow
+(~.github/workflows/release-retry.yml~) runs such jobs again, up to
+three attempts in all; a run where a job ran and failed is left for you.
+The ~open-vsx~ job tries its upload three times too, as open-vsx.org
+sometimes does not answer in time.
+
 A release that failed is made again by running the workflow by hand on
 main with its tag (/Actions › Release › Run workflow/, ~tag~ ~v0.2.0~):
 it builds that tag again and publishes it, as this workflow does, where
