@@ -1291,6 +1291,9 @@ struct Server {
     /// the last ID (`tokens_kept`).
     tokens_sent: HashMap<String, (String, Vec<lsp_types::SemanticToken>)>,
     tokens_result: u64,
+    /// The code blocks of each document, by the nodes at its top
+    /// (`highlight::code_blocks_keeping`).
+    code_blocks_kept: HashMap<String, highlight::CodeBlocksKept>,
     /// What each document was last sent in `org-lsp/syntax`.
     syntax_sent: HashMap<String, Value>,
     /// The documents last sent with something in `org-lsp/display`.
@@ -1968,6 +1971,7 @@ pub fn run(connection: Connection) -> Result<()> {
         code_blocks_sent: HashSet::new(),
         tokens_sent: HashMap::new(),
         tokens_result: 0,
+        code_blocks_kept: HashMap::new(),
         syntax_sent: HashMap::new(),
         displayed: HashSet::new(),
         cite_global: options.cite_global_bibliography.clone().unwrap_or_default(),
@@ -4132,6 +4136,7 @@ impl Server {
                 self.heading_lines.remove(params.text_document.uri.as_str());
                 self.code_blocks_sent.remove(params.text_document.uri.as_str());
                 self.tokens_sent.remove(params.text_document.uri.as_str());
+                self.code_blocks_kept.remove(params.text_document.uri.as_str());
                 self.syntax_sent.remove(params.text_document.uri.as_str());
                 self.custom_properties_hidden.remove(params.text_document.uri.as_str());
                 self.displayed.remove(params.text_document.uri.as_str());
@@ -16529,7 +16534,8 @@ impl Server {
         let Some(document) = self.documents.get(key) else { return };
         let text = &document.text;
         let encoding = self.client.encoding;
-        let blocks: Vec<Value> = highlight::code_blocks(&document.syntax(), text)
+        let kept = self.code_blocks_kept.entry(key.to_string()).or_default();
+        let blocks: Vec<Value> = highlight::code_blocks_keeping(&document.syntax(), text, kept)
             .into_iter()
             .map(|block| {
                 let range = Range::new(

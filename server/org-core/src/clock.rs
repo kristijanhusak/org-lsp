@@ -140,9 +140,16 @@ fn lines(text: &str) -> impl Iterator<Item = (usize, &str)> {
 /// The clocks that run in `text`: where each line starts, and when the
 /// clock started.
 pub fn running(text: &str) -> Vec<(usize, DateTime)> {
-    lines(text)
-        .filter_map(|(start, line)| {
-            let clock = parse_line(line)?;
+    // Only the lines that start with `CLOCK:` after blanks: found by
+    // looking for it rather than going through every line.
+    crate::text::find_all(text, "CLOCK:")
+        .filter_map(|at| {
+            let start = text[..at].rfind('\n').map_or(0, |newline| newline + 1);
+            if !text[start..at].bytes().all(|byte| byte == b' ' || byte == b'\t') {
+                return None;
+            }
+            let end = text[at..].find('\n').map_or(text.len(), |newline| at + newline);
+            let clock = parse_line(text[start..end].trim_end_matches(['\n', '\r']))?;
             clock.is_running().then(|| (start, clock.start.expect("a running clock has a start")))
         })
         .collect()
@@ -513,6 +520,22 @@ pub fn subtree_minutes(text: &str, heading: usize, since: Option<i64>) -> i64 {
 
 #[cfg(test)]
 mod tests {
+    /// The running clocks are those of the lines that start with
+    /// `CLOCK:`, found without going through the others.
+    #[test]
+    fn finds_the_running_clocks() {
+        let text = "* A\n:LOGBOOK:\n  CLOCK: [2026-05-18 Mon 09:00]\r\n\tCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\n\
+                    x CLOCK: [2026-05-18 Mon 11:00]\nCLOCK: [2026-05-18 Mon 12:00] CLOCK:\n:END:\nCLOCK: [2026-05-19 Tue 08:00]";
+        let slow: Vec<(usize, crate::date::DateTime)> = super::lines(text)
+            .filter_map(|(start, line)| {
+                let clock = super::parse_line(line)?;
+                clock.is_running().then(|| (start, clock.start.unwrap()))
+            })
+            .collect();
+        assert_eq!(slow.len(), 3);
+        assert_eq!(super::running(text), slow);
+    }
+
     #[test]
     fn finds_the_clock_an_entry_left_running() {
         let text = "* A\n:LOGBOOK:\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\n:END:\n\
