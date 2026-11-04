@@ -597,6 +597,40 @@ pub fn code_blocks(root: &SyntaxNode, text: &str) -> Vec<CodeBlock> {
     out
 }
 
+/// The code blocks under each node at the top of a document (its first
+/// section, its top headlines), from where the node starts, kept with the
+/// node: an edit parsed again where it is (`Parse::edit`) leaves the
+/// others the same nodes, whose blocks are not looked for again.
+#[derive(Debug, Default)]
+pub struct CodeBlocksKept(Vec<(org_syntax::GreenNode, Vec<CodeBlock>)>);
+
+/// [`code_blocks`] of the document `root`, with those of the nodes at its
+/// top that `kept` has, which then keeps those of `root`.
+pub fn code_blocks_keeping(root: &SyntaxNode, text: &str, kept: &mut CodeBlocksKept) -> Vec<CodeBlock> {
+    let address = |green: &org_syntax::GreenNode| std::ptr::from_ref(&**green).cast::<()>() as usize;
+    let mut before: std::collections::HashMap<usize, (org_syntax::GreenNode, Vec<CodeBlock>)> =
+        std::mem::take(&mut kept.0).into_iter().map(|(green, blocks)| (address(&green), (green, blocks))).collect();
+    let mut out = Vec::new();
+    for node in root.children() {
+        let green = node.green().into_owned();
+        let start = usize::from(node.text_range().start());
+        let blocks = match before.remove(&address(&green)) {
+            Some((_, blocks)) => blocks,
+            None => code_blocks(&node, text)
+                .into_iter()
+                .map(|block| CodeBlock { start: block.start - start, end: block.end - start, ..block })
+                .collect(),
+        };
+        out.extend(blocks.iter().map(|block| CodeBlock {
+            start: block.start + start,
+            end: block.end + start,
+            ..block.clone()
+        }));
+        kept.0.push((green, blocks));
+    }
+    out
+}
+
 /// `org-src-lang-modes` as Org 9.8 has it: the major mode, without
 /// `-mode`, of the languages whose mode has another name. The shells are
 /// those of `sh-ancestor-alist`.
@@ -2181,6 +2215,29 @@ mod tests {
                 token(12, 14, TokenType::Tag, 0),
             ]
         );
+    }
+
+    /// The code blocks kept for the nodes an edit left alone are those
+    /// found anew, in the edited text.
+    #[test]
+    fn keeps_the_code_blocks_of_the_nodes_left_alone() {
+        let todo = TodoKeywords::default();
+        let mut text = "#+begin_src sh\nls\n#+end_src\n* A\nsrc_c{x}\n#+begin_src python\n1\n#+end_src\n\
+                        * B\n** C\n#+begin_export html\n<b>\n#+end_export\n* D\nsrc_c{x}\n"
+            .to_string();
+        let mut parse = org_syntax::parse(&text, &todo);
+        let mut kept = CodeBlocksKept::default();
+        assert_eq!(code_blocks_keeping(&parse.syntax(), &text, &mut kept), code_blocks(&parse.syntax(), &text));
+        for (find, new) in [("ls", "ls -l"), ("<b>", "<i>\n"), ("* B", "* B2"), ("1\n", ""), ("* D\n", "* D\nmore\n")] {
+            let start = text.find(find).unwrap();
+            let end = start + find.len();
+            let old = text.clone();
+            text.replace_range(start..end, new);
+            parse = parse.edit(&old, start, end, &text, &todo);
+            let keeping = code_blocks_keeping(&parse.syntax(), &text, &mut kept);
+            assert_eq!(keeping, code_blocks(&parse.syntax(), &text), "{text:?}");
+        }
+        assert_eq!(kept.0.len(), 4);
     }
 
     /// The code blocks of `text`, as `kind name "code"`.

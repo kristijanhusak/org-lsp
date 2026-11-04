@@ -280,6 +280,7 @@ name = "org-core"
 version = "0.1.3"
 dependencies = [
  "expect-test",
+ "memchr",
  "org-syntax",
  "regex",
  "serde_json",

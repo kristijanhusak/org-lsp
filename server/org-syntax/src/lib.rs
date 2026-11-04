@@ -61,7 +61,7 @@ pub fn entity_utf8(name: &str) -> Option<&'static str> {
     entities::ENTITIES.binary_search(&name).ok().map(|index| entities::UTF8[index])
 }
 pub use kind::{OrgLanguage, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken};
-pub use rowan::{TextRange, TextSize, TokenAtOffset};
+pub use rowan::{GreenNode, TextRange, TextSize, TokenAtOffset};
 
 /// The token at `offset` under `node`, as rowan's `token_at_offset` has it
 /// (both tokens where two meet), found by halving the children of each

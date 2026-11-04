@@ -105,6 +105,33 @@ impl LineIndex {
         before + encoding.len(&text[at..offset])
     }
 
+    /// The index of `text` after its bytes from `start` to `end` were
+    /// replaced with `length` bytes: the lines before and after the
+    /// change stay, moved; those of the bytes put in are found.
+    pub fn edit(&mut self, text: &str, start: usize, end: usize, length: usize) {
+        let bytes = text.as_bytes();
+        // A line starts after a `\n`, or after a `\r` not followed by one:
+        // a start before `start` is that of bytes the change left alone,
+        // and so is one after `end`; the byte before the change and those
+        // put in say where the others are.
+        // The first line starts at 0 whatever changes.
+        let before = self.line_starts.partition_point(|line| *line < start).max(1);
+        let after = self.line_starts.partition_point(|line| *line <= end).max(before);
+        let mut found = Vec::new();
+        for at in start.saturating_sub(1)..start + length {
+            match bytes[at] {
+                b'\n' => found.push(at + 1),
+                b'\r' if bytes.get(at + 1) != Some(&b'\n') => found.push(at + 1),
+                _ => {}
+            }
+        }
+        let moved = self.line_starts[after..].iter().map(|line| line + start + length - end);
+        let tail: Vec<usize> = found.into_iter().chain(moved).collect();
+        self.line_starts.truncate(before);
+        self.line_starts.extend(tail);
+        self.len = text.len();
+    }
+
     pub fn line_count(&self) -> usize {
         self.line_starts.len()
     }
@@ -186,6 +213,35 @@ impl LineIndex {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// An index edited where the text changed is the index of the new
+    /// text, line ends of every kind put in, taken out or split.
+    #[test]
+    fn edits_as_the_text_changes() {
+        let pieces = ["", "a", "\n", "\r", "\r\n", "b\nc", "\n\r", "é\r", "\nd\r\n"];
+        let texts = ["", "x", "a\nb", "a\r\nb\r", "\r\n\r\n", "ab\rcd\n\nef"];
+        for text in texts {
+            for start in 0..=text.len() {
+                for end in start..=text.len() {
+                    if !text.is_char_boundary(start) || !text.is_char_boundary(end) {
+                        continue;
+                    }
+                    for piece in pieces {
+                        let mut new = text.to_string();
+                        new.replace_range(start..end, piece);
+                        let mut index = LineIndex::new(text);
+                        index.edit(&new, start, end, piece.len());
+                        let fresh = LineIndex::new(&new);
+                        assert_eq!(
+                            (index.line_starts, index.len),
+                            (fresh.line_starts, fresh.len),
+                            "{text:?} {start}..{end} {piece:?}"
+                        );
+                    }
+                }
+            }
+        }
+    }
 
     const TEXT: &str = "a😀b\né\r\n\rlast";
 
