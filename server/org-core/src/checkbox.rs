@@ -151,8 +151,19 @@ pub fn toggle(
     tags_column: i64,
     settings: &crate::list::Settings,
 ) -> Result<String, Refusal> {
-    let root = parse(text, keywords);
-    let lists = Lists::new(text, &root);
+    toggle_in(text, &parse(text, keywords), keywords, offset, tags_column, settings)
+}
+
+/// [`toggle`] in `text` parsed already, its tree `root`.
+pub fn toggle_in(
+    text: &str,
+    root: &SyntaxNode,
+    keywords: &TodoKeywords,
+    offset: usize,
+    tags_column: i64,
+    settings: &crate::list::Settings,
+) -> Result<String, Refusal> {
+    let lists = Lists::new(text, root);
     let line = line_start(text, offset);
     let line_text = &text[line..line_end(text, line)];
     let (up, down) = if headline_level(line_text).is_some() {
