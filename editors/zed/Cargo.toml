@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 flate2 = "1"
-sha2 = "0.10"
+sha2 = "0.11"
 tar = { version = "0.4", default-features = false }
 zed_extension_api = "0.7.0"
-zip = { version = "2", default-features = false, features = ["deflate"] }
+zip = { version = "9", default-features = false, features = ["deflate"] }

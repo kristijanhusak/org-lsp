@@ -306,8 +306,8 @@ mod tests {
         let mut document = Document::new(start.to_string(), 1, &todo);
         let same = |document: &Document| {
             assert_eq!(
-                document.syntax().green().into_owned(),
-                org_syntax::parse(&document.text, &todo).syntax().green().into_owned(),
+                document.syntax().green().to_owned(),
+                org_syntax::parse(&document.text, &todo).syntax().green().to_owned(),
                 "{:?}",
                 document.text
             );
