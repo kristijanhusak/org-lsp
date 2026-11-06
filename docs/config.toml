@@ -1318,7 +1318,9 @@ org_agenda_block_separator = "="
 # (org-agenda-compact-blocks)
 org_agenda_compact_blocks = false
 
-# Leave out the blocks of a block agenda that show no entries. Not in Org.
+# Leave out the blocks of a block agenda that show no entries. A custom agenda
+# command's or a block's `settings` turn it on or off for that command or
+# block. Not in Org.
 agenda_hide_empty_blocks = false
 
 # Read every search string of the search view (`s`) as words that must
@@ -1417,9 +1419,9 @@ org_agenda_custom_commands_contexts = []
 # `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list of such views
 # shown one after the other. `header` replaces a view's header (empty: none),
 # and `settings` holds agenda options for the command or a block
-# (`org_agenda_span`, `org_agenda_start_day` …). A command with only a key and
-# a description groups the commands whose keys start with its key.
-# (org-agenda-custom-commands)
+# (`org_agenda_span`, `org_agenda_start_day`, `agenda_hide_empty_blocks` …). A
+# command with only a key and a description groups the commands whose keys
+# start with its key. (org-agenda-custom-commands)
 org_agenda_custom_commands = []
 
 
