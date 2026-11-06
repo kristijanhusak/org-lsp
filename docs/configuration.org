@@ -288,7 +288,10 @@ settings list does: ~org_agenda_span~, ~org_agenda_start_day~ (~-1d~,
 ~2026-10-01~), ~org_deadline_warning_days~, ~org_agenda_use_time_grid~,
 ~org_agenda_sorting_strategy~ (one list, for the block's kind of view),
 ~org_agenda_max_entries~ and the others. A block's settings go over its
-command's, which go over the options'.
+command's, which go over the options'. org-lsp's own agenda options go
+there too: with [[#agenda_hide_empty_blocks][~agenda_hide_empty_blocks~]] on, a command with
+~settings = { agenda_hide_empty_blocks = false }~ still shows its empty
+blocks, and with it off, one with ~true~ leaves them out.
 
 In a block agenda, ~f~, ~b~, ~.~, ~j~ and the span keys move the agenda
 block the cursor is in, as in Emacs.
@@ -5094,7 +5097,9 @@ org_agenda_compact_blocks = false
 :CUSTOM_ID: agenda_hide_empty_blocks
 :END:
 
-Leave out the blocks of a block agenda that show no entries. Not in Org.
+Leave out the blocks of a block agenda that show no entries. A custom agenda
+command's or a block's ~settings~ turn it on or off for that command or block.
+Not in Org.
 
 - Type :: boolean
 - Default :: ~false~
@@ -5394,8 +5399,8 @@ a ~type~ (~agenda~, ~alltodo~, ~todo~, ~tags~ or ~tags-todo~) with a ~match~
 or ~PRIORITY="A"~ for ~tags~), or ~blocks~, a list of such views shown one
 after the other. ~header~ replaces a view's header (empty: none), and
 ~settings~ holds agenda options for the command or a block (~org_agenda_span~,
-~org_agenda_start_day~ …). A command with only a key and a description groups
-the commands whose keys start with its key.
+~org_agenda_start_day~, ~agenda_hide_empty_blocks~ …). A command with only a
+key and a description groups the commands whose keys start with its key.
 
 - Org's option :: ~org-agenda-custom-commands~
 - Type :: object[]
