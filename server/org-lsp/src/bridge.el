@@ -137,7 +137,7 @@
   (require 'seq)
   (require 'wid-edit)
   (let* ((symbol (intern name))
-         (type (get symbol 'custom-type))
+         (type (org-lsp-bridge--option-type symbol))
          (value (let ((json-object-type 'alist)
                       (json-array-type 'vector)
                       (json-key-type 'string)
@@ -157,6 +157,22 @@
               (funcall (or (get symbol 'custom-set) #'set-default) symbol lisp)
             (error (org-lsp-bridge--notice "`emacs_options` could not set `%s`: %s"
                                            name (error-message-string err)))))))))
+
+(define-widget 'org-lsp-bridge-backend 'symbol
+  "The name of an export backend whose library, `ox-NAME', Emacs finds."
+  :match (lambda (_widget value)
+           (and value (symbolp value) (locate-library (format "ox-%s" value)) t)))
+
+(defun org-lsp-bridge--option-type (symbol)
+  "The custom type of the option SYMBOL, which its value is checked against.
+That of `org-export-backends' names the backends of Org and org-contrib
+alone, where Org loads `ox-NAME' for any NAME the list has (`gfm' for
+ox-gfm, as Emacs users add it with `setq'): it also takes a backend whose
+library Emacs finds."
+  (let ((type (get symbol 'custom-type)))
+    (if (and (eq symbol 'org-export-backends) (eq (car-safe type) 'set))
+        `(repeat (choice ,@(org-lsp-bridge--type-args type) org-lsp-bridge-backend))
+      type)))
 
 (defun org-lsp-bridge--type-matches (type value)
   "Whether VALUE is of the custom TYPE, as Customize checks it."
@@ -259,7 +275,7 @@ sectioning). The symbol `none' when the count does not fit."
          (if (and (stringp value) (symbolp constant) (string= value (symbol-name constant)))
              constant
            (org-lsp-bridge--plain-value value))))
-      ((or 'symbol 'variable 'face 'coding-system)
+      ((or 'symbol 'variable 'face 'coding-system 'org-lsp-bridge-backend)
        (if (stringp value) (intern value) (org-lsp-bridge--plain-value value)))
       ('character
        (if (and (stringp value) (= (length value) 1)) (aref value 0) value))
@@ -414,6 +430,7 @@ a table, or VALUE itself."
       ((or 'symbol 'variable 'face 'coding-system) "a name")
       ('character "a character")
       ((or 'function 'command) "the name of a defined function")
+      ('org-lsp-bridge-backend "the name of a backend whose library (ox-NAME) Emacs finds")
       ((or 'repeat 'set) "a list")
       ((or 'list 'group 'vector 'cons) (format "a list of %d" (if (eq head 'cons) 2 (length args))))
       ((or 'alist 'plist) "a table")

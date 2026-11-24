@@ -93,6 +93,25 @@ that does not fit (an item of a list, a key or a value of a table) and
 what it may be; the server names an option that is not one of those
 here, and says why it leaves it out.
 
+One type is narrower than what Org does with the option, and the value
+is taken as Org takes it: ~org-export-backends~ names the backends of
+Org and org-contrib, but Org loads ~ox-NAME~ for any name in the list,
+as Emacs users add one with ~setq~. So it also takes the name of a
+backend whose library Emacs finds by then, after ~emacs_config~:
+
+#+begin_src toml
+# ~/.config/org-lsp/config.toml
+emacs_config = '''
+(add-to-list 'load-path "~/src/ox-gfm")
+'''
+
+[emacs_options]
+org-export-backends = ["ascii", "html", "icalendar", "latex", "odt", "md", "gfm"]
+#+end_src
+
+A name that is neither Org's nor found (~"nosuch"~, no ~ox-nosuch~) is
+not what the option takes.
+
 * When they apply
 
 Emacs loads ~emacs_config_file~, evaluates ~emacs_config~, then loads Org.
