@@ -3438,7 +3438,10 @@ function! org_lsp#attach() abort
     call org_lsp#set_keys('calendar')
   else
     call org_lsp#set_keys('org')
-    if s:is_capture(bufname(nr))
+    " `b:org_lsp_capture` tells a capture buffer from the other Org
+    " buffers, for the user's own autocommands and statusline.
+    let b:org_lsp_capture = s:is_capture(bufname(nr)) ? v:true : v:false
+    if b:org_lsp_capture
       call org_lsp#set_keys('capture')
     endif
     if org_lsp#config().indent

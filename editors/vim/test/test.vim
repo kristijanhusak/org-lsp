@@ -482,12 +482,14 @@ function! s:capture() abort
   let g:answers = ['t']
   call org_lsp#run('org.capture')
   call s:until('the capture buffer', {-> fnamemodify(bufname(), ':t') =~# '^CAPTURE-'})
+  call s:until('the capture buffer marked', {-> get(b:, 'org_lsp_capture', v:false) is v:true})
   " The cursor is where `%?` was, for typing.
   call assert_equal([1, len('* TODO ')], [line('.'), col('.')])
   call setline(1, '* TODO Call mom')
   call feedkeys("\<C-c>", 'x')
   call s:until('the entry filed', {-> filereadable(s:work . '/notes/inbox.org') && index(readfile(s:work . '/notes/inbox.org'), '* TODO Call mom') >= 0})
   call s:until('the capture buffer closed', {-> fnamemodify(bufname(), ':t') !~# '^CAPTURE-'})
+  call assert_equal(v:false, get(b:, 'org_lsp_capture', v:none))
 endfunction
 call s:test('captures through a capture buffer', function('s:capture'))
 
