@@ -954,15 +954,73 @@ done
             [
                 "`emacs_options` leaves out `org-attach-store-link-p`: \"move\" is not false, true, \"attached\" \
                  or \"file\"",
-                // The item that is not what the option takes.
+                // The item that is not what the option takes: a backend
+                // neither Org's nor found (`ox-nosuch`).
                 "`emacs_options` leaves out `org-export-backends`: \"nosuch\" is not \"ascii\", \"beamer\", \
                  \"html\", \"icalendar\", \"latex\", \"man\", \"md\", \"odt\", \"org\", \"texinfo\", \
-                 \"confluence\", \"deck\", \"freemind\", \"groff\", \"koma-letter\", \"rss\", \"s5\" or \
-                 \"taskjuggler\"",
+                 \"confluence\", \"deck\", \"freemind\", \"groff\", \"koma-letter\", \"rss\", \"s5\", \
+                 \"taskjuggler\" or the name of a backend whose library (ox-NAME) Emacs finds",
                 "`emacs_options` leaves out `org-html-format-drawer-function`: \"my-drawer\" is not the name of a \
                  defined function",
             ]
         );
+    }
+
+    /// `org-export-backends` takes a backend that is not one of Org's,
+    /// as `setq` does in Emacs, when Emacs finds its library (`ox-gfm`
+    /// for `gfm`): Org loads it, and its entry is in the menu.
+    #[test]
+    fn sets_export_backends_that_are_not_orgs() {
+        let found = Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+        if !found {
+            assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+            eprintln!("sets_export_backends_that_are_not_orgs: no Emacs, skipped");
+            return;
+        }
+        let directory = std::env::temp_dir().join(format!("org-lsp-other-backend-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(&directory).unwrap();
+        std::fs::write(
+            directory.join("ox-mine.el"),
+            "(require 'ox-md)\n\
+             (org-export-define-derived-backend 'mine 'md\n\
+               :menu-entry '(?y \"Export to Mine\" ((?y \"To file\" ignore))))\n\
+             (provide 'ox-mine)\n",
+        )
+        .unwrap();
+        let load =
+            std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+        let emacs = Emacs::new(Settings {
+            program: "emacs".to_string(),
+            config: Some(format!("{load}\n(add-to-list 'load-path {:?})", directory.display().to_string())),
+            // As it is in the server: set when `org` loads.
+            options: vec![OrgOption {
+                name: "org-export-backends".to_string(),
+                feature: "org".to_string(),
+                value: json!(["ascii", "beamer", "html", "mine", "md"]),
+            }],
+            ..Settings::default()
+        });
+        let call = |method: &str, params: Value| loop {
+            match emacs.call(method, params.clone(), Duration::from_secs(60)) {
+                Err(error) if error == STARTING => continue,
+                result => return result.unwrap(),
+            }
+        };
+        let sexp = "(progn (require 'ox) (format \"%S %S %S\" org-export-backends (featurep 'ox-mine) \
+                    (featurep 'ox-beamer)))";
+        assert_eq!(call("eval", json!({ "sexp": sexp })), "(ascii beamer html mine md) t t");
+        let menu = call("export-menu", Value::Null).to_string();
+        assert!(menu.contains("Export to Mine"), "{menu}");
+        let mut notices = Vec::new();
+        while let Ok(event) = emacs.events().try_recv() {
+            if let Event::Notice { text } = event {
+                notices.push(text);
+            }
+        }
+        assert_eq!(notices, Vec::<String>::new());
+        drop(emacs);
+        std::fs::remove_dir_all(directory).unwrap();
     }
 
     /// The Lisp of the settings Emacs is told (`org_src_lang_modes`, the

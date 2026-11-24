@@ -363,7 +363,10 @@ org-babel-load-languages = { emacs-lisp = true, python = true }
 Emacs sets each, as Customize would, when it loads the library the option
 is in (~org-attach~ for ~org-attach-method~), and checks it against the
 option's type: a value the option does not take is left out, with a
-message saying what it takes. The options are those Emacs reads:
+message saying what it takes. Where Org's type is narrower than what Org
+takes, the server takes as much as Org: ~org-export-backends~ may name
+a backend that is not one of Org's (~"gfm"~ for ox-gfm, installed in
+~emacs_config~) when Emacs finds its library (~ox-gfm~). The options are those Emacs reads:
 [[file:emacs-options.org][emacs-options.org]] lists each, with Org's documentation of it, its default
 and its type. For the others the server says why it leaves them out: most
 are settings of the server, and a function or a hook is Lisp.
