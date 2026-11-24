@@ -1360,9 +1360,13 @@ local function on_attach(client, bufnr)
       vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
     end
   end
-  -- A capture buffer is an Org file with keys of its own on top.
+  -- A capture buffer is an Org file with keys of its own on top;
+  -- `b:org_lsp_capture` tells it from the others, for the user's own
+  -- autocommands and statusline.
   local prefix = M.manifest.capture and M.manifest.capture.prefix
-  if not preview and prefix and vim.startswith(vim.fs.basename(vim.api.nvim_buf_get_name(bufnr)), prefix) then
+  local capture = not preview and prefix ~= nil and vim.startswith(vim.fs.basename(vim.api.nvim_buf_get_name(bufnr)), prefix)
+  vim.b[bufnr].org_lsp_capture = capture
+  if capture then
     set_keys('capture', bufnr)
   end
   if M.config.replace_syntax and client:supports_method('textDocument/semanticTokens/full') then

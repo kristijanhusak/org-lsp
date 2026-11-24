@@ -2052,6 +2052,9 @@ do
   wait('the capture buffer', function()
     return vim.api.nvim_buf_get_name(0):find('CAPTURE%-%d+%-fresh_idea%.org$') ~= nil
   end)
+  wait('the capture buffer marked', function()
+    return vim.b.org_lsp_capture == true
+  end)
   local id = vim.api.nvim_buf_get_lines(0, 1, 2, false)[1]:match('^:ID:%s+(%S+)$')
   check(id ~= nil, 'the new node has an ID')
   vim.api.nvim_buf_set_lines(0, 4, 5, false, { 'Body.' })
@@ -2059,6 +2062,7 @@ do
   wait('the link to the new node', function()
     return vim.api.nvim_buf_get_name(0) == vim.fs.normalize(index) and line(5) == ('[[id:%s][Fresh idea]]'):format(id)
   end)
+  eq(vim.b.org_lsp_capture, false, 'an Org file is not a capture buffer')
   local written = vim.fn.glob(roam_dir .. '/*-fresh_idea.org')
   eq(vim.fn.readfile(written), { ':PROPERTIES:', ':ID:       ' .. id, ':END:', '#+title: Fresh idea', 'Body.' }, 'the new file')
   -- An alias of the node at the cursor, asked for, goes into its drawer.

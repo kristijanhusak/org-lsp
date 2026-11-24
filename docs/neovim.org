@@ -132,6 +132,10 @@ question and answer it, as in Emacs; keys pasted a few milliseconds after
 
 [[file:keys/neovim.org][keys/neovim.org]] lists every key and how to change it.
 
+~b:org_lsp_capture~ is ~true~ in a capture buffer and ~false~ in the
+other Org buffers, for autocommands and statuslines of your own (it is
+set when the server attaches, on ~LspAttach~).
+
 * What works
 
 # BEGIN generated: features

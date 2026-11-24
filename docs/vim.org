@@ -130,6 +130,9 @@ of the buffer at hand, ~K~ in the agenda shows the entry of the line in a
 popup, and ~:Org agenda~, ~:Org capture~, ~:Org todo next~ … run any
 command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change it.
 
+~b:org_lsp_capture~ is ~v:true~ in a capture buffer and ~v:false~ in the
+other Org buffers, for autocommands and statuslines of your own.
+
 * What differs from Neovim
 
 - The agenda and the date prompt's calendar are files the server writes
