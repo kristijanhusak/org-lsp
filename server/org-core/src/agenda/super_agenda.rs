@@ -86,7 +86,7 @@ impl Default for Settings {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Grouped {
     Header { text: String, faced: usize },
-    Item(Item),
+    Item(Box<Item>),
 }
 
 /// The selectors that only say how a group shows
@@ -222,7 +222,7 @@ impl<'a> Grouper<'a> {
         // Blank lines go, as `s-blank-str?` strings are removed.
         let blank = |item: &Item| item.text.trim().is_empty();
         if self.settings.groups.is_empty() || items.is_empty() {
-            return Ok(items.into_iter().filter(|item| !blank(item)).map(Grouped::Item).collect());
+            return Ok(items.into_iter().filter(|item| !blank(item)).map(|item| Grouped::Item(Box::new(item))).collect());
         }
         let groups = transform(&self.settings.groups)?;
         let mut all: Vec<usize> = (0..items.len()).collect();
@@ -299,7 +299,7 @@ impl<'a> Grouper<'a> {
             }
             for index in section.items {
                 if let Some(item) = slots[index].take().filter(|item| !blank(item)) {
-                    out.push(Grouped::Item(item));
+                    out.push(Grouped::Item(Box::new(item)));
                 }
             }
         }

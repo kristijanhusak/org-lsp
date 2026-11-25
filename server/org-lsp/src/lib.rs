@@ -27,6 +27,7 @@ pub mod port;
 pub mod process;
 pub mod prompt;
 pub mod protocol;
+pub mod records;
 pub mod server;
 pub mod settings;
 pub mod setup;

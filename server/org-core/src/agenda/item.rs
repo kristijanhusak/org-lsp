@@ -118,6 +118,12 @@ pub struct Item {
     /// How the line shows its priority cookies, if it does
     /// (`org-agenda-fontify-priorities`).
     pub fontify: Option<super::display::Fontify>,
+    /// Org's `extra`: the leader the line was formatted with, such as
+    /// `Scheduled: ` or `In   2 d.: `; empty for a habit.
+    pub extra: String,
+    /// Org's `time`: the time the prefix shows, such as ` 9:30-9:45` or
+    /// ` 8:00......`; empty when the line has none.
+    pub time: String,
 }
 
 /// What a specifier of `org-agenda-prefix-format` stands for.
@@ -578,6 +584,8 @@ pub struct Formatted {
     pub text: String,
     pub heading: usize,
     pub time_of_day: Option<i64>,
+    /// The time the prefix shows (Org's `time`).
+    pub time: String,
 }
 
 /// `org-agenda-fix-displayed-tags`: replace the tags written in the
@@ -848,7 +856,7 @@ pub fn format_item(input: &FormatInput<'_>) -> Formatted {
     }
     let heading = text.len();
     text.push_str(&txt);
-    Formatted { text, heading, time_of_day: time_of_day_value }
+    Formatted { text, heading, time_of_day: time_of_day_value, time }
 }
 
 /// `org-get-priority`: the value of the first priority cookie in `text`,

@@ -618,7 +618,7 @@ pub fn org_lines(
         .collect()
 }
 
-type BlockLines = (Vec<(usize, agenda::Line)>, Vec<Option<(Day, Span)>>);
+pub(crate) type BlockLines = (Vec<(usize, agenda::Line)>, Vec<Option<(Day, Span)>>);
 
 /// The tags and the categories of the lines of the view `blocks` make,
 /// without its filters, for `/` to tell them apart
@@ -683,7 +683,7 @@ pub fn filter_steps(
 /// days and span of the blocks that are agendas. Emacs leaves a blank line
 /// above the separator between blocks; `blank` keeps it, as the agenda
 /// printed in a terminal does. The editor's agenda goes without.
-fn block_lines(
+pub(crate) fn block_lines(
     blocks: &[Block],
     files: &[(&Outline, String, String)],
     search: Option<&SearchFiles>,
