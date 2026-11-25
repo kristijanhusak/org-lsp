@@ -4,6 +4,8 @@
 //! naming a pretended clock and the agenda commands to run, and the text
 //! Emacs printed for each (`expected-N.txt`, written by
 //! `scripts/update-agenda-fixtures.py`). The server must print the same.
+//! `expected-N.csv` is the same agenda as `org-batch-agenda-csv` prints
+//! it, which `--format csv` must print.
 
 use std::path::{Path, PathBuf};
 
@@ -92,7 +94,17 @@ fn difference(expected: &str, actual: &str) -> String {
 
 #[test]
 fn agenda_matches_emacs() {
-    compare(&|_, arguments| org_lsp::cli::agenda(arguments));
+    compare("txt", &|_, arguments| org_lsp::cli::agenda(arguments));
+}
+
+/// `--format csv` against `org-batch-agenda-csv`.
+#[test]
+fn agenda_csv_matches_emacs() {
+    compare("csv", &|_, arguments| {
+        let mut arguments = arguments.to_vec();
+        arguments.extend(["--format".to_string(), "csv".to_string()]);
+        org_lsp::cli::agenda(&arguments)
+    });
 }
 
 /// The same runs with each case's options and files in a configuration
@@ -100,7 +112,7 @@ fn agenda_matches_emacs() {
 #[test]
 fn agenda_from_a_configuration_file_matches_emacs() {
     let config = std::env::temp_dir().join(format!("org-lsp-agenda-config-{}.json", std::process::id()));
-    compare(&|directory, arguments| {
+    compare("txt", &|directory, arguments| {
         let mut options = serde_json::Map::new();
         let mut rest = Vec::new();
         let mut arguments = arguments.iter();
@@ -125,7 +137,9 @@ fn agenda_from_a_configuration_file_matches_emacs() {
 /// How one run is made from its case's directory and arguments.
 type Build<'a> = &'a dyn Fn(&Path, &[String]) -> Result<String, String>;
 
-fn compare(build: Build) {
+/// Each run of each case against what Emacs printed, `expected-N.EXTENSION`.
+/// A run with no CSV recorded yet is not compared.
+fn compare(extension: &str, build: Build) {
     let root = cases_directory();
     let mut directories: Vec<PathBuf> = std::fs::read_dir(&root)
         .unwrap_or_else(|error| panic!("{}: {error}", root.display()))
@@ -141,7 +155,11 @@ fn compare(build: Build) {
     for directory in &directories {
         let case: Value = serde_json::from_str(&std::fs::read_to_string(directory.join("case.json")).unwrap()).unwrap();
         for (index, run) in case["runs"].as_array().unwrap().iter().enumerate() {
-            let expected = std::fs::read_to_string(directory.join(format!("expected-{index}.txt")))
+            let path = directory.join(format!("expected-{index}.{extension}"));
+            if extension == "csv" && !path.exists() {
+                continue;
+            }
+            let expected = std::fs::read_to_string(&path)
                 .unwrap_or_else(|error| panic!("{} run {index}: {error}", directory.display()));
             // Emacs itself gave up on this input; there is nothing to match.
             if expected.starts_with("ERROR:") {
@@ -153,6 +171,7 @@ fn compare(build: Build) {
             let actual = actual.replace(&format!("{}/", directory.display()), "{dir}/");
             // The recordings end at their last line that is not empty.
             let actual = format!("{}\n", actual.trim_end_matches('\n'));
+            let expected = if extension == "csv" { format!("{}\n", expected.trim_end_matches('\n')) } else { expected };
             compared += 1;
             if actual != expected {
                 failed += 1;

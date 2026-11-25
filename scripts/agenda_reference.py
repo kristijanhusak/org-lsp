@@ -37,7 +37,8 @@ ORG_LSP_EMACS_PACKAGES to a directory with checkouts of org-super-agenda
 and what it needs (compat, dash, s, ht, ts).
 
 `reference(cases)` writes `expected-N.txt` next to each `case.json`, one
-per run. Emacs runs under faketime, so both programs see the same clock
+per run, and `expected-N.csv`: the same agenda as `org-batch-agenda-csv`
+prints it (`ERROR: no agenda` for a run that built none). Emacs runs under faketime, so both programs see the same clock
 (starting at it: a frozen clock makes Emacs wait forever where it pauses).
 Set ORG_LISP_DIR to the `lisp` directory of an Org checkout to use that
 version instead of the one bundled with Emacs.
@@ -61,10 +62,44 @@ PRELUDE = r"""
     (setq org-super-agenda-show-message nil)))
 (setq org-agenda-tags-column -80)
 (defun org-lsp-run (out fn)
-  (let ((text (condition-case err
-                  (with-output-to-string (funcall fn))
-                (error (format "ERROR: %S\n" err)))))
-    (with-temp-file out (insert text))))
+  "Write what FN prints to OUT, and the agenda it builds as
+`org-batch-agenda-csv' prints it next to OUT (`.csv')."
+  (let* ((before (get-buffer org-agenda-buffer-name))
+         (tick (and before (buffer-modified-tick before)))
+         csv
+         (text (condition-case err
+                   (prog1 (with-output-to-string (funcall fn))
+                     ;; Only an agenda this run built.
+                     (let ((agenda (get-buffer org-agenda-buffer-name)))
+                       (when (and agenda (or (not (eq agenda before))
+                                             (/= tick (buffer-modified-tick agenda))))
+                         (setq csv (org-lsp-csv agenda)))))
+                 (error (format "ERROR: %S\n" err)))))
+    (with-temp-file out (insert text))
+    (with-temp-file (concat (file-name-sans-extension out) ".csv")
+      (insert (or csv "ERROR: no agenda\n")))))
+(defun org-lsp-csv (agenda)
+  "The lines of AGENDA as `org--batch-agenda-csv' prints them, without
+those its filters hide. The view keeps the tags in its headlines, which
+`org-batch-agenda-csv' takes out (`org-agenda-remove-tags'): here they
+are taken out of `txt'."
+  (with-current-buffer agenda
+    (let (out)
+      (dolist (line (org-split-string (buffer-string) "\n"))
+        (when (and (get-text-property 0 'org-category line)
+                   (not (eq (get-text-property 0 'invisible line) 'org-filtered)))
+          (let* ((props (copy-sequence (text-properties-at 0 line)))
+                 (txt (plist-get props 'txt)))
+            (when txt
+              (setq props (plist-put props 'txt (replace-regexp-in-string org-tag-group-re "" txt))))
+            (setq org-agenda-info (org-fix-agenda-info props))
+            (push (concat (mapconcat #'org-agenda-export-csv-mapper
+                                     '(org-category txt type todo tags date time extra
+                                                    priority-letter priority agenda-day)
+                                     ",")
+                          "\n")
+                  out))))
+      (apply #'concat (nreverse out)))))
 (defun org-lsp-visible-string ()
   "The agenda buffer without the lines its filters hide, with the entry
 text `E' shows after the lines."
@@ -373,7 +408,7 @@ def clean(text, run):
 
 
 def reference(directories):
-    """Write expected-N.txt for every run of every case directory."""
+    """Write expected-N.txt and .csv for every run of every case directory."""
     by_clock = {}
     for directory in directories:
         with open(os.path.join(directory, "case.json"), encoding="utf-8") as handle:

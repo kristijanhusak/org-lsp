@@ -846,6 +846,8 @@ impl Builder<'_> {
             ts_type: "",
             own_tags_only: !inherited,
             fontify: self.fontify(file),
+            extra: extra.to_string(),
+            time: formatted.time,
         }
     }
 
@@ -1371,6 +1373,8 @@ impl Builder<'_> {
                 ts_type: "",
                 own_tags_only: !inherited,
                 fontify: self.fontify(file),
+                extra,
+                time: formatted.time,
             });
         }
     }
@@ -1448,6 +1452,8 @@ impl Builder<'_> {
                 ts_type: "",
                 own_tags_only: false,
                 fontify: None,
+                extra: String::new(),
+                time: formatted.time,
             }
         };
         // Org builds this list back to front, and the order decides ties.
@@ -1569,7 +1575,7 @@ fn finalize(
     let mut lines: Vec<Line> = Vec::new();
     for grouped in grouper.group(items)? {
         match grouped {
-            super_agenda::Grouped::Item(item) => lines.push(line(item)),
+            super_agenda::Grouped::Item(item) => lines.push(line(*item)),
             super_agenda::Grouped::Header { text, faced } => {
                 lines.push(Line { text, kind: LineKind::Group { faced }, item: None })
             }

@@ -6,7 +6,7 @@
 //!                [--log] [--clockreport] [--inactive] [--archives trees|files]
 //!                [--entry-text N] [--filters JSON]
 //!                [--today DATE] [--now HH:MM] [--options JSON]
-//!                [--no-config] [FILE...]
+//!                [--format text|csv|json] [--no-config] [FILE...]
 //! ```
 //!
 //! From the command line ([`agenda_configured`]) the options are those of
@@ -53,6 +53,9 @@ Options:
   --options JSON       options, named as the server's, over those of the
                        configuration file
   --no-config          read no configuration file: --options alone
+  --format FORMAT      text (the default), as the agenda shows it; csv, a
+                       line for each entry as `org-batch-agenda-csv` prints
+                       it; or json, the entries by block and day
   --filters JSON       the agenda's filters, as a list of steps:
                        {\"type\": \"tag\", \"filter\": [\"+work\"]} (category,
                        regexp, effort too), {\"string\": \"+work<0:10\"} (`/`),
@@ -102,7 +105,7 @@ pub fn agenda_configured(
     env: &dyn Fn(&str) -> Option<String>,
     folder: Option<&Path>,
 ) -> Result<(String, Vec<String>), String> {
-    const WITH_VALUE: [&str; 11] = [
+    const WITH_VALUE: [&str; 12] = [
         "--view",
         "--match",
         "--key",
@@ -114,7 +117,9 @@ pub fn agenda_configured(
         "--today",
         "--now",
         "--options",
+        "--format",
     ];
+    let arguments = &split_values(arguments);
     let mut rest = Vec::new();
     let mut editor: Option<serde_json::Value> = None;
     let mut use_file = true;
@@ -173,7 +178,27 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
     Ok(match agenda_view(arguments)? {
         Agenda::Help => format!("{USAGE}\n"),
         Agenda::Lines(lines) => lines.into_iter().map(|line| line.text + "\n").collect(),
+        Agenda::Output(output) => output,
     })
+}
+
+/// `--name=value` as `--name value`, for the options that take a value.
+fn split_values(arguments: &[String]) -> Vec<String> {
+    arguments
+        .iter()
+        .flat_map(|argument| match argument.split_once('=') {
+            Some((name, value)) if name.starts_with("--") => vec![name.to_string(), value.to_string()],
+            _ => vec![argument.clone()],
+        })
+        .collect()
+}
+
+/// What `--format` asks for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Format {
+    Text,
+    Csv,
+    Json,
 }
 
 /// A line of the view `org-lsp agenda` prints, with the entry it shows:
@@ -187,6 +212,8 @@ pub struct AgendaLine {
 pub enum Agenda {
     Help,
     Lines(Vec<AgendaLine>),
+    /// The view as CSV or JSON (`--format`).
+    Output(String),
 }
 
 /// [`agenda`], line by line with the entries the lines show.
@@ -194,6 +221,7 @@ pub fn agenda_lines(arguments: &[String]) -> Result<Vec<AgendaLine>, String> {
     match agenda_view(arguments)? {
         Agenda::Help => Ok(vec![AgendaLine { text: USAGE.to_string(), entry: None }]),
         Agenda::Lines(lines) => Ok(lines),
+        Agenda::Output(text) => Ok(vec![AgendaLine { text, entry: None }]),
     }
 }
 
@@ -214,7 +242,9 @@ fn agenda_view(arguments: &[String]) -> Result<Agenda, String> {
     let mut inheritance = org_core::outline::Inheritance::default();
     let mut tag_options: Option<crate::config::Options> = None;
     let mut files = Vec::new();
+    let mut format = Format::Text;
 
+    let arguments = split_values(arguments);
     let mut arguments = arguments.iter();
     while let Some(argument) = arguments.next() {
         let mut value = |name: &str| arguments.next().ok_or_else(|| format!("{name} needs a value"));
@@ -245,6 +275,14 @@ fn agenda_view(arguments: &[String]) -> Result<Agenda, String> {
                     .map_err(|error| format!("--options: {error}"))?
                     .inheritance();
                 tag_options = serde_json::from_str::<crate::config::Options>(json).ok();
+            }
+            "--format" => {
+                format = match value("--format")?.as_str() {
+                    "text" => Format::Text,
+                    "csv" => Format::Csv,
+                    "json" => Format::Json,
+                    other => return Err(format!("`{other}` is not a format; expected text, csv or json")),
+                }
             }
             "--help" | "-h" => return Ok(Agenda::Help),
             flag if flag.starts_with("--") => return Err(format!("unknown option `{flag}`")),
@@ -383,16 +421,29 @@ fn agenda_view(arguments: &[String]) -> Result<Agenda, String> {
         }
         None => None,
     };
+    // The line of the headline at byte `offset` of the file `file`, from 1.
+    let line_of = |file: usize, offset: usize| {
+        let before = &texts[file][..offset.min(texts[file].len())];
+        before.matches('\n').count() + 1
+    };
+    if format != Format::Text {
+        let records = crate::records::records(&blocks, &named, search.as_ref(), now, filters.as_ref());
+        return Ok(Agenda::Output(match format {
+            Format::Csv => crate::records::csv(&records),
+            _ => {
+                let place = |file: usize, offset: usize| (files[file].clone(), line_of(file, offset));
+                let value = crate::records::json(&records, now.org_today(config.extend_today_until), &place);
+                format!("{value:#}\n")
+            }
+        }));
+    }
     let lines = views::org_lines(&blocks, &named, search.as_ref(), now, filters.as_ref());
     Ok(Agenda::Lines(
         lines
             .into_iter()
             .map(|(text, entry)| AgendaLine {
                 text,
-                entry: entry.map(|(file, offset)| {
-                    let before = &texts[file][..offset.min(texts[file].len())];
-                    (files[file].clone(), before.matches('\n').count() + 1)
-                }),
+                entry: entry.map(|(file, offset)| (files[file].clone(), line_of(file, offset))),
             })
             .collect(),
     ))
@@ -587,6 +638,93 @@ mod tests {
         let gone = folder.join("gone.org");
         assert_eq!(error, format!("no files given, and the agenda files are not there: {}", gone.display()));
         std::fs::remove_dir_all(&folder).unwrap();
+    }
+
+    #[test]
+    fn prints_the_agenda_as_csv_and_json() {
+        let file = std::env::temp_dir().join(format!("org-lsp-cli-format-{}.org", std::process::id()));
+        std::fs::write(
+            &file,
+            "#+CATEGORY: work\n* TODO [#A] Ship it :release:\nDEADLINE: <2026-11-27 Fri>\n\
+             * Standup :meeting:\n<2026-11-25 Wed 09:30-09:45>\n",
+        )
+        .unwrap();
+        let run = |rest: &[&str]| {
+            let mut arguments: Vec<String> = ["--today", "2026-11-25", "--now", "10:00", "--span", "week"]
+                .iter()
+                .chain(rest)
+                .map(|a| a.to_string())
+                .collect();
+            arguments.push(file.display().to_string());
+            agenda(&arguments)
+        };
+        // As `org-batch-agenda-csv`: the time grid too, the tags out of the
+        // headline, the deadline's warning on today with today's date.
+        let csv = run(&["--format=csv"]).unwrap();
+        assert!(csv.contains("work,Standup,timestamp,,meeting,2026-11-25,9:30-9:45,,,1000,2026-11-25\n"), "{csv}");
+        assert!(
+            csv.contains("work,Ship it,upcoming-deadline,TODO,release,2026-11-25,,In   2 d.:,A,2000,2026-11-25\n"),
+            "{csv}"
+        );
+        assert!(csv.contains("work,Ship it,deadline,TODO,release,2026-11-27,,Deadline:,A,2000,2026-11-27\n"), "{csv}");
+        assert!(csv.contains(",----------------,,,,,8:00......,,,,2026-11-25\n"), "{csv}");
+        // The same, by block and day, without the grid.
+        let json: serde_json::Value = serde_json::from_str(&run(&["--format", "json"]).unwrap()).unwrap();
+        assert_eq!(json["today"], "2026-11-25");
+        let block = &json["blocks"][0];
+        assert_eq!(
+            (&block["type"], &block["span"], &block["start"], &block["end"]),
+            (&"agenda".into(), &"week".into(), &"2026-11-23".into(), &"2026-11-29".into())
+        );
+        let days = block["days"].as_array().unwrap();
+        assert_eq!(days.len(), 7);
+        let today = &days[2];
+        assert_eq!(today["today"], true);
+        let items = today["items"].as_array().unwrap();
+        assert_eq!(items.len(), 2, "{items:?}");
+        assert_eq!(items[0]["head"], "Standup");
+        assert_eq!(items[0]["time"], "9:30-9:45");
+        assert_eq!(items[0]["line"], 4);
+        assert_eq!(items[1]["type"], "upcoming-deadline");
+        assert_eq!(items[1]["tags"], serde_json::json!(["release"]));
+        assert_eq!(items[1]["priority_letter"], "A");
+        assert_eq!(items[1]["line"], 2);
+        assert_eq!(items[1]["file"], file.display().to_string());
+        // Not an agenda: the items under the block.
+        let todo: serde_json::Value =
+            serde_json::from_str(&run(&["--view", "todo", "--format=json"]).unwrap()).unwrap();
+        let block = &todo["blocks"][0];
+        assert_eq!(block["type"], "todo");
+        assert!(block.get("days").is_none());
+        assert_eq!(block["items"][0]["type"], "todo");
+        assert_eq!(block["items"][0]["date"], serde_json::Value::Null);
+        assert_eq!(run(&["--format", "xml"]).unwrap_err(), "`xml` is not a format; expected text, csv or json");
+        std::fs::remove_file(&file).unwrap();
+    }
+
+    #[test]
+    fn a_block_agenda_gives_a_block_each() {
+        let file = std::env::temp_dir().join(format!("org-lsp-cli-blocks-{}.org", std::process::id()));
+        std::fs::write(&file, "* TODO Call :phone:\nSCHEDULED: <2026-11-25 Wed>\n* NEXT Write\n").unwrap();
+        let options = r#"{ "org_todo_keywords": ["TODO", "NEXT", "|", "DONE"],
+            "org_agenda_custom_commands": [{ "key": "x", "description": "Both",
+              "blocks": [{ "type": "agenda", "settings": { "org_agenda_span": "day" } },
+                         { "type": "todo", "match": "NEXT" }] }] }"#;
+        let arguments: Vec<String> =
+            ["--options", options, "--today", "2026-11-25", "--view", "custom", "--key", "x", "--format=json"]
+                .iter()
+                .map(|argument| argument.to_string())
+                .chain([file.display().to_string()])
+                .collect();
+        let json: serde_json::Value = serde_json::from_str(&agenda(&arguments).unwrap()).unwrap();
+        let blocks = json["blocks"].as_array().unwrap();
+        assert_eq!(blocks.len(), 2, "{json:#}");
+        assert_eq!(blocks[0]["type"], "agenda");
+        assert_eq!(blocks[0]["days"][0]["items"][0]["head"], "Call");
+        assert_eq!(blocks[1]["type"], "todo");
+        assert_eq!(blocks[1]["items"][0]["todo"], "NEXT");
+        assert_eq!(blocks[1]["items"][0]["head"], "Write");
+        std::fs::remove_file(&file).unwrap();
     }
 
     #[test]

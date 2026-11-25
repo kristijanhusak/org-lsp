@@ -185,6 +185,37 @@ org-lsp agenda --help
 It reads the shared configuration file (~org-lsp config~ shows it) as the
 server does, with ~--options~ on top; ~--no-config~ leaves it out.
 
+For scripts, ~--format csv~ prints a line for each entry as Emacs's
+~org-batch-agenda-csv~ does (category, headline, type, TODO keyword, tags,
+date, time, leader, priority letter and value, the day it is under), and
+~--format json~ the same values by block and day, with the file and line
+of each entry and without the lines of the time grid:
+
+#+begin_src sh
+org-lsp agenda --span week --format=json \
+  | jq -r '.blocks[0].days[] | .date as $d | .items[] | "\($d) \(.type) \(.head)"'
+#+end_src
+
+#+begin_src json
+{ "today": "2026-11-25",
+  "blocks": [ { "type": "agenda", "header": "Week-agenda (W48):",
+                "span": "week", "start": "2026-11-23", "end": "2026-11-29",
+                "days": [ { "date": "2026-11-25", "today": true, "weekend": false,
+                            "heading": "Wednesday  25 November 2026",
+                            "items": [ { "category": "work", "head": "Ship release 2.0",
+                                         "type": "upcoming-deadline", "todo": "TODO",
+                                         "tags": ["release"], "date": "2026-11-25",
+                                         "time": null, "extra": "In   2 d.:",
+                                         "priority_letter": "A", "priority": 2000,
+                                         "urgency": 1998, "agenda_day": "2026-11-25",
+                                         "file": "/home/me/org/work.org", "line": 2,
+                                         "text": "  work:       In   2 d.:  TODO [#A] Ship release 2.0 …" } ] } ] } ] }
+#+end_src
+
+A view that is not an agenda (~--view todo~, ~tags~, ~search~) has its
+~items~ under the block; a custom command of several blocks gives a block
+each.
+
 ~org-lsp notify~, run each minute by cron or a timer
 (~scripts/install.sh notifications~ sets it up), reminds of the day's
 appointments with desktop notifications, as Emacs's ~appt.el~ does, and

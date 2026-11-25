@@ -340,6 +340,8 @@ mod tests {
                 ts_type: "",
                 own_tags_only: false,
                 fontify: Some(Fontify { lines: false, file: (65, 67), global: (65, 67) }),
+                extra: String::new(),
+                time: String::new(),
             }),
         }
     }
